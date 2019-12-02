@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<link rel="stylesheet" href="../../../test/styles.css" type="text/css">
+		<link rel="stylesheet" href="../../../test/sass.output.css" type="text/css">
+		<script src="/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+		<script type="module">
+			import '../../typography/typography.js';
+			import 'd2l-table/d2l-table-style.js';
+			import 'd2l-table/d2l-table-col-sort-button.js';
+			import 'd2l-table/d2l-table-wrapper.js';
+		</script>
+		<script></script>
+		<title>d2l-table visual-diff tests</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		<meta charset="UTF-8">
+	</head>
+	<body class="d2l-typography">
+		<custom-style>
+			<style include="d2l-table-style"></style>
+		</custom-style>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- header only -->
+				<d2l-table-wrapper id="header"><table class="d2l-table">
+					<thead>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</thead>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- footer only -->
+				<d2l-table-wrapper id="footer"><table class="d2l-table">
+					<tfoot>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</tfoot>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- caption only -->
+				<d2l-table-wrapper id="caption-only"><table class="d2l-table">
+					<caption>Caption</caption>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- header and footer -->
+				<d2l-table-wrapper id="header-and-footer"><table class="d2l-table">
+					<thead>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</thead>
+					<tfoot>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</tfoot>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- header and caption -->
+				<d2l-table-wrapper id="header-and-caption"><table class="d2l-table">
+					<caption>Caption</caption>
+					<thead>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</thead>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- footer and caption -->
+				<d2l-table-wrapper id="footer-and-caption"><table class="d2l-table">
+					<caption>Caption</caption>
+					<tfoot>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</tfoot>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- header and footer and caption -->
+				<d2l-table-wrapper id="header-and-footer-and-caption"><table class="d2l-table">
+					<caption>Caption</caption>
+					<thead>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</thead>
+					<tfoot>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</tfoot>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- header only plus colgroup-->
+				<d2l-table-wrapper id="header-and-colgroup"><table class="d2l-table">
+					<colgroup></colgroup>
+					<thead>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</thead>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- footer only plus colgroup -->
+				<d2l-table-wrapper id="footer-and-colgroup"><table class="d2l-table">
+					<colgroup></colgroup>
+					<tfoot>
+					<tr>
+						<th>First Name</th>
+						<th>Middle Name</th>
+						<th>Last Name</th>
+					</tr>
+					</tfoot>
+					<tbody>
+					<tr>
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- active only -->
+				<d2l-table-wrapper id="active"><table class="d2l-table">
+					<tbody>
+					<tr active="">
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>Paula</td>
+						<td>Rose</td>
+						<td>Baldwin</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- selected only -->
+				<d2l-table-wrapper id="selected"><table class="d2l-table">
+					<tbody>
+					<tr selected="">
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>Paula</td>
+						<td>Rose</td>
+						<td>Baldwin</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+				<!-- selected and active -->
+				<d2l-table-wrapper id="selected-and-active"><table class="d2l-table">
+					<tbody>
+					<tr active="" selected="">
+						<td>Darlene</td>
+						<td>Bridget</td>
+						<td>Waters</td>
+					</tr>
+					<tr>
+						<td>Paula</td>
+						<td>Rose</td>
+						<td>Baldwin</td>
+					</tr>
+					<tr>
+						<td>David</td>
+						<td>Robert</td>
+						<td>Sandoval</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div style="width:400px">
+			<div class="visual-diff">
+			<!-- Sorting icons -->
+				<d2l-table-wrapper id="sorting-icons"><table class="d2l-table">
+					<thead>
+						<tr><th>
+							<d2l-table-col-sort-button>Ascending</d2l-table-col-sort-button>
+						</th>
+						<th>
+							<d2l-table-col-sort-button desc="">Descending</d2l-table-col-sort-button>
+						</th>
+						<th>
+							<d2l-table-col-sort-button nosort="">Not sorted</d2l-table-col-sort-button>
+						</th>
+					</tr></thead>
+					<tbody>
+					<tr>
+						<td>123</td>
+						<td>654</td>
+						<td>654</td>
+					</tr>
+					<tr>
+						<td>456</td>
+						<td>321</td>
+						<td>321</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+		<div>
+			<div class="visual-diff">
+				<!-- Small table (header only) -->
+				<d2l-table-wrapper id="small-table-header-only"><table class="d2l-table">
+					<thead>
+					<tr>
+						<th><d2l-table-col-sort-button>First Name</d2l-table-col-sort-button></th>
+						<th><d2l-table-col-sort-button desc="">Last Name</d2l-table-col-sort-button></th>
+						<th>Independent Assignments</th>
+						<th>Quizzes</th>
+						<th>Final Calculated Grade</th>
+					</tr>
+					</thead>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+
+		<div style="width:400px; padding-top: 20px;">
+			<div class="visual-diff">
+				<!-- Scroll wrapper visible-->
+				<d2l-table-wrapper id="scroll-wrapper-visible"><table class="d2l-table">
+					<thead>
+					<tr>
+						<th><d2l-table-col-sort-button>First Name</d2l-table-col-sort-button></th>
+						<th><d2l-table-col-sort-button desc="">Last Name</d2l-table-col-sort-button></th>
+						<th>Independent Assignments</th>
+						<th>Quizzes</th>
+						<th>Final Calculated Grade</th>
+					</tr>
+					</thead>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+
+		<div>
+			<div class="visual-diff">
+				<!-- Large table-->
+				<d2l-table-wrapper id="large-table"><table class="d2l-table" selectable="">
+					<caption>Table Caption</caption>
+					<colgroup></colgroup>
+					<colgroup></colgroup>
+					<thead>
+					<tr>
+						<th>Column header 1</th>
+						<th>Column header 2</th>
+						<th>Column header 3</th>
+						<th>Column header 4</th>
+						<th>Column header 5</th>
+						<th>Column header 6</th>
+						<th>Column header 7</th>
+						<th>Column header 8</th>
+						<th>Column header 9</th>
+						<th>Column header 10</th>
+						<th>Column header 11</th>
+						<th>Column header 12</th>
+						<th>Column header 13</th>
+						<th>Column header 14</th>
+						<th>Column header 15</th>
+						<th>Column header 16</th>
+						<th>Column header 17</th>
+						<th>Column header 18</th>
+						<th>Column header 19</th>
+						<th>Column header 20</th>
+					</tr>
+					</thead>
+					<tbody>
+					<tr>
+						<th>Row 1 Column 1</th>
+						<td>Row 1 Column 2</td>
+						<td>Row 1 Column 3</td>
+						<td>Row 1 Column 4</td>
+						<td>Row 1 Column 5</td>
+						<td>Row 1 Column 6</td>
+						<td>Row 1 Column 7</td>
+						<td>Row 1 Column 8</td>
+						<td>Row 1 Column 9</td>
+						<td>Row 1 Column 10</td>
+						<td>Row 1 Column 11</td>
+						<td>Row 1 Column 12</td>
+						<td>Row 1 Column 13</td>
+						<td>Row 1 Column 14</td>
+						<td>Row 1 Column 15</td>
+						<td>Row 1 Column 16</td>
+						<td>Row 1 Column 17</td>
+						<td>Row 1 Column 18</td>
+						<td>Row 1 Column 19</td>
+						<td>Row 1 Column 20</td>
+					</tr>
+					<tr>
+						<th>Row 2 Column 1</th>
+						<td>Row 2 Column 2</td>
+						<td>Row 2 Column 3</td>
+						<td>Row 2 Column 4</td>
+						<td>Row 2 Column 5</td>
+						<td>Row 2 Column 6</td>
+						<td>Row 2 Column 7</td>
+						<td>Row 2 Column 8</td>
+						<td>Row 2 Column 9</td>
+						<td>Row 2 Column 10</td>
+						<td>Row 2 Column 11</td>
+						<td>Row 2 Column 12</td>
+						<td>Row 2 Column 13</td>
+						<td>Row 2 Column 14</td>
+						<td>Row 2 Column 15</td>
+						<td>Row 2 Column 16</td>
+						<td>Row 2 Column 17</td>
+						<td>Row 2 Column 18</td>
+						<td>Row 2 Column 19</td>
+						<td>Row 2 Column 20</td>
+					</tr>
+					<tr selected="">
+						<th>Row 3 Column 1</th>
+						<td>Row 3 Column 2</td>
+						<td>Row 3 Column 3</td>
+						<td>Row 3 Column 4</td>
+						<td>Row 3 Column 5</td>
+						<td>Row 3 Column 6</td>
+						<td>Row 3 Column 7</td>
+						<td>Row 3 Column 8</td>
+						<td>Row 3 Column 9</td>
+						<td>Row 3 Column 10</td>
+						<td>Row 3 Column 11</td>
+						<td>Row 3 Column 12</td>
+						<td>Row 3 Column 13</td>
+						<td>Row 3 Column 14</td>
+						<td>Row 3 Column 15</td>
+						<td>Row 3 Column 16</td>
+						<td>Row 3 Column 17</td>
+						<td>Row 3 Column 18</td>
+						<td>Row 3 Column 19</td>
+						<td>Row 3 Column 20</td>
+					</tr>
+					<tr selected="">
+						<th>Row 4 Column 1</th>
+						<td>Row 4 Column 2</td>
+						<td>Row 4 Column 3</td>
+						<td>Row 4 Column 4</td>
+						<td>Row 4 Column 5</td>
+						<td>Row 4 Column 6</td>
+						<td>Row 4 Column 7</td>
+						<td>Row 4 Column 8</td>
+						<td>Row 4 Column 9</td>
+						<td>Row 4 Column 10</td>
+						<td>Row 4 Column 11</td>
+						<td>Row 4 Column 12</td>
+						<td>Row 4 Column 13</td>
+						<td>Row 4 Column 14</td>
+						<td>Row 4 Column 15</td>
+						<td>Row 4 Column 16</td>
+						<td>Row 4 Column 17</td>
+						<td>Row 4 Column 18</td>
+						<td>Row 4 Column 19</td>
+						<td>Row 4 Column 20</td>
+					</tr>
+					<tr>
+						<th>Row 5 Column 1</th>
+						<td>Row 5 Column 2</td>
+						<td>Row 5 Column 3</td>
+						<td>Row 5 Column 4</td>
+						<td>Row 5 Column 5</td>
+						<td>Row 5 Column 6</td>
+						<td>Row 5 Column 7</td>
+						<td>Row 5 Column 8</td>
+						<td>Row 5 Column 9</td>
+						<td>Row 5 Column 10</td>
+						<td>Row 5 Column 11</td>
+						<td>Row 5 Column 12</td>
+						<td>Row 5 Column 13</td>
+						<td>Row 5 Column 14</td>
+						<td>Row 5 Column 15</td>
+						<td>Row 5 Column 16</td>
+						<td>Row 5 Column 17</td>
+						<td>Row 5 Column 18</td>
+						<td>Row 5 Column 19</td>
+						<td>Row 5 Column 20</td>
+					</tr>
+					<tr>
+						<th>Row 6 Column 1</th>
+						<td>Row 6 Column 2</td>
+						<td>Row 6 Column 3</td>
+						<td>Row 6 Column 4</td>
+						<td>Row 6 Column 5</td>
+						<td>Row 6 Column 6</td>
+						<td>Row 6 Column 7</td>
+						<td>Row 6 Column 8</td>
+						<td>Row 6 Column 9</td>
+						<td>Row 6 Column 10</td>
+						<td>Row 6 Column 11</td>
+						<td>Row 6 Column 12</td>
+						<td>Row 6 Column 13</td>
+						<td>Row 6 Column 14</td>
+						<td>Row 6 Column 15</td>
+						<td>Row 6 Column 16</td>
+						<td>Row 6 Column 17</td>
+						<td>Row 6 Column 18</td>
+						<td>Row 6 Column 19</td>
+						<td>Row 6 Column 20</td>
+					</tr>
+					<tr>
+						<th>Row 7 Column 1</th>
+						<td>Row 7 Column 2</td>
+						<td>Row 7 Column 3</td>
+						<td>Row 7 Column 4</td>
+						<td>Row 7 Column 5</td>
+						<td>Row 7 Column 6</td>
+						<td>Row 7 Column 7</td>
+						<td>Row 7 Column 8</td>
+						<td>Row 7 Column 9</td>
+						<td>Row 7 Column 10</td>
+						<td>Row 7 Column 11</td>
+						<td>Row 7 Column 12</td>
+						<td>Row 7 Column 13</td>
+						<td>Row 7 Column 14</td>
+						<td>Row 7 Column 15</td>
+						<td>Row 7 Column 16</td>
+						<td>Row 7 Column 17</td>
+						<td>Row 7 Column 18</td>
+						<td>Row 7 Column 19</td>
+						<td>Row 7 Column 20</td>
+					</tr>
+					<tr>
+						<th>Row 8 Column 1</th>
+						<td>Row 8 Column 2</td>
+						<td>Row 8 Column 3</td>
+						<td>Row 8 Column 4</td>
+						<td>Row 8 Column 5</td>
+						<td>Row 8 Column 6</td>
+						<td>Row 8 Column 7</td>
+						<td>Row 8 Column 8</td>
+						<td>Row 8 Column 9</td>
+						<td>Row 8 Column 10</td>
+						<td>Row 8 Column 11</td>
+						<td>Row 8 Column 12</td>
+						<td>Row 8 Column 13</td>
+						<td>Row 8 Column 14</td>
+						<td>Row 8 Column 15</td>
+						<td>Row 8 Column 16</td>
+						<td>Row 8 Column 17</td>
+						<td>Row 8 Column 18</td>
+						<td>Row 8 Column 19</td>
+						<td>Row 8 Column 20</td>
+					</tr>
+					<tr>
+						<th>Row 9 Column 1</th>
+						<td>Row 9 Column 2</td>
+						<td>Row 9 Column 3</td>
+						<td>Row 9 Column 4</td>
+						<td>Row 9 Column 5</td>
+						<td>Row 9 Column 6</td>
+						<td>Row 9 Column 7</td>
+						<td>Row 9 Column 8</td>
+						<td>Row 9 Column 9</td>
+						<td>Row 9 Column 10</td>
+						<td>Row 9 Column 11</td>
+						<td>Row 9 Column 12</td>
+						<td>Row 9 Column 13</td>
+						<td>Row 9 Column 14</td>
+						<td>Row 9 Column 15</td>
+						<td>Row 9 Column 16</td>
+						<td>Row 9 Column 17</td>
+						<td>Row 9 Column 18</td>
+						<td>Row 9 Column 19</td>
+						<td>Row 9 Column 20</td>
+					</tr>
+					<tr>
+						<th>Row 10 Column 1</th>
+						<td>Row 10 Column 2</td>
+						<td>Row 10 Column 3</td>
+						<td>Row 10 Column 4</td>
+						<td>Row 10 Column 5</td>
+						<td>Row 10 Column 6</td>
+						<td>Row 10 Column 7</td>
+						<td>Row 10 Column 8</td>
+						<td>Row 10 Column 9</td>
+						<td>Row 10 Column 10</td>
+						<td>Row 10 Column 11</td>
+						<td>Row 10 Column 12</td>
+						<td>Row 10 Column 13</td>
+						<td>Row 10 Column 14</td>
+						<td>Row 10 Column 15</td>
+						<td>Row 10 Column 16</td>
+						<td>Row 10 Column 17</td>
+						<td>Row 10 Column 18</td>
+						<td>Row 10 Column 19</td>
+						<td>Row 10 Column 20</td>
+					</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</div>
+		</div>
+	</body>
+</html>

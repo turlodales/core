@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+		<title>d2l-table unit tests</title>
+		<script src="/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+		<script src="/node_modules/mocha/mocha.js"></script>
+		<script src="/node_modules/chai/chai.js"></script>
+		<script src="/node_modules/@polymer/test-fixture/test-fixture.js"></script>
+		<script src="/node_modules/wct-mocha/wct-mocha.js"></script>
+		<script type="module">
+			import 'd2l-table/d2l-table-wrapper.js';
+		</script>
+	</head>
+	<body>
+		<custom-style>
+			<style include="d2l-table-style"></style>
+		</custom-style>
+		<test-fixture id="basic">
+			<template>
+				<d2l-table-wrapper><table class="d2l-table">
+					<thead>
+						<tr>
+							<th>Header column 1</th>
+							<th>Header column 2</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>row 1 column 1</td>
+							<td>row 1 column 2</td>
+						</tr>
+						<tr>
+							<td>row 2 column 1</td>
+							<td>row 2 column 2</td>
+						</tr>
+					</tbody>
+				</table></d2l-table-wrapper>
+			</template>
+		</test-fixture>
+
+		<script type="module">
+			import { runAxe } from '../../../tools/a11y-test-helper.js';
+
+			describe('d2l-table', () => {
+
+				let elem;
+
+				beforeEach(async() => {
+					elem = fixture('basic');
+					await elem.updateComplete;
+				});
+
+				describe('accessibility', () => {
+
+					it('should pass all aXe tests', async() => {
+						await runAxe(elem);
+					});
+
+				});
+
+			});
+		</script>
+	</body>
+</html>
