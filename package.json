@@ -69,7 +69,8 @@
     "intl-messageformat": "^2.2.0",
     "lit-element": "^2",
     "prismjs": "^1",
-    "resize-observer-polyfill": "^1"
+    "resize-observer-polyfill": "^1",
+    "stickyfilljs": "^2.1.0"
   },
   "greenkeeper": {
     "ignore": [
