@@ -4,18 +4,28 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		return {
 			isDropdownOpener: {
 				type: Boolean
+			},
+			noAutoOpen: {
+				type: Boolean,
+				reflect: true
+			},
+			disabled: {
+				type: Boolean,
+				reflect: true
 			}
 		};
+	}
+
+	constructor() {
+		super();
+		this.isDropdownOpener = true;
 	}
 
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
 
-		super.firstUpdated();
-		this.addEventListener('keydown', this._onKeyDown);
-
 		const opener = this.getOpenerElement();
-		const content = this.getContentElement();
+		const content = this.__getContentElement();
 		if (!opener) {
 			return;
 		}
@@ -25,10 +35,12 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		opener.setAttribute('aria-expanded', (content && content.opened || false).toString());
 	}
 
-	getContentElement() {
-		return this.shadowRoot.querySelector('slot').assignedNodes().find(
-			node => node.nodeType === 1 && node.nodeName === 'D2L-DROPDOWN-CONTENT'
-		);
+	/**
+	 * Gets the opener element (required by d2l-dropdown behavior).
+	 * @return {HTMLElement}
+	 */
+	getOpenerElement() {
+		return this;
 	}
 
 	/**
@@ -40,7 +52,7 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 			return;
 		}
 
-		const content = this.getContentElement();
+		const content = this.__getContentElement();
 		if (!content) {
 			return;
 		}
@@ -62,5 +74,11 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 			return;
 		}
 		this.toggleOpen(false);
+	}
+
+	__getContentElement() {
+		return this.shadowRoot.querySelector('slot').assignedNodes().find(
+			node => node.nodeType === 1 && node.nodeName === 'D2L-DROPDOWN-CONTENT'
+		);
 	}
 };
