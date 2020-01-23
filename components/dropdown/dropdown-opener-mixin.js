@@ -7,7 +7,8 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 			},
 			noAutoOpen: {
 				type: Boolean,
-				reflect: true
+				reflect: true,
+				attribute: 'no-auto-open'
 			},
 			disabled: {
 				type: Boolean,
@@ -19,6 +20,9 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 	constructor() {
 		super();
 		this.isDropdownOpener = true;
+
+		this.__onKeyPress = this.__onKeyPress.bind(this);
+		this.__onMouseUp = this.__onMouseUp.bind(this);
 	}
 
 	firstUpdated(changedProperties) {
@@ -30,9 +34,47 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 			return;
 		}
 		opener.setAttribute('aria-haspopup', 'true');
-		opener.addEventListener('keypress', this.__onKeyPress.bind(this));
-		opener.addEventListener('mouseup', this.__onMouseUp.bind(this));
+		opener.addEventListener('keypress', this.__onKeyPress);
+		opener.addEventListener('mouseup', this.__onMouseUp);
 		opener.setAttribute('aria-expanded', (content && content.opened || false).toString());
+	}
+
+	connectedCallback() {
+		super.connectedCallback();
+
+		this.addEventListener('d2l-dropdown-open', this.__onOpened);
+		this.addEventListener('d2l-dropdown-close', this.__onClosed);
+	}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		this.removeEventListener('d2l-dropdown-open', this.__onOpened);
+		this.removeEventListener('d2l-dropdown-close', this.__onClosed);
+
+		const opener = this.getOpenerElement();
+		if (!opener) {
+			return;
+		}
+		opener.removeEventListener('keypress', this.__onKeyPress);
+		opener.removeEventListener('mouseup', this.__onMouseUp);
+	}
+
+	/**
+	 * Applies focus to opener.
+	 */
+	focus() {
+		const opener = this.getOpenerElement();
+		if (!opener) {
+			return;
+		}
+		opener.focus();
+	}
+
+	/**
+	 * Gets the opener component.
+	 */
+	getOpener() {
+		return this;
 	}
 
 	/**
@@ -59,6 +101,12 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		content.toggleOpen(applyFocus);
 	}
 
+	__getContentElement() {
+		return this.shadowRoot.querySelector('slot').assignedNodes().find(
+			node => node.nodeType === 1 && node.nodeName === 'D2L-DROPDOWN-CONTENT'
+		);
+	}
+
 	__onKeyPress(e) {
 		if (e.keyCode !== 13) {
 			return;
@@ -76,9 +124,22 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		this.toggleOpen(false);
 	}
 
-	__getContentElement() {
-		return this.shadowRoot.querySelector('slot').assignedNodes().find(
-			node => node.nodeType === 1 && node.nodeName === 'D2L-DROPDOWN-CONTENT'
-		);
+	__onOpened() {
+		const opener = this.getOpenerElement();
+		if (!opener) {
+			return;
+		}
+		opener.setAttribute('aria-expanded', 'true');
+		opener.setAttribute('active', 'true');
 	}
+
+	__onClosed() {
+		const opener = this.getOpenerElement();
+		if (!opener) {
+			return;
+		}
+		opener.setAttribute('aria-expanded', 'false');
+		opener.removeAttribute('active');
+	}
+
 };

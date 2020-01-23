@@ -1,4 +1,6 @@
-import { findComposedAncestor } from '../../helpers/dom.js';
+import { clearDismissible, setDismissible } from '../../helpers/dismissible.js';
+import { findComposedAncestor, isComposedAncestor } from '../../helpers/dom.js';
+import { getComposedActiveElement, getFirstFocusableDescendant, getPreviousFocusableAncestor } from '../../helpers/focus.js';
 import { html } from 'lit-element/lit-element.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
 
@@ -18,23 +20,28 @@ export const DropdownContentMixin = superclass => class extends superclass {
 			},
 			noAutoClose: {
 				type: Boolean,
-				reflect: true
+				reflect: true,
+				attribute: 'no-auto-close'
 			},
 			noAutoFit: {
 				type: Boolean,
-				reflect: true
+				reflect: true,
+				attribute: 'no-auto-fit'
 			},
 			noAutoFocus: {
 				type: Boolean,
-				reflect: true
+				reflect: true,
+				attribute: 'no-auto-focus'
 			},
 			noPadding: {
 				type: Boolean,
-				reflect: true
+				reflect: true,
+				attribute: 'no-padding'
 			},
 			noPointer: {
 				type: Boolean,
-				reflect: true
+				reflect: true,
+				attribute: 'no-pointer'
 			},
 			align: {
 				type: String,
@@ -47,16 +54,21 @@ export const DropdownContentMixin = superclass => class extends superclass {
 				type: Boolean,
 				reflect: true
 			},
+			/**
+			 * Private.
+			 */
 			openedAbove: {
 				type: Boolean,
-				reflect: true
+				reflect: true,
+				attribute: 'opened-above'
 			},
 			/**
              * Whether to render the content immediately. By default, the content rendering
              * is deferred.
              */
 			renderContent: {
-				type: Boolean
+				type: Boolean,
+				attribute: 'render-content'
 			},
 			verticalOffset: {
 				type: String,
@@ -67,10 +79,63 @@ export const DropdownContentMixin = superclass => class extends superclass {
 
 	constructor() {
 		super();
+
+		this.__opened = false;
+		this.__content = null;
+		this.__isRTL = false;
+		this.__previousFocusableAncestor = null;
 		this.__applyFocus = true;
+		this.__dismissibleId = null;
+
+		this.__onResize = this.__onResize.bind(this);
+		this.__onAutoCloseFocus = this.__onAutoCloseFocus.bind(this);
+		this.__onAutoCloseClick = this.__onAutoCloseClick.bind(this);
+		this.__toggleScrollStyles = this.__toggleScrollStyles.bind(this);
+	}
+
+	get opened() {
+		return this.__opened;
+	}
+
+	set opened(val) {
+		const oldVal = this.__opened;
+		this.__opened = val;
+		this.requestUpdate('opened', oldVal);
+		this.__openedChanged(val);
+	}
+
+	__onClose(e) {
+
+		if (e.target !== this || !document.activeElement) {
+			return;
+		}
+
+		const activeElement = getComposedActiveElement();
+
+		if (!isComposedAncestor(this, activeElement)) {
+			return;
+		}
+
+		const opener = this.__getOpener();
+		opener.getOpenerElement().focus();
+
+	}
+
+	__onResize() {
+		if (!this.opened) {
+			return;
+		}
+		this.__position(undefined, undefined);
 	}
 
 	async __openedChanged(newValue) {
+
+		this.__previousFocusableAncestor =
+			newValue === true
+				? getPreviousFocusableAncestor(this, false, false)
+				: null;
+
+		this.__isRTL = (getComputedStyle(this).direction === 'rtl');
 
 		const doOpen = () => {
 
@@ -80,13 +145,46 @@ export const DropdownContentMixin = superclass => class extends superclass {
 				content.scrollTop = 0;
 			}
 
-			this.__position();
+			this.__position(undefined, undefined);
+
+			if (!this.noAutoFocus && this.__applyFocus) {
+				const focusable = getFirstFocusableDescendant(this);
+				if (focusable) {
+					// bumping this to the next frame is required to prevent IE/Edge from crazily invoking click on the focused element
+					requestAnimationFrame(() => {
+						focusable.focus();
+					});
+				} else {
+					content.setAttribute('tabindex', '-1');
+					content.focus();
+				}
+			}
+
+			this.dispatchEvent(new CustomEvent('d2l-dropdown-open', { bubbles: true, composed: true }));
+
+			this.__dismissibleId = setDismissible(() => {
+				this.close();
+			});
 		};
 
 		if (newValue) {
+			if (!this.renderContent) {
+				await this.forceRender();
+			} else {
+				await this.updateComplete;
+			}
 
-			await this.forceRender();
 			doOpen();
+
+		} else {
+
+			if (this.__dismissibleId) {
+				clearDismissible(this.__dismissibleId);
+				this.__dismissibleId = null;
+			}
+
+			this.dispatchEvent(new CustomEvent('d2l-dropdown-close', { bubbles: true, composed: true }));
+
 		}
 	}
 
@@ -94,6 +192,30 @@ export const DropdownContentMixin = superclass => class extends superclass {
 		super.firstUpdated(changedProperties);
 
 		this.__content = this.__getContentContainer();
+		this.__content.addEventListener('scroll', this.__toggleScrollStyles);
+	}
+
+	connectedCallback() {
+		super.connectedCallback();
+
+		window.addEventListener('resize', this.__onResize);
+		document.body.addEventListener('focus', this.__onAutoCloseFocus, true);
+		document.body.addEventListener('click', this.__onAutoCloseClick, true);
+
+		this.addEventListener('d2l-dropdown-close', this.__onClose);
+		this.addEventListener('d2l-dropdown-position', this.__toggleScrollStyles);
+	}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		window.removeEventListener('resize', this.__onResize);
+		document.body.removeEventListener('focus', this.__onAutoCloseFocus, true);
+		document.body.removeEventListener('click', this.__onAutoCloseClick, true);
+		this.removeEventListener('d2l-dropdown-close', this.__onClose);
+		this.removeEventListener('d2l-dropdown-position', this.__toggleScrollStyles);
+		this.__content.removeEventListener('scroll', this.__toggleScrollStyles);
+		clearDismissible(this.__dismissibleId);
+		this.__dismissibleId = null;
 	}
 
 	_renderContentContainer(innerHtml) {
@@ -117,11 +239,51 @@ export const DropdownContentMixin = superclass => class extends superclass {
 		if (this.minWidth) {
 			styles.minWidth = `${this.minWidth}px`;
 		}
+
 		return html`
             <div class="d2l-dropdown-content-width" style=${styleMap(styles)}>
                 ${innerHtml()}
             </div>
         `;
+	}
+
+	__onAutoCloseFocus() {
+		/* timeout needed to work around lack of support for relatedTarget */
+		setTimeout(() => {
+			if (!this.opened
+				|| this.noAutoClose
+				|| !document.activeElement
+				|| document.activeElement === this.__previousFocusableAncestor
+				|| document.activeElement === document.body) {
+				return;
+			}
+
+			const activeElement = getComposedActiveElement();
+
+			if (isComposedAncestor(this, activeElement)
+				|| isComposedAncestor(this.__getOpener(), activeElement)) {
+				return;
+			}
+
+			this.opened = false;
+		}, 0);
+	}
+
+	__onAutoCloseClick(e) {
+		if (!this.opened || this.noAutoClose) {
+			return;
+		}
+		const rootTarget = e.composedPath()[0];
+		const content = this.__getContentContainer();
+		if (isComposedAncestor(content, rootTarget)) {
+			return;
+		}
+		const opener = this.__getOpener();
+		if (isComposedAncestor(opener.getOpenerElement(), rootTarget)) {
+			return;
+		}
+
+		this.opened = false;
 	}
 
 	/**
@@ -143,7 +305,6 @@ export const DropdownContentMixin = superclass => class extends superclass {
 	open(applyFocus) {
 		this.__applyFocus = applyFocus !== undefined ? applyFocus : true;
 		this.opened = true;
-		this.__openedChanged(this.opened);
 	}
 
 	/**
@@ -151,11 +312,13 @@ export const DropdownContentMixin = superclass => class extends superclass {
      */
 	close() {
 		this.opened = false;
-		this.__openedChanged(this.opened);
 	}
 
 	async forceRender() {
-		await this.requestUpdate();
+		if (!this.renderContent) {
+			this.renderContent = true;
+		}
+		await this.updateComplete;
 	}
 
 	__getContentContainer() {
@@ -292,7 +455,6 @@ export const DropdownContentMixin = superclass => class extends superclass {
 			}
 
 			this.dispatchEvent(new CustomEvent('d2l-dropdown-position', { bubbles: true, composed: true }));
-
 		};
 
 		/* don't let dropdown content horizontally overflow viewport */
@@ -303,6 +465,7 @@ export const DropdownContentMixin = superclass => class extends superclass {
 		if (width > content.scrollWidth) {
 			width = content.scrollWidth;
 		}
+
 		/* add 2 to width since scrollWidth does not include border */
 		widthContainer.style.width = `${width + 20}px`;
 		/* set width of content too so IE will render scroll inside border */
@@ -327,5 +490,40 @@ export const DropdownContentMixin = superclass => class extends superclass {
 			/* needed for IE */
 			this.__content.style.overflowY = 'hidden';
 		}
+	}
+
+	__toggleScrollStyles() {
+		const topCap = this.shadowRoot.querySelector('.d2l-dropdown-content-top');
+		const bottomCap = this.shadowRoot.querySelector('.d2l-dropdown-content-bottom');
+		if (this.__content.scrollTop === 0) {
+			if (topCap.classList.contains('d2l-dropdown-content-top-scroll')) {
+				topCap.classList.remove('d2l-dropdown-content-top-scroll');
+			}
+		} else {
+			if (!topCap.classList.contains('d2l-dropdown-content-top-scroll')) {
+				topCap.classList.add('d2l-dropdown-content-top-scroll');
+			}
+		}
+
+		/* scrollHeight incorrect in IE by 4px second time opened */
+		if (this.__content.scrollHeight - (this.__content.scrollTop + this.__content.clientHeight) < 5) {
+			if (bottomCap.classList.contains('d2l-dropdown-content-bottom-scroll')) {
+				bottomCap.classList.remove('d2l-dropdown-content-bottom-scroll');
+			}
+		} else {
+			if (!bottomCap.classList.contains('d2l-dropdown-content-bottom-scroll')) {
+				bottomCap.classList.add('d2l-dropdown-content-bottom-scroll');
+			}
+		}
+	}
+
+	updated(changedProperties) {
+		changedProperties.forEach((_, propName) => {
+			if (propName === 'verticalOffset') {
+				// for IE11
+				if (window.ShadyCSS) window.ShadyCSS.styleSubtree(this, { '--d2l-dropdown-verticaloffset': `${this.verticalOffset}px` });
+				else this.style.setProperty('--d2l-dropdown-verticaloffset', `${this.verticalOffset}px`);
+			}
+		});
 	}
 };
