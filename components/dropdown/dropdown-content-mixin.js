@@ -248,6 +248,7 @@ export const DropdownContentMixin = superclass => class extends superclass {
 	}
 
 	__onAutoCloseFocus() {
+
 		/* timeout needed to work around lack of support for relatedTarget */
 		setTimeout(() => {
 			if (!this.opened
@@ -319,6 +320,26 @@ export const DropdownContentMixin = superclass => class extends superclass {
 			this.renderContent = true;
 		}
 		await this.updateComplete;
+	}
+
+	/**
+	 * Private.
+	 */
+	scrollTo(scrollTop) {
+		const content = this.__content;
+		if (content) {
+			if (typeof scrollTop === 'number') {
+				content.scrollTop = scrollTop;
+			}
+			return content.scrollTop;
+		}
+	}
+
+	/**
+	 * Private.
+	 */
+	height() {
+		return this.__content && this.__content.offsetHeight;
 	}
 
 	__getContentContainer() {
