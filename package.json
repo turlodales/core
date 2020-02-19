@@ -65,7 +65,7 @@
     "whatwg-fetch": "^3"
   },
   "dependencies": {
-    "@brightspace-ui/intl": "^3",
+    "@brightspace-ui/intl": "^3.0.4",
     "@formatjs/intl-pluralrules": "^1",
     "@webcomponents/shadycss": "^1",
     "@webcomponents/webcomponentsjs": "^2",
