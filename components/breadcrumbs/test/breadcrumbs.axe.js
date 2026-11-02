@@ -1,7 +1,7 @@
 import '../breadcrumb.js';
 import '../breadcrumb-current-page.js';
 import '../breadcrumbs.js';
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html } from '@brightspace-ui/testing';
 
 describe('d2l-breadcrumbs', () => {
 
@@ -15,7 +15,7 @@ describe('d2l-breadcrumbs', () => {
 					<d2l-breadcrumbs style="${style}" ?compact="${compact}">
 						<d2l-breadcrumb href="#" text="Basic Item 1"></d2l-breadcrumb>
 						<d2l-breadcrumb href="#" text="Basic Item 2"></d2l-breadcrumb>
-						<d2l-breadcrumb href="#" text="Basic Item 3" aria-label="Aria for Item 3"></d2l-breadcrumb>
+						<d2l-breadcrumb href="#" text="Basic Item 3" aria-label="Aria for Basic Item 3"></d2l-breadcrumb>
 					</d2l-breadcrumbs>
 				`);
 				await expect(elem).to.be.accessible();

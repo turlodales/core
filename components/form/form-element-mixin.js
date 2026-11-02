@@ -77,46 +77,42 @@ export class FormElementValidityState {
 
 export const FormElementMixin = superclass => class extends LocalizeCoreElement(superclass) {
 
-	static get properties() {
-		return {
-			/**
-			 * @ignore
-			 */
-			forceInvalid: { type: Boolean, attribute: false },
-			/**
-			 * @ignore
-			 */
-			invalid: { type: Boolean, reflect: true },
-			/**
-			 * Name of the form control. Submitted with the form as part of a name/value pair.
-			 * @type {string}
-			 */
-			name: { type: String },
-			/**
-			 * @ignore
-			 */
-			noValidate: { type: Boolean, attribute: 'novalidate' },
-			/**
-			 * @ignore
-			 * Perform validation immediately instead of waiting for the user to make changes.
-			 */
-			validateOnInit: { type: Boolean, attribute: 'validate-on-init' },
-			/**
-			 * @ignore
-			 */
-			validationError: { type: String, attribute: false },
-			/**
-			 * @ignore
-			 */
-			childErrors: { type: Object, attribute: false },
-			_errors: { type: Array, attribute: false }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		forceInvalid: { type: Boolean, attribute: false },
+		/**
+		 * @ignore
+		 */
+		invalid: { type: Boolean, reflect: true },
+		/**
+		 * Name of the form control. Submitted with the form as part of a name/value pair.
+		 * @type {string}
+		 */
+		name: { type: String },
+		/**
+		 * @ignore
+		 */
+		noValidate: { type: Boolean, attribute: 'novalidate' },
+		/**
+		 * @ignore
+		 * Perform validation immediately instead of waiting for the user to make changes.
+		 */
+		validateOnInit: { type: Boolean, attribute: 'validate-on-init' },
+		/**
+		 * @ignore
+		 */
+		validationError: { type: String, attribute: false },
+		/**
+		 * @ignore
+		 */
+		childErrors: { type: Object, attribute: false },
+		_errors: { state: true }
+	};
 
 	constructor() {
 		super();
-		this._validationCustomConnected = this._validationCustomConnected.bind(this);
-		this._onFormElementErrorsChange = this._onFormElementErrorsChange.bind(this);
 
 		this._firstUpdateResolve = null;
 		this._firstUpdatePromise = new Promise((resolve) => {
@@ -155,21 +151,21 @@ export const FormElementMixin = superclass => class extends LocalizeCoreElement(
 		return this.localize('components.form-element.defaultError', { label });
 	}
 
-	/** @ignore */
+	/** @ignore Note: this may be our custom FormElementValidityState or native ValidityState depending on the source. */
 	get validity() {
 		return this._validity;
 	}
 
 	connectedCallback() {
 		super.connectedCallback();
-		this.shadowRoot.addEventListener('d2l-validation-custom-connected', this._validationCustomConnected);
-		this.shadowRoot.addEventListener('d2l-form-element-errors-change', this._onFormElementErrorsChange);
+		this.shadowRoot.addEventListener('d2l-validation-custom-connected', this.#validationCustomConnected);
+		this.shadowRoot.addEventListener('d2l-form-element-errors-change', this.#onFormElementErrorsChange);
 	}
 
 	disconnectedCallback() {
 		super.disconnectedCallback();
-		this.shadowRoot.removeEventListener('d2l-validation-custom-connected', this._validationCustomConnected);
-		this.shadowRoot.removeEventListener('d2l-form-element-errors-change', this._onFormElementErrorsChange);
+		this.shadowRoot.removeEventListener('d2l-validation-custom-connected', this.#validationCustomConnected);
+		this.shadowRoot.removeEventListener('d2l-form-element-errors-change', this.#onFormElementErrorsChange);
 	}
 
 	firstUpdated(changedProperties) {
@@ -224,7 +220,19 @@ export const FormElementMixin = superclass => class extends LocalizeCoreElement(
 		if (oldValidationError !== this.validationError) {
 			this._errors = errors;
 		}
-		await this.updatedComplete;
+		await this.updateComplete;
+	}
+
+	resetValidation() {
+		this.invalid = false;
+		this.validationError = null;
+		this._errors = [];
+
+		this.childErrors.forEach((_, ele) => {
+			if (!isCustomFormElement(ele)) return;
+			ele.resetValidation();
+		});
+		this.childErrors = new Map();
 	}
 
 	setFormValue(formValue) {
@@ -251,7 +259,7 @@ export const FormElementMixin = superclass => class extends LocalizeCoreElement(
 		this._validationCustoms.delete(custom);
 	}
 
-	_onFormElementErrorsChange(e) {
+	#onFormElementErrorsChange = (e) => {
 		e.stopPropagation();
 		const errors = e.detail.errors;
 		if (errors.length === 0) {
@@ -263,9 +271,9 @@ export const FormElementMixin = superclass => class extends LocalizeCoreElement(
 			this.childErrors.set(e.target, errors);
 			this.requestUpdate('childErrors');
 		}
-	}
+	};
 
-	_validationCustomConnected(e) {
+	#validationCustomConnected = (e) => {
 		e.stopPropagation();
 		const custom = e.composedPath()[0];
 		this.validationCustomConnected(custom);
@@ -275,6 +283,6 @@ export const FormElementMixin = superclass => class extends LocalizeCoreElement(
 			this.validationCustomDisconnected(custom);
 		};
 		custom.addEventListener('d2l-validation-custom-disconnected', onDisconnect);
-	}
+	};
 
 };

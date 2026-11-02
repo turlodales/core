@@ -5,42 +5,31 @@ import { TagListItemMixin } from '../tag-list-item-mixin.js';
 
 class TagListItemMixinConsumer extends TagListItemMixin(LitElement) {
 
-	static get properties() {
-		return {
-			name: { type: String }
-		};
-	}
+	static properties = {
+		name: { type: String }
+	};
 
-	static get styles() {
-		return [super.styles, css`
-			.color-block {
-				background-color: purple;
-				border-radius: 6px;
-				display: inline-block;
-				height: 1.2rem;
-				left: 0.15rem;
-				position: absolute;
-				top: 50%;
-				transform: translate(0, -50%);
-				width: 1.2rem;
-			}
-			:host([dir="rtl"]) .color-block {
-				left: unset;
-				right: 0.15rem;
-			}
-			.text {
-				padding-left: calc(1.55rem - 0.6rem);
-				vertical-align: middle;
-			}
-			:host([dir="rtl"]) .text {
-				padding-left: 0;
-				padding-right: calc(1.55rem - 0.6rem);
-			}
-			d2l-dropdown {
-				min-width: 0;
-			}
-		`];
-	}
+	static styles = [super.styles, css`
+		.color-block {
+			background-color: purple;
+			border-radius: 6px;
+			display: inline-block;
+			height: 1.2rem;
+			inset-inline-start: 0.15rem;
+			position: absolute;
+			top: 50%;
+			transform: translate(0, -50%);
+			width: 1.2rem;
+		}
+		.text {
+			padding-inline-start: calc(1.55rem - 0.6rem);
+			vertical-align: middle;
+		}
+		d2l-dropdown {
+			min-width: 0;
+			position: relative;
+		}
+	`];
 
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
@@ -57,8 +46,8 @@ class TagListItemMixinConsumer extends TagListItemMixin(LitElement) {
 
 		return html`
 			<d2l-dropdown open-on-hover>
-				<div role="button" class="d2l-dropdown-opener">${this._renderTag(tagContent)}</div>
-				<d2l-dropdown-content no-auto-focus>Custom</d2l-dropdown-content>
+				${this._renderTag(tagContent, { focusableClass: 'd2l-dropdown-opener', plainText: this.name })}
+				<d2l-dropdown-content class="vdiff-target" no-auto-focus>Custom</d2l-dropdown-content>
 			</d2l-dropdown>
 		`;
 	}

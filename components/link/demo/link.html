@@ -8,6 +8,17 @@
 			import '../../demo/demo-page.js';
 			import '../link.js';
 		</script>
+		<style>
+			.truncate-container {
+				border: 1px solid var(--d2l-color-mica);
+				border-radius: 6px;
+				max-width: 400px;
+				padding: 0.6rem;
+			}
+			.block {
+				display: block;
+			}
+		</style>
 	</head>
 	<body unresolved>
 		<d2l-demo-page page-title="d2l-link">
@@ -30,6 +41,68 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-link small href="https://www.d2l.com">Small Link</d2l-link>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Opens in a New Window</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-link target="_blank" href="https://www.d2l.com">Standard New Window Link</d2l-link>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Small Opens in a New Window</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-link small target="_blank" main href="https://www.d2l.com">New Window Link</d2l-link>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Inline</h2>
+			<d2l-demo-snippet>
+				<template>
+					<p>Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. <d2l-link href="https://www.d2l.com">Standard Link</d2l-link> Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Block Wrap</h2>
+			<d2l-demo-snippet>
+				<template>
+					<div class="truncate-container">
+						<d2l-link class="block" href="https://www.d2l.com">A really long link that will wrap in its container to the next line.</d2l-link>
+					</div>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Clamp - One Line</h2>
+			<d2l-demo-snippet>
+				<template>
+					<div class="truncate-container">
+						<d2l-link href="https://www.d2l.com" lines="1">A really long link that will overflow its container and display an ellipsis.</d2l-link>
+					</div>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Clamp - Two Lines</h2>
+			<d2l-demo-snippet>
+				<template>
+					<div class="truncate-container">
+						<d2l-link href="https://www.d2l.com" lines="2">A really really long link that wraps in its container and then truncates after two lines of text like this.</d2l-link>
+					</div>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Disabled</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-link disabled href="https://www.d2l.com" target="_blank">Disabled Link</d2l-link>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Disabled with Tooltip</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-link disabled disabled-tooltip="This link is disabled because you do not have permission" href="https://www.d2l.com" target="_blank">Disabled Link with Tooltip</d2l-link>
 				</template>
 			</d2l-demo-snippet>
 

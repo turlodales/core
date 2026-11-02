@@ -1,4 +1,7 @@
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { getFirstFocusableDescendant, getLastFocusableDescendant, getNextFocusable, getPreviousFocusable } from '../../helpers/focus.js';
+import { CollectionMixin } from '../../mixins/collection/collection-mixin.js';
+import { freshness } from '../../mixins/freshness/freshness-mixin.js';
+import { isComposedAncestor } from '../../helpers/dom.js';
 
 const keyCodes = {
 	DOWN: 40,
@@ -9,19 +12,26 @@ const keyCodes = {
 
 export class SelectionInfo {
 
-	constructor(keys, state) {
+	constructor(keys, state, allEnabledSelected) {
+		if (!allEnabledSelected) allEnabledSelected = false;
 		if (!keys) keys = [];
 		if (!state) state = SelectionInfo.states.none;
-		this._keys = keys;
-		this._state = state;
+
+		this.#allEnabledSelected = allEnabledSelected;
+		this.#keys = keys;
+		this.#state = state;
+	}
+
+	get allEnabledSelected() {
+		return this.#allEnabledSelected;
 	}
 
 	get keys() {
-		return this._keys;
+		return this.#keys;
 	}
 
 	get state() {
-		return this._state;
+		return this.#state;
 	}
 
 	static get states() {
@@ -29,37 +39,34 @@ export class SelectionInfo {
 			none: 'none',
 			some: 'some',
 			all: 'all',
-			allPages: 'all-pages'
+			allPages: 'all-pages',
+			notSet: 'not-set'
 		};
 	}
+
+	#allEnabledSelected;
+	#keys;
+	#state;
 
 }
 
-export const SelectionMixin = superclass => class extends RtlMixin(superclass) {
+export const SelectionMixin = superclass => class extends CollectionMixin(superclass) {
 
-	static get properties() {
-		return {
-			/**
-			 * Total number of items. Required when selecting all pages is allowed.
-			 * @type {number}
-			 */
-			itemCount: { type: Number, attribute: 'item-count' },
-			/**
-			 * Whether to render with single selection behaviour. If `selection-single` is specified, the nested `d2l-selection-input` elements will render radios instead of checkboxes, and the selection component will maintain a single selected item.
-			 * @type {boolean}
-			 */
-			selectionSingle: { type: Boolean, attribute: 'selection-single' },
-			/**
-			 * ADVANCED: Temporary optional parameter used to override existing count. Will be removed soon, use with caution.
-			 * @type {number}
-			 */
-			selectionCountOverride: { type: Number, attribute: 'selection-count-override' }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		selectionNoInputArrowKeyBehaviour: { type: Boolean, attribute: 'selection-no-input-arrow-key-behavior' },
+		/**
+		 * Whether to render with single selection behaviour. If `selection-single` is specified, the nested `d2l-selection-input` elements will render radios instead of checkboxes, and the selection component will maintain a single selected item.
+		 * @type {boolean}
+		 */
+		selectionSingle: { type: Boolean, attribute: 'selection-single' }
+	};
 
 	constructor() {
 		super();
-		this.itemCount = 0;
+		this.selectionNoInputArrowKeyBehaviour = false;
 		this.selectionSingle = false;
 		this._selectAllPages = false;
 		this._selectionObservers = new Map();
@@ -89,15 +96,26 @@ export const SelectionMixin = superclass => class extends RtlMixin(superclass) {
 		this.removeEventListener('d2l-selection-input-subscribe', this._handleSelectionInputSubscribe);
 	}
 
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+
+		if (changedProperties.has('freshness')) {
+			this._updateSelectionObservers();
+		}
+	}
+
 	getSelectionInfo() {
-		let state = SelectionInfo.states.none;
+		let allEnabledSelected = true;
+		let state = (this._selectionSelectables.size > 0 ? SelectionInfo.states.none : SelectionInfo.states.notSet);
 		const keys = [];
 
 		if (this._selectAllPages) {
 			state = SelectionInfo.states.allPages;
 		} else {
+
 			this._selectionSelectables.forEach(selectable => {
 				if (selectable.selected) keys.push(selectable.key);
+				if (!selectable.disabled && !selectable.selected) allEnabledSelected = false;
 				if (selectable._indeterminate) state = SelectionInfo.states.some;
 			});
 
@@ -107,19 +125,23 @@ export const SelectionMixin = superclass => class extends RtlMixin(superclass) {
 			}
 		}
 
-		return new SelectionInfo(keys, state);
+		return new SelectionInfo(keys, state, allEnabledSelected);
 	}
 
 	setSelectionForAll(selected, selectAllPages) {
 		if (this.selectionSingle && selected) return;
-
 		this._selectAllPages = (selected && selectAllPages);
 
+		const { allEnabledSelected } = this.getSelectionInfo();
+
 		this._selectionSelectables.forEach(selectable => {
-			if (!selectable.disabled && !!selectable.selected !== selected) {
-				selectable.selected = selected;
+			if (this.selectionSingle || this._selectAllPages) {
+				if (selectable.selected !== selected) selectable.selected = selected;
+			} else if (!selectable.disabled && selectable.selected !== !allEnabledSelected) {
+				selectable.selected = !allEnabledSelected;
 			}
 		});
+
 		this._updateSelectionObservers();
 	}
 
@@ -138,6 +160,15 @@ export const SelectionMixin = superclass => class extends RtlMixin(superclass) {
 		this._updateSelectionObservers();
 	}
 
+	_focusSelectAll() {
+		for (const observer of this._selectionObservers.values()) {
+			if (observer.tagName === 'D2L-SELECTION-SELECT-ALL') {
+				observer.focus();
+				break;
+			}
+		}
+	}
+
 	_handleRadioKeyDown(e) {
 		// check composed path for radio (e.target could be d2l-list-item or other element due to retargeting)
 		if (!e.composedPath()[0].classList.contains('d2l-selection-input-radio')) return;
@@ -148,29 +179,44 @@ export const SelectionMixin = superclass => class extends RtlMixin(superclass) {
 	}
 
 	_handleRadioKeyUp(e) {
+
+		const target = e.composedPath()[0];
+
 		// check composed path for radio (e.target could be d2l-list-item or other element due to retargeting)
-		if (!e.composedPath()[0].classList.contains('d2l-selection-input-radio')) return;
+		if (!target.classList.contains('d2l-selection-input-radio') || this.selectionNoInputArrowKeyBehaviour) return;
 		if (e.keyCode < keyCodes.LEFT || e.keyCode > keyCodes.DOWN) return;
 
-		const selectables = Array.from(this._selectionSelectables.values())
-			.filter(item => !item.disabled);
-		let currentIndex = selectables.findIndex(selectable => selectable.selected);
-		if (currentIndex === -1) currentIndex = 0;
-		let newIndex;
+		const getSelectionInput = (focusable, forward) => {
+			while (focusable) {
+				if (focusable.classList.contains('d2l-selection-input-radio')) {
+					const selectionInput = focusable.getRootNode().host;
+					if (!selectionInput.focusDisabled && this._selectionSelectables.has(selectionInput)) return selectionInput;
+				}
 
-		if ((this.dir !== 'rtl' && e.keyCode === keyCodes.RIGHT)
-			|| (this.dir === 'rtl' && e.keyCode === keyCodes.LEFT)
-			|| e.keyCode === keyCodes.DOWN) {
-			if (currentIndex === selectables.length - 1) newIndex = 0;
-			else newIndex = currentIndex + 1;
-		} else if ((this.dir !== 'rtl' && e.keyCode === keyCodes.LEFT)
-			|| (this.dir === 'rtl' && e.keyCode === keyCodes.RIGHT)
-			|| e.keyCode === keyCodes.UP) {
-			if (currentIndex === 0) newIndex = selectables.length - 1;
-			else newIndex = currentIndex - 1;
+				if (!isComposedAncestor(this, focusable)) return null;
+
+				focusable = forward ? getNextFocusable(focusable, false, true, true) : getPreviousFocusable(focusable, false, true, true);
+			}
+		};
+
+		const isRtl = (document.documentElement.getAttribute('dir') === 'rtl');
+		const forward = (!isRtl && e.keyCode === keyCodes.RIGHT) || (isRtl && e.keyCode === keyCodes.LEFT) || (e.keyCode === keyCodes.DOWN);
+
+		// first try to find next/previous selection-input relative to the event target within the selection component sub-tree that also belongs to the selection component
+		let focusable = forward ? getNextFocusable(target, false, true, true) : getPreviousFocusable(target, false, true, true);
+		let selectionInput = getSelectionInput(focusable, forward);
+
+		if (!selectionInput) {
+			// no selection-input since next/previous focusable is before/after list... cycle to first/last
+			focusable = forward ? getFirstFocusableDescendant(this, false) : getLastFocusableDescendant(this, false);
+			selectionInput = getSelectionInput(focusable, forward);
 		}
-		selectables[newIndex].selected = true;
-		selectables[newIndex].focus();
+
+		if (selectionInput) {
+			if (!selectionInput.disabled) selectionInput.selected = true;
+			selectionInput.focus();
+		}
+
 	}
 
 	_handleSelectionChange(e) {
@@ -217,7 +263,10 @@ export const SelectionMixin = superclass => class extends RtlMixin(superclass) {
 		this._updateObserversRequested = true;
 		setTimeout(() => {
 			const info = this.getSelectionInfo(true);
-			this._selectionObservers.forEach(observer => observer.selectionInfo = info);
+			this._selectionObservers.forEach(observer => {
+				observer.selectionInfo = info;
+				observer.selectionDisabled = (this.freshness === freshness.stale || this.freshness === freshness.loading);
+			});
 			this._updateObserversRequested = false;
 		}, 0);
 	}

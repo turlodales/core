@@ -22,7 +22,7 @@
 			<h2>Hidden Label</h2>
 			<d2l-demo-snippet>
 				<template>
-					<d2l-input-percent label="Grade" label-hidden title="title"></d2l-input-percent>
+					<d2l-input-percent label="Grade" label-hidden></d2l-input-percent>
 				</template>
 			</d2l-demo-snippet>
 
@@ -37,13 +37,6 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-input-percent label="Grade (disabled)" disabled></d2l-input-percent>
-				</template>
-			</d2l-demo-snippet>
-
-			<h2>Placeholder</h2>
-			<d2l-demo-snippet>
-				<template>
-					<d2l-input-percent label="Grade" label-hidden placeholder="Grade"></d2l-input-percent>
 				</template>
 			</d2l-demo-snippet>
 
@@ -67,6 +60,34 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-input-percent label="Custom Width" input-width="10rem"></d2l-input-percent>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Inline Help</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-input-percent label="Grade" value="92">
+						<div slot="inline-help">
+							Help text <b>right here</b>!
+						</div>
+					</d2l-input-percent>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Inline Help (multiline)</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-input-percent label="Grade" value="92">
+						<div slot="inline-help">
+							Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+							sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+							Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+							nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+							reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+							pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa
+							qui officia deserunt mollit anim id est laborum.
+						</div>
+					</d2l-input-percent>
 				</template>
 			</d2l-demo-snippet>
 

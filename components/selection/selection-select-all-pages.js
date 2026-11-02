@@ -1,6 +1,7 @@
 import '../button/button-subtle.js';
 import { css, html, LitElement } from 'lit';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
+import { formatNumber } from '@brightspace-ui/intl/lib/number.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
 import { SelectionInfo } from './selection-mixin.js';
 import { SelectionObserverMixin } from './selection-observer-mixin.js';
@@ -11,16 +12,14 @@ import { SelectionObserverMixin } from './selection-observer-mixin.js';
  */
 class SelectAllPages extends FocusMixin(LocalizeCoreElement(SelectionObserverMixin(LitElement))) {
 
-	static get styles() {
-		return css`
-			:host {
-				display: inline-block;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			display: inline-block;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+	`;
 
 	static get focusElementSelector() {
 		return 'd2l-button-subtle';
@@ -35,12 +34,16 @@ class SelectAllPages extends FocusMixin(LocalizeCoreElement(SelectionObserverMix
 		return html`
 			<d2l-button-subtle
 				@click="${this._handleClick}"
-				text="${this.localize('components.selection.select-all-items', 'count', this._provider.itemCount)}">
+				?disabled="${this.selectionDisabled}"
+				text="${this.localize('components.selection.select-all-items', { count: this._provider.itemCount, countFormatted: formatNumber(this._provider.itemCount) })}">
 			</d2l-button-subtle>`;
 	}
 
 	_handleClick() {
-		if (this._provider) this._provider.setSelectionForAll(true, true);
+		if (!this._provider) return;
+
+		this._provider.setSelectionForAll(true, true);
+		this._provider._focusSelectAll();
 	}
 
 }

@@ -1,6 +1,5 @@
 import '../link.js';
-import { expect, fixture, html, oneEvent } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { clickElem, expect, fixture, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
 
 const normalFixture = html`<d2l-link href="https://www.d2l.com">Link Test</d2l-link>`;
 
@@ -12,18 +11,14 @@ describe('d2l-link', () => {
 
 	describe('attribute binding', () => {
 
-		['download', 'href'].forEach((attrName) => {
-			it(`should bind "${attrName}" attribute to anchor attribute`, async() => {
-				const elem = await fixture(normalFixture);
-				elem.setAttribute(attrName, attrName);
-				await elem.updateComplete;
-				expect(getAnchor(elem).hasAttribute(attrName)).to.be.true;
-			});
-		});
-
 		it('should bind "aria-label" attribute to anchor attribute', async() => {
 			const elem = await fixture(html`<d2l-link aria-label="My Aria Label"></d2l-link>`);
 			expect(getAnchor(elem).getAttribute('aria-label')).to.equal('My Aria Label');
+		});
+
+		it('should bind "download" attribute to anchor attribute', async() => {
+			const elem = await fixture(html`<d2l-link download></d2l-link>`);
+			expect(getAnchor(elem).hasAttribute('download')).to.be.true;
 		});
 
 		it('should bind "href" attribute to anchor attribute', async() => {
@@ -44,6 +39,17 @@ describe('d2l-link', () => {
 		it('should bind "small" attribute to CSS class', async() => {
 			const elem = await fixture(html`<d2l-link small>Link</d2l-link>`);
 			expect(getAnchor(elem).classList.contains('d2l-link-small')).to.be.true;
+		});
+
+		it('should bind "disabled" attribute to aria-disabled', async() => {
+			const elem = await fixture(html`<d2l-link disabled>Link</d2l-link>`);
+			expect(getAnchor(elem).getAttribute('aria-disabled')).to.equal('true');
+		});
+
+		it('should not render tooltip when disabled-tooltip is set but disabled is false', async() => {
+			const elem = await fixture(html`<d2l-link disabled-tooltip="Tooltip text">Link</d2l-link>`);
+			const tooltip = elem.shadowRoot.querySelector('d2l-tooltip');
+			expect(tooltip).to.not.exist;
 		});
 
 	});
@@ -88,6 +94,44 @@ describe('d2l-link', () => {
 			setTimeout(() => getAnchor(elem).click());
 			const { target } = await oneEvent(elem, 'click');
 			expect(target).to.equal(elem);
+		});
+
+		it('prevents click event when disabled', async() => {
+			const elem = await fixture(html`<d2l-link href="https://www.d2l.com" disabled>Link</d2l-link>`);
+			let anchorClicked = false;
+			elem.addEventListener('click', () => anchorClicked = true);
+			await clickElem(getAnchor(elem));
+			expect(anchorClicked).to.be.false;
+		});
+
+		it('prevents click event when disabled and disabled-tooltip', async() => {
+			const elem = await fixture(html`<d2l-link href="https://www.d2l.com" disabled disabled-tooltip="Tooltip text">Link</d2l-link>`);
+			let anchorClicked = false;
+			elem.addEventListener('click', () => anchorClicked = true);
+			await clickElem(getAnchor(elem));
+			expect(anchorClicked).to.be.false;
+		});
+
+		it('allows click when disable-tooltip and not disabled', async() => {
+			const elem = await fixture(html`<d2l-link href="https://www.d2l.com" disabled-tooltip="Tooltip text">Link</d2l-link>`);
+			let anchorClicked = false;
+			elem.addEventListener('click', (e) => {
+				e.preventDefault();
+				anchorClicked = true;
+			});
+			await clickElem(getAnchor(elem));
+			expect(anchorClicked).to.be.true;
+		});
+
+	});
+
+	describe('focus', () => {
+
+		it('should focus the anchor element when focus() is called', async() => {
+			const elem = await fixture(normalFixture);
+			elem.focus();
+			await elem.updateComplete;
+			expect(elem.shadowRoot.activeElement).to.equal(getAnchor(elem));
 		});
 
 	});

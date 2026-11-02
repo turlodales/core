@@ -21,8 +21,7 @@ The `d2l-hierarchical-view` component uses the `d2l-hierarchical-view-mixin` for
         this.showParentView = this.showParentView.bind(this);
     }
     // <!-- docs: start hidden content -->
-    static get styles() {
-      return [css`
+    static styles = [css`
       #view1 {
         width: 100%;
       }
@@ -74,8 +73,8 @@ The `d2l-hierarchical-view` component uses the `d2l-hierarchical-view-mixin` for
       .position-display {
         display: flex;
         justify-content: space-evenly;
-      }`];
-    }
+      }
+    `];
 
     // <!-- docs: end hidden content -->
     showSubView(id) {
@@ -208,13 +207,11 @@ This mixin allows for nested views within components. To use, apply the mixin an
 ```js
 import { HierarchicalViewMixin } from '@brightspace-ui/core/components/hierarchical-view/hierarchical-view-mixin.js';
 class MyComponent extends HierarchicalViewMixin(LitElement) {
-  static get styles() {
-        return [ super.styles, css`
-            :host {
-                display: inline-block;
-            }
-        `];
-    }
+  static styles = [super.styles, css`
+        :host {
+            display: inline-block;
+        }
+    `];
 
     render() {
         return html`
@@ -241,3 +238,4 @@ class MyComponent extends HierarchicalViewMixin(LitElement) {
 - `d2l-hierarchical-view-show-complete`: dispatched when child view is shown (when animation ends)
 - `d2l-hierarchical-view-hide-start`: dispatched when child view will be hidden (before animation begins)
 - `d2l-hierarchical-view-hide-complete`: dispatched when child view is hidden (when animation ends)
+- `d2l-hierarchical-view-resize`: dispatched when child view is resized

@@ -7,8 +7,17 @@
 		<script type="module">
 			import '../../demo/demo-page.js';
 			import '../../button/button-subtle.js';
+			import '../../count-badge/count-badge.js';
+			import '../../dropdown/dropdown-button-subtle.js';
+			import '../../dropdown/dropdown-menu.js';
+			import '../../empty-state/empty-state-illustrated.js';
+			import '../../menu/menu.js';
+			import '../../menu/menu-item.js';
+			import '../tab.js';
 			import '../tabs.js';
 			import '../tab-panel.js';
+			import './tab-custom.js';
+			import './tabs-array.js';
 		</script>
 	</head>
 	<body unresolved>
@@ -17,61 +26,237 @@
 
 			<h2>Tabs</h2>
 
-			<div style="margin-bottom: 30px;">
-				<d2l-button-subtle id="add" text="Add"></d2l-button-subtle>
-				<d2l-button-subtle id="add-selected" text="Add Selected"></d2l-button-subtle>
-				<d2l-button-subtle id="remove" text="Remove"></d2l-button-subtle>
-			</div>
-			<script>
-				let newPanelId = 0;
-				const addPanel = selected => {
-					newPanelId += 1;
-					const panel = document.createElement('d2l-tab-panel');
-					panel.selected = selected;
-					panel.text = `New Panel ${newPanelId}`;
-					panel.textContent = `Content for new panel ${newPanelId}`;
-					const tabs = document.querySelector('d2l-tabs');
-					const panels = [...tabs.querySelectorAll('d2l-tab-panel')];
-					if (panels.length < 2) tabs.appendChild(panel);
-					else tabs.insertBefore(panel, panels[1]);
-				};
-				
-				document.querySelector('#add').addEventListener('click', () => addPanel(false));
-				document.querySelector('#add-selected').addEventListener('click', () => addPanel(true));
+			<d2l-demo-snippet>
+				<template>
+					<d2l-tabs text="Courses">
+						<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+						<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+						<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+						<d2l-tab id="physics" text="Physics" slot="tabs"></d2l-tab>
+						<d2l-tab id="math" text="Math" slot="tabs"></d2l-tab>
+						<d2l-tab id="earth-sciences" text="Earth Sciences" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="all" slot="panels" id="all-panel">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="biology" slot="panels" id="biology-panel">Tab content for Biology</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="physics" slot="panels">Tab content for Physics</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="math" slot="panels">Tab content for Math</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="earth-sciences" slot="panels">Tab content for Earth Sciences</d2l-tab-panel>
+						<d2l-dropdown-button-subtle slot="ext" text="Explore Topics">
+							<d2l-dropdown-menu>
+								<d2l-menu label="Astronomy">
+									<d2l-menu-item text="Introduction"></d2l-menu-item>
+									<d2l-menu-item text="Searching for the Heavens "></d2l-menu-item>
+									<d2l-menu-item text="The Solar System"></d2l-menu-item>
+									<d2l-menu-item text="Stars &amp; Galaxies"></d2l-menu-item>
+									<d2l-menu-item text="The Night Sky"></d2l-menu-item>
+									<d2l-menu-item text="The Universe"></d2l-menu-item>
+								</d2l-menu>
+							</d2l-dropdown-menu>
+						</d2l-dropdown-button-subtle>
+					</d2l-tabs>
+				</template>
+			</d2l-demo-snippet>
 
-				document.querySelector('#remove').addEventListener('click', () => {
-					const tabs = document.querySelector('d2l-tabs');
-					const panels = [...tabs.querySelectorAll('d2l-tab-panel')];
-					if (panels.length === 0) return;
-					if (panels.length === 1) tabs.removeChild(panels[0]);
-					else tabs.removeChild(panels[1]);
-				});
-			</script>
+			<h2>Tabs (with before and after slot content)</h2>
 
 			<d2l-demo-snippet>
 				<template>
-					<d2l-tabs>
-						<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
-						<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
-						<d2l-tab-panel text="Earth &amp; Planetary Sciences">Tab content for Earth &amp; Planetary Sciences</d2l-tab-panel>
-						<d2l-tab-panel text="Physics">Tab content for Physics</d2l-tab-panel>
-						<d2l-tab-panel text="Math">Tab content for Math</d2l-tab-panel>
+					<d2l-tabs text="Courses">
+						<d2l-tab id="beforelong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs">
+							<d2l-icon icon="tier1:gear" slot="before"></d2l-icon>
+						</d2l-tab>
+						<d2l-tab id="afterlong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs">
+							<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+						</d2l-tab>
+						<d2l-tab id="beforeshort" text="Biology" slot="tabs">
+							<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+						</d2l-tab>
+						<d2l-tab id="aftershort" text="Biology" slot="tabs">
+							<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+						</d2l-tab>
+						<d2l-tab id="beforeafter" text="Biology" slot="tabs">
+							<d2l-count-badge number="5" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+							<d2l-count-badge number="10" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+						</d2l-tab>
+						<d2l-tab-panel labelled-by="beforelong" slot="panels">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="afterlong" slot="panels">Tab content for Biology</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="beforeshort" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="aftershort" slot="panels">Tab content for Physics</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="beforeafter" slot="panels">Tab content for Trig</d2l-tab-panel>
+					</d2l-tabs>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Tabs (with custom tab)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-tabs text="Courses">
+						<d2l-tab-custom id="all" slot="tabs"><div style="color: purple;">All</div></d2l-tab-custom>
+						<d2l-tab-custom id="biology" slot="tabs" selected>
+							Biology <d2l-count-badge number="100" size="small" text="100 new notifications" type="notification"></d2l-count-badge>
+						</d2l-tab-custom>
+						<d2l-tab-custom id="chemistry" slot="tabs">Chemistry</d2l-tab-custom>
+						<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+						<d2l-dropdown-button-subtle slot="ext" text="Explore Topics">
+							<d2l-dropdown-menu>
+								<d2l-menu label="Astronomy">
+									<d2l-menu-item text="Introduction"></d2l-menu-item>
+									<d2l-menu-item text="Searching for the Heavens "></d2l-menu-item>
+									<d2l-menu-item text="The Solar System"></d2l-menu-item>
+									<d2l-menu-item text="Stars &amp; Galaxies"></d2l-menu-item>
+									<d2l-menu-item text="The Night Sky"></d2l-menu-item>
+									<d2l-menu-item text="The Universe"></d2l-menu-item>
+								</d2l-menu>
+							</d2l-dropdown-menu>
+						</d2l-dropdown-button-subtle>
 					</d2l-tabs>
 				</template>
 			</d2l-demo-snippet>
 
 			<h3>Tabs (with slot)</h3>
 
-			<d2l-demo-snippet>
+			<div style="margin-bottom: 30px;">
+				<d2l-button-subtle id="add" text="Add"></d2l-button-subtle>
+				<d2l-button-subtle id="add-selected" text="Add Selected"></d2l-button-subtle>
+				<d2l-button-subtle id="remove" text="Remove"></d2l-button-subtle>
+				<d2l-button-subtle id="remove-multiple" text="Remove Multiple"></d2l-button-subtle>
+			</div>
+			<script>
+				let newPanelId = 0;
+				const addPanel = (selected, tabs) => {
+					newPanelId += 1;
+					const panel = document.createElement('d2l-tab-panel');
+					panel.textContent = `Content for new panel ${newPanelId}`;
+					panel.slot = 'panels';
+					panel.labelledBy = `newPanel${newPanelId}`;
+					tabs.appendChild(panel);
+
+					const tab = document.createElement('d2l-tab');
+					tab.text = `New Panel ${newPanelId}`;
+					tab.slot = 'tabs';
+					tab.id = `newPanel${newPanelId}`;
+					if (selected) tab.selected = true;
+
+					const tabList = [...tabs.querySelectorAll('d2l-tab')];
+					if (tabList.length < 2) {
+						const firstPanel = tabs.querySelector('d2l-tab-panel');
+						tabs.insertBefore(tab, firstPanel);
+					} else {
+						tabs.insertBefore(tab, tabList[1]);
+					}
+				};
+				const removeTab = (tabs) => {
+					const tabElems = [...tabs.querySelectorAll('d2l-tab')];
+					if (tabElems.length === 0) return;
+
+					const tab = tabElems.length === 1 ? tabElems[0] : tabElems[1];
+					Promise.resolve(tabs.hideTab((tab))).then(() => {
+						const panel = tabs.querySelector(`d2l-tab-panel[labelled-by="${tab.id}"]`);
+						if (panel) tabs.removeChild(panel);
+						tabs.removeChild(tab);
+					});
+				};
+				const removeTabs = (tabs) => {
+					const tabElems = [...tabs.querySelectorAll('d2l-tab')];
+					if (tabElems.length === 0) return;
+					else if (tabElems.length === 1) removeTab(tabs);
+					else {
+						const tab1 = tabElems[0];
+						const tab2 = tabElems[1];
+						const animPromises = [];
+						animPromises.push(tabs.hideTab(tab1));
+						animPromises.push(tabs.hideTab(tab2));
+						Promise.all(animPromises).then(() => {
+							const panel1 = tabs.querySelector(`d2l-tab-panel[labelled-by="${tab1.id}"]`);
+							const panel2 = tabs.querySelector(`d2l-tab-panel[labelled-by="${tab2.id}"]`);
+							if (panel1) tabs.removeChild(panel1);
+							if (panel2) tabs.removeChild(panel2);
+							tabs.removeChild(tab1);
+							tabs.removeChild(tab2);
+						});
+					}
+				};
+
+				document.querySelector('#add').addEventListener('click', () => addPanel(false, document.querySelector('#withSlot').querySelector('d2l-tabs')));
+				document.querySelector('#add-selected').addEventListener('click', () => addPanel(true, document.querySelector('#withSlot').querySelector('d2l-tabs')));
+				document.querySelector('#remove').addEventListener('click', () => removeTab(document.querySelector('#withSlot').querySelector('d2l-tabs')));
+				document.querySelector('#remove-multiple').addEventListener('click', () => removeTabs(document.querySelector('#withSlot').querySelector('d2l-tabs')));
+			</script>
+
+			<d2l-demo-snippet id="withSlot">
 				<template>
 					<d2l-tabs>
-						<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
-						<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
-						<d2l-tab-panel text="Earth Sciences">Tab content for Earth Sciences</d2l-tab-panel>
-						<d2l-tab-panel text="Physics">Tab content for Physics</d2l-tab-panel>
-						<d2l-tab-panel text="Math">Tab content for Math</d2l-tab-panel>
-						<d2l-button-subtle slot="ext" text="Search" icon="tier1:search"></d2l-button-subtle>
+						<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+						<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+						<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+						<d2l-tab id="physics" text="Physics" slot="tabs"></d2l-tab>
+						<d2l-tab id="math" text="Math" slot="tabs"></d2l-tab>
+						<d2l-tab id="earth-sciences" text="Earth Sciences" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="physics" slot="panels">Tab content for Physics</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="math" slot="panels">Tab content for Math</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="earth-sciences" slot="panels">Tab content for Earth Sciences</d2l-tab-panel>
+						<d2l-dropdown-button-subtle slot="ext" text="Explore Topics">
+							<d2l-dropdown-menu>
+								<d2l-menu label="Astronomy">
+									<d2l-menu-item text="Introduction"></d2l-menu-item>
+									<d2l-menu-item text="Searching for the Heavens "></d2l-menu-item>
+									<d2l-menu-item text="The Solar System"></d2l-menu-item>
+									<d2l-menu-item text="Stars &amp; Galaxies"></d2l-menu-item>
+									<d2l-menu-item text="The Night Sky"></d2l-menu-item>
+									<d2l-menu-item text="The Universe"></d2l-menu-item>
+								</d2l-menu>
+							</d2l-dropdown-menu>
+						</d2l-dropdown-button-subtle>
 					</d2l-tabs>
+				</template>
+			</d2l-demo-snippet>
+
+			<h3>Tabs (with hidden)</h3>
+
+			<d2l-demo-snippet>
+				<template>
+					<div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+						<d2l-button-subtle text="Hide Next Tab" primary aria-label="Hide next visible tab" title="Hide next visible tab" id="hide-next-tab-btn"></d2l-button-subtle>
+						<d2l-button-subtle text="Show Next Hidden Tab" primary aria-label="Show next hidden tab" title="Show next hidden tab" id="show-next-hidden-tab-btn"></d2l-button-subtle>
+					</div>
+					<d2l-tabs text="Courses">
+						<d2l-tab id="all" text="All" slot="tabs" ></d2l-tab>
+						<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+						<d2l-tab id="chemistry" text="Chemistry" slot="tabs" ></d2l-tab>
+						<d2l-tab id="physics" text="Physics" slot="tabs" hidden></d2l-tab>
+						<d2l-tab id="math" text="Math" slot="tabs" hidden></d2l-tab>
+						<d2l-tab id="earth-sciences" text="Earth Sciences" slot="tabs" hidden></d2l-tab>
+						<d2l-tab-panel labelled-by="all" slot="panels" id="all-panel">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="biology" slot="panels" id="biology-panel">Tab content for Biology</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="physics" slot="panels">Tab content for Physics</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="math" slot="panels">Tab content for Math</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="earth-sciences" slot="panels">Tab content for Earth Sciences</d2l-tab-panel>
+					</d2l-tabs>
+					<script>
+						const templateRoot = document.currentScript.parentNode;
+						const hideBtn = templateRoot.querySelector('#hide-next-tab-btn');
+						const showBtn = templateRoot.querySelector('#show-next-hidden-tab-btn');
+						const tabsEl = templateRoot.querySelector('d2l-tabs');
+
+						hideBtn.addEventListener('click', () => {
+							const visibleTabs = [...tabsEl.querySelectorAll('d2l-tab:not([hidden])')];
+							if (visibleTabs.length === 0) return;
+							visibleTabs[0].setAttribute('hidden', '');
+						});
+
+						showBtn.addEventListener('click', () => {
+							const hiddenTabs = [...tabsEl.querySelectorAll('d2l-tab[hidden]')];
+							if (hiddenTabs.length === 0) return;
+							hiddenTabs[0].removeAttribute('hidden');
+						});
+					</script>
 				</template>
 			</d2l-demo-snippet>
 
@@ -80,29 +265,51 @@
 			<d2l-demo-snippet>
 				<template>
 					<div style="max-width: 500px;">
-						<d2l-tabs>
-							<d2l-tab-panel text="S18">Tab content for S18</d2l-tab-panel>
-							<d2l-tab-panel text="W18">Tab content for W18</d2l-tab-panel>
-							<d2l-tab-panel text="F17">Tab content for F17</d2l-tab-panel>
-							<d2l-tab-panel text="S17">Tab content for S17</d2l-tab-panel>
-							<d2l-tab-panel text="W17">Tab content for W17</d2l-tab-panel>
-							<d2l-tab-panel text="F16">Tab content for F16</d2l-tab-panel>
-							<d2l-tab-panel text="S16">Tab content for S16</d2l-tab-panel>
-							<d2l-tab-panel text="W16">Tab content for W16</d2l-tab-panel>
-							<d2l-tab-panel text="F15">Tab content for F15</d2l-tab-panel>
-							<d2l-tab-panel text="S15">Tab content for S15</d2l-tab-panel>
-							<d2l-tab-panel text="W15">Tab content for W15</d2l-tab-panel>
-							<d2l-tab-panel text="F14">Tab content for F14</d2l-tab-panel>
-							<d2l-tab-panel text="S14">Tab content for S14</d2l-tab-panel>
-							<d2l-tab-panel text="W14">Tab content for W14</d2l-tab-panel>
-							<d2l-tab-panel text="F13">Tab content for F13</d2l-tab-panel>
-							<d2l-tab-panel text="S13">Tab content for S13</d2l-tab-panel>
-							<d2l-tab-panel text="W13">Tab content for W13</d2l-tab-panel>
-							<d2l-tab-panel text="F12">Tab content for F12</d2l-tab-panel>
-							<d2l-tab-panel text="S12">Tab content for S12</d2l-tab-panel>
-							<d2l-tab-panel text="W12">Tab content for W12</d2l-tab-panel>
-							<d2l-tab-panel text="F11">Tab content for F11</d2l-tab-panel>
-							<d2l-tab-panel text="S11">Tab content for S11</d2l-tab-panel>
+						<d2l-tabs text="Many Miscellaneous Tabs">
+							<d2l-tab id="s18" text="S18" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s18" slot="panels">Tab content for S18</d2l-tab-panel>
+							<d2l-tab id="w18" text="W18" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="w18" slot="panels">Tab content for W18</d2l-tab-panel>
+							<d2l-tab id="f17" text="F17" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="f17" slot="panels">Tab content for F17</d2l-tab-panel>
+							<d2l-tab id="s17" text="S17" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s17" slot="panels">Tab content for S17</d2l-tab-panel>
+							<d2l-tab id="w17" text="W17" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="w17" slot="panels">Tab content for W17</d2l-tab-panel>
+							<d2l-tab id="f16" text="F16" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="f16" slot="panels">Tab content for F16</d2l-tab-panel>
+							<d2l-tab id="s16" text="S16" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s16" slot="panels">Tab content for S16</d2l-tab-panel>
+							<d2l-tab id="w16" text="W16" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="w16" slot="panels">Tab content for W16</d2l-tab-panel>
+							<d2l-tab id="f15" text="F15" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="f15" slot="panels">Tab content for F15</d2l-tab-panel>
+							<d2l-tab id="s15" text="S15" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s15" slot="panels">Tab content for S15</d2l-tab-panel>
+							<d2l-tab id="w15" text="W15" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="w15" slot="panels">Tab content for W15</d2l-tab-panel>
+							<d2l-tab id="f14" text="F14" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="f14" slot="panels">Tab content for F14</d2l-tab-panel>
+							<d2l-tab id="s14" text="S14" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s14" slot="panels">Tab content for S14</d2l-tab-panel>
+							<d2l-tab id="w14" text="W14" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="w14" slot="panels">Tab content for W14</d2l-tab-panel>
+							<d2l-tab id="f13" text="F13" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="f13" slot="panels">Tab content for F13</d2l-tab-panel>
+							<d2l-tab id="s13" text="S13" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s13" slot="panels">Tab content for S13</d2l-tab-panel>
+							<d2l-tab id="w13" text="W13" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="w13" slot="panels">Tab content for W13</d2l-tab-panel>
+							<d2l-tab id="f12" text="F12" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="f12" slot="panels">Tab content for F12</d2l-tab-panel>
+							<d2l-tab id="s12" text="S12" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s12" slot="panels">Tab content for S12</d2l-tab-panel>
+							<d2l-tab id="w12" text="W12" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="w12" slot="panels">Tab content for W12</d2l-tab-panel>
+							<d2l-tab id="f11" text="F11" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="f11" slot="panels">Tab content for F11</d2l-tab-panel>
+							<d2l-tab id="s11" text="S11" slot="tabs"></d2l-tab>
+							<d2l-tab-panel labelled-by="s11" slot="panels">Tab content for S11</d2l-tab-panel>
 						</d2l-tabs>
 					</div>
 				</template>
@@ -112,14 +319,90 @@
 
 			<d2l-demo-snippet>
 				<template>
-					<d2l-tabs max-to-show="3">
-						<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
-						<d2l-tab-panel selected text="Biology">Tab content for Biology</d2l-tab-panel>
-						<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
-						<d2l-tab-panel text="Earth Sciences">Tab content for Earth Sciences</d2l-tab-panel>
-						<d2l-tab-panel text="Physics">Tab content for Physics</d2l-tab-panel>
-						<d2l-tab-panel text="Math">Tab content for Math</d2l-tab-panel>
-						<d2l-tab-panel text="Community">Tab content for Community</d2l-tab-panel>
+					<d2l-tabs max-to-show="3" text="Courses">
+						<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+						<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+						<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+						<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+						<d2l-tab id="earth-sciences" text="Earth Sciences" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="earth-sciences" slot="panels">Tab content for Earth Sciences</d2l-tab-panel>
+						<d2l-tab id="physics" text="Physics" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="physics" slot="panels">Tab content for Physics</d2l-tab-panel>
+						<d2l-tab id="math" text="Math" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="math" slot="panels">Tab content for Math</d2l-tab-panel>
+						<d2l-tab id="community" text="Community" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="community" slot="panels">Tab content for Community</d2l-tab-panel>
+					</d2l-tabs>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Tabs (before selected)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-tabs text="Courses" id="courses-before-selection">
+						<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+						<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+						<d2l-tab-panel labelled-by="all" slot="panels" id="all-panel">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="biology" slot="panels" id="biology-panel">Tab content for Biology</d2l-tab-panel>
+					</d2l-tabs>
+
+					<script>
+						document.querySelector('#courses-before-selection').addEventListener('d2l-tab-before-selected', e => {
+							e.preventDefault();
+							setTimeout(() => {
+								e.detail.select();
+							}, 2000);
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Tabs (before selected, don't select)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-tabs text="Courses" id="courses-before-selection-reset">
+						<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+						<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+						<d2l-tab-panel labelled-by="all" slot="panels" id="all-panel">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="biology" slot="panels" id="biology-panel">Tab content for Biology</d2l-tab-panel>
+					</d2l-tabs>
+
+					<script>
+						document.querySelector('#courses-before-selection-reset').addEventListener('d2l-tab-before-selected', e => {
+							e.preventDefault();
+							setTimeout(() => {
+								e.detail.reset();
+							}, 2000);
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Tabs (array)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-tabs-array></d2l-tabs-array>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Tabs (simple empty illustrated)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-tabs text="Simple Empty States">
+						<d2l-tab id="simple-empty-one" slot="tabs" text="One"></d2l-tab>
+						<d2l-tab id="simple-empty-two" slot="tabs" text="Two"></d2l-tab>
+						<d2l-tab-panel labelled-by="simple-empty-one" slot="panels">
+							<d2l-empty-state-illustrated illustration-name="race" title-text="No Items in First Tab" description="none"></d2l-empty-state-illustrated>
+						</d2l-tab-panel>
+						<d2l-tab-panel labelled-by="simple-empty-two" slot="panels">
+							<d2l-empty-state-illustrated illustration-name="calendar" title-text="No Items in Second Tab" description="none"></d2l-empty-state-illustrated>
+						</d2l-tab-panel>
 					</d2l-tabs>
 				</template>
 			</d2l-demo-snippet>
@@ -127,11 +410,11 @@
 		</d2l-demo-page>
 
 		<script>
-			document.addEventListener('d2l-tab-panel-selected', (e) => {
-				console.log('tab panel selected', e);
+			document.addEventListener('d2l-tab-selected', (e) => {
+				console.log('tab selected', e);
 			});
-			document.addEventListener('d2l-tab-panel-text-changed', (e) => {
-				console.log('tab panel text changed', e);
+			document.addEventListener('d2l-tab-content-change', (e) => {
+				console.log('tab content changed', e);
 			});
 		</script>
 

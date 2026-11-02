@@ -1,50 +1,61 @@
-export const MenuItemMixin = superclass => class extends superclass {
+import { PropertyRequiredMixin } from '../../mixins/property-required/property-required-mixin.js';
 
-	static get properties() {
-		return {
-			/**
-			 * Disables the menu item
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * @ignore
-			 */
-			first: { type: Boolean, reflect: true }, // set by d2l-menu
-			/**
-			 * @ignore
-			 */
-			hasChildView: { type: Boolean },
-			/**
-			 * @ignore
-			 */
-			hidden: { type: Boolean, reflect: true },
-			/**
-			 * @ignore
-			 */
-			last: { type: String, reflect: true }, // set by d2l-menu
-			/**
-			 * @ignore
-			 */
-			role: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			tabindex: { type: String, reflect: true },
-			/**
-			 * REQUIRED: Text displayed by the menu item
-			 * @type {string}
-			 */
-			text: { type: String },
-			/**
-			 * Provide a description for the menu item that will be used by screen readers
-			 * @type {string}
-			 */
-			description: { type: String },
-			_ariaDisabled: { type: String, attribute: 'aria-disabled', reflect: true },
-			_ariaLabel: { type: String, attribute: 'aria-label', reflect: true }
-		};
-	}
+const defaultLines = 2;
+
+export const MenuItemMixin = superclass => class extends PropertyRequiredMixin(superclass) {
+
+	static properties = {
+		/**
+		 * Disables the menu item
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * @ignore
+		 */
+		first: { type: Boolean, reflect: true }, // set by d2l-menu
+		/**
+		 * @ignore
+		 */
+		hasChildView: { type: Boolean },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		hidden: { type: Boolean, reflect: true },
+		/**
+		 * @ignore
+		 */
+		last: { type: String, reflect: true }, // set by d2l-menu
+		/**
+		 * The number of lines to display before truncating text with an ellipsis. Defaults to 2.
+		 * @type {number}
+		 */
+		lines: { type: Number },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		role: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		tabindex: { type: String, reflect: true },
+		/**
+		 * REQUIRED: Text displayed by the menu item
+		 * @type {string}
+		 */
+		text: { type: String, required: true },
+		/**
+		 * ACCESSIBILITY: A description of the menu item that will be used by screen readers for additional context
+		 * @type {string}
+		 */
+		description: { type: String },
+		_ariaDisabled: { type: String, attribute: 'aria-disabled', reflect: true },
+		_ariaLabel: { type: String, attribute: 'aria-label', reflect: true },
+		_letClickPropagate: { state: true }
+	};
 
 	constructor() {
 		super();
@@ -57,10 +68,12 @@ export const MenuItemMixin = superclass => class extends superclass {
 		this.__children = null;
 
 		this.disabled = false;
+		this.lines = defaultLines;
 		/** @ignore */
 		this.role = 'menuitem';
 		/** @ignore */
 		this.tabindex = -1;
+		this._letClickPropagate = false;
 	}
 
 	firstUpdated(changedProperties) {
@@ -69,7 +82,7 @@ export const MenuItemMixin = superclass => class extends superclass {
 		this.addEventListener('click', this.__onClick);
 		this.addEventListener('d2l-hierarchical-view-hide-complete', this.__onHideComplete);
 		this.addEventListener('dom-change', this.__onDomChange);
-		this.addEventListener('keydown', this.__onKeyDown);
+		this.addEventListener('keydown', this._onKeyDown);
 
 		this.__initializeItem();
 
@@ -80,14 +93,25 @@ export const MenuItemMixin = superclass => class extends superclass {
 
 	updated(changedProperties) {
 		super.updated(changedProperties);
+		if (changedProperties.has('hidden')) this._onHidden();
+	}
 
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
 		changedProperties.forEach((oldValue, propName) => {
-			if (propName === 'hidden') {
-				this._onHidden();
-			} else if (propName === 'disabled') {
-				this._ariaDisabled = this.disabled ? 'true' : 'false';
-			} else if (propName === 'text' || propName === 'description') {
-				this._ariaLabel = this.description || this.text;
+			switch (propName) {
+				case 'text':
+				case 'description':
+					this._ariaLabel = this.description || this.text;
+					break;
+				case 'disabled':
+					this._ariaDisabled = this.disabled ? 'true' : 'false';
+					break;
+				case 'lines':
+					if (!(changedProperties.get('lines') === undefined && this.lines === defaultLines)) {
+						this.style.setProperty('--d2l-menu-item-lines', this.lines);
+					}
+					break;
 			}
 		});
 	}
@@ -128,7 +152,8 @@ export const MenuItemMixin = superclass => class extends superclass {
 	}
 
 	__onClick(e) {
-		e.stopPropagation();
+		if (!this._letClickPropagate) e.stopPropagation();
+
 		this.__action();
 	}
 
@@ -144,9 +169,15 @@ export const MenuItemMixin = superclass => class extends superclass {
 			return;
 		}
 		this.focus();
+		this.setAttribute('tabindex', '0');
 	}
 
-	__onKeyDown(e) {
+	_onHidden() {
+		/** Dispatched when the visibility of the menu item changes */
+		this.dispatchEvent(new CustomEvent('d2l-menu-item-visibility-change', { bubbles: true, composed: true }));
+	}
+
+	_onKeyDown(e) {
 		if (e.target !== this) {
 			return;
 		}
@@ -161,11 +192,6 @@ export const MenuItemMixin = superclass => class extends superclass {
 			this.__action();
 			return;
 		}
-	}
-
-	_onHidden() {
-		/** Dispatched when the visibility of the menu item changes */
-		this.dispatchEvent(new CustomEvent('d2l-menu-item-visibility-change', { bubbles: true, composed: true }));
 	}
 
 };

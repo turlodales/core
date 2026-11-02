@@ -1,13 +1,12 @@
-import '../button/button-icon.js';
 import '../icons/icon.js';
 import '../tooltip/tooltip.js';
 import { css, html, LitElement } from 'lit';
 import { buttonStyles } from '../button/button-styles.js';
 import { findComposedAncestor } from '../../helpers/dom.js';
-import { getFirstFocusableDescendant } from '../../helpers/focus.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { moveActions } from '../button/button-move.js';
 
 const keyCodes = Object.freeze({
 	DOWN: 40,
@@ -39,92 +38,96 @@ export const dragActions = Object.freeze({
 });
 
 let hasDisplayedKeyboardTooltip = false;
+export const resetDisplayedTooltip = () => {
+	hasDisplayedKeyboardTooltip = false;
+};
 
 /**
  * @fires d2l-list-item-drag-handle-action - Dispatched when an action performed on the drag handle
  */
-class ListItemDragHandle extends LocalizeCoreElement(RtlMixin(LitElement)) {
+class ListItemDragHandle extends LocalizeCoreElement(FocusMixin(LitElement)) {
 
-	static get properties() {
-		return {
-			/**
-			 * Disables the handle
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * Additional context information for accessibility
-			 * @type {object}
-			 */
-			keyboardTextInfo: { type: Object, attribute: 'keyboard-text-info' },
-			/**
-			 * The drag-handle label for assistive technology
-			 * @type {string}
-			 */
-			text: { type: String },
-			_displayKeyboardTooltip: { type: Boolean },
-			_keyboardActive: { type: Boolean }
-		};
-	}
+	static properties = {
+		/**
+		 * Disables the handle
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * Additional context information for accessibility
+		 * @type {object}
+		 */
+		keyboardTextInfo: { type: Object, attribute: 'keyboard-text-info' },
+		/**
+		 * The drag-handle label for assistive technology
+		 * @type {string}
+		 */
+		text: { type: String },
+		/**
+		 * When layout = tile, the drag handle become horizontal
+		 */
+		layout: { type: String },
+		_displayKeyboardTooltip: { type: Boolean },
+		_keyboardActive: { type: Boolean }
+	};
 
-	static get styles() {
-		return [ buttonStyles, css`
-			:host {
-				align-items: center;
-				display: flex;
-				margin: 0.25rem;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-			.d2l-list-item-drag-handle-dragger-button {
-				background-color: unset;
-				display: block;
-			}
-			.d2l-list-item-drag-handle-keyboard-button {
-				display: grid;
-				grid-auto-rows: 1fr 1fr;
-			}
-			.d2l-list-item-drag-handle-dragger-button,
-			.d2l-list-item-drag-handle-keyboard-button {
-				margin: 0;
-				min-height: 1.8rem;
-				padding: 0;
-				width: 0.9rem;
-			}
-			/* Firefox includes a hidden border which messes up button dimensions */
-			button::-moz-focus-inner {
-				border: 0;
-			}
-			.d2l-button-icon {
-				height: 0.9rem;
-				width: 0.9rem;
-			}
-			button,
-			button[disabled]:hover,
-			button[disabled]:focus {
-				background-color: var(--d2l-color-gypsum);
-				color: var(--d2l-color-ferrite);
-			}
-			button:hover,
-			button:focus {
-				background-color: var(--d2l-color-mica);
-			}
-			button[disabled] {
-				cursor: default;
-				opacity: 0.5;
-			}
-			d2l-tooltip > div {
-				font-weight: 700;
-			}
-			d2l-tooltip > ul {
-				padding-inline-start: 1rem;
-			}
-			.d2l-list-item-drag-handle-tooltip-key {
-				font-weight: 700;
-			}
-		`];
-	}
+	static styles = [buttonStyles, css`
+		:host {
+			display: flex;
+			margin: 0.25rem;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		.d2l-list-item-drag-handle-dragger-button {
+			background-color: unset;
+			display: block;
+			margin: 0;
+			min-height: 1.8rem;
+			padding: 0;
+			width: 0.9rem;
+		}
+		/* Firefox includes a hidden border which messes up button dimensions */
+		button::-moz-focus-inner {
+			border: 0;
+		}
+		.d2l-button-dragger-icon {
+			height: 0.9rem;
+			width: 0.9rem;
+		}
+		button,
+		button[disabled]:hover,
+		button[disabled]:focus {
+			background-color: var(--d2l-color-gypsum);
+			color: var(--d2l-color-ferrite);
+		}
+		.d2l-list-item-drag-handle-dragger-button:hover,
+		.d2l-list-item-drag-handle-dragger-button:focus {
+			background-color: var(--d2l-color-mica);
+		}
+		button[disabled] {
+			cursor: default;
+			opacity: 0.5;
+		}
+		d2l-tooltip > div {
+			font-weight: 700;
+		}
+		d2l-tooltip > ul {
+			padding-inline-start: 1rem;
+		}
+		.d2l-list-item-drag-handle-tooltip-key {
+			font-weight: 700;
+		}
+		d2l-button-move {
+			pointer-events: auto; /* required since ancestors may set point-events: none; (see generic layout) */
+		}
+
+		:host([layout="tile"]) {
+			align-items: center;
+			display: flex;
+			height: 39px;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -135,6 +138,10 @@ class ListItemDragHandle extends LocalizeCoreElement(RtlMixin(LitElement)) {
 		this._displayKeyboardTooltip = false;
 		this._keyboardActive = false;
 		this._movingElement = false;
+	}
+
+	static get focusElementSelector() {
+		return '.d2l-list-item-drag-handle-button';
 	}
 
 	render() {
@@ -151,15 +158,12 @@ class ListItemDragHandle extends LocalizeCoreElement(RtlMixin(LitElement)) {
 		this._keyboardActive = true;
 	}
 
-	focus() {
-		const node = getFirstFocusableDescendant(this);
-		if (node) node.focus();
-	}
-
 	get _defaultLabel() {
 		const namespace = 'components.list-item-drag-handle';
 		const defaultLabel = this.localize(`${namespace}.${'default'}`, 'name', this.text);
-		const keyboardTextLabel = this.localize(`${namespace}.${'keyboard'}`, 'currentPosition', this.keyboardTextInfo && this.keyboardTextInfo.currentPosition, 'size', this.keyboardTextInfo && this.keyboardTextInfo.count);
+		const keyboardTextLabel = this.layout !== 'tile'
+			? this.localize(`${namespace}.${'keyboard'}`, 'currentPosition', this.keyboardTextInfo && this.keyboardTextInfo.currentPosition, 'size', this.keyboardTextInfo && this.keyboardTextInfo.count)
+			: this.localize(`${namespace}.${'side-to-side.keyboard'}`, 'currentPosition', this.keyboardTextInfo && this.keyboardTextInfo.currentPosition, 'size', this.keyboardTextInfo && this.keyboardTextInfo.count);
 		return this._keyboardActive ? keyboardTextLabel : defaultLabel;
 	}
 
@@ -171,77 +175,88 @@ class ListItemDragHandle extends LocalizeCoreElement(RtlMixin(LitElement)) {
 		}));
 	}
 
-	_dispatchActionDown() {
-		this._dispatchAction(dragActions.down);
-	}
-
-	_dispatchActionUp() {
-		this._dispatchAction(dragActions.up);
-	}
-
-	async _onActiveKeyboard(e) {
-		if (!this._keyboardActive) {
-			return;
-		}
-		let action = null;
-		switch (e.keyCode) {
-			case keyCodes.UP:
-				this._movingElement = true;
-				action = dragActions.up;
-				this.updateComplete.then(() => this.blur()); // tell screenreaders to refocus
-				break;
-			case keyCodes.DOWN:
-				this._movingElement = true;
-				action = dragActions.down;
-				break;
-			case keyCodes.HOME:
-				this._movingElement = true;
-				action = (e.ctrlKey ? dragActions.rootFirst : dragActions.first);
-				break;
-			case keyCodes.END:
-				this._movingElement = true;
-				action = (e.ctrlKey ? dragActions.rootLast : dragActions.last);
-				break;
-			case keyCodes.TAB:
-				action = e.shiftKey ? dragActions.previousElement : dragActions.nextElement;
-				break;
-			case keyCodes.ESC:
-				action = dragActions.cancel;
-				this.updateComplete.then(() => this._keyboardActive = false);
-				break;
-			case keyCodes.RIGHT:
-				this._movingElement = true;
-				action = (this.dir === 'rtl' ? dragActions.unnest : dragActions.nest);
-				break;
-			case keyCodes.LEFT:
-				this._movingElement = true;
-				action = (this.dir === 'rtl' ? dragActions.nest : dragActions.unnest) ;
-				break;
-			case keyCodes.ENTER:
-			case keyCodes.SPACE:
-				action = dragActions.save;
-				this.updateComplete.then(() => this._keyboardActive = false);
-				break;
-			default:
-				return;
-		}
+	async _doAction(action) {
 		this._dispatchAction(action);
-		e.preventDefault();
-		e.stopPropagation();
-		const cell = findComposedAncestor(this, (parent) =>  parent.hasAttribute && parent.hasAttribute('draggable'));
+		const cell = findComposedAncestor(this, (parent) => parent.hasAttribute && parent.hasAttribute('draggable'));
 		if (cell) await cell.updateComplete;
 		await this.updateComplete;
 		this.focus();
 		this._movingElement = false;
 	}
 
-	_onFocusInKeyboardButton() {
+	_onDraggerButtonClick() {
+		if (this.disabled) return;
+		this.activateKeyboardMode();
+	}
+
+	async _onMoveButtonAction(e) {
+
+		const isRtl = document.documentElement.getAttribute('dir') === 'rtl';
+
+		if (this.layout === 'tile') {
+			if (!isRtl) {
+				if (e.detail.action === moveActions.right)
+					e.detail.action = moveActions.down;
+				if (e.detail.action === moveActions.left)
+					e.detail.action = moveActions.up;
+			} else {
+				if (e.detail.action === moveActions.right)
+					e.detail.action = moveActions.up;
+				if (e.detail.action === moveActions.left)
+					e.detail.action = moveActions.down;
+			}
+		}
+
+		let action = null;
+		switch (e.detail.action) {
+			case moveActions.up:
+				this._movingElement = true;
+				action = dragActions.up;
+				this.updateComplete.then(() => this.blur()); // tell screenreaders to refocus
+				break;
+			case moveActions.down:
+				this._movingElement = true;
+				action = dragActions.down;
+				break;
+			case moveActions.right:
+				this._movingElement = true;
+				action = (isRtl ? dragActions.unnest : dragActions.nest);
+				break;
+			case moveActions.left:
+				this._movingElement = true;
+				action = (isRtl ? dragActions.nest : dragActions.unnest) ;
+				break;
+			case moveActions.rootHome:
+				this._movingElement = true;
+				action = dragActions.rootFirst;
+				break;
+			case moveActions.home:
+				this._movingElement = true;
+				action = dragActions.first;
+				break;
+			case moveActions.rootEnd:
+				this._movingElement = true;
+				action = dragActions.rootLast;
+				break;
+			case moveActions.end:
+				this._movingElement = true;
+				action = dragActions.last;
+				break;
+			default:
+				return;
+		}
+
+		this._doAction(action);
+
+	}
+
+	_onMoveButtonFocusIn() {
 		if (hasDisplayedKeyboardTooltip) return;
 		this._displayKeyboardTooltip = true;
 		hasDisplayedKeyboardTooltip = true;
 	}
 
-	_onFocusOutKeyboardButton(e) {
+	_onMoveButtonFocusOut(e) {
 		this._displayKeyboardTooltip = false;
 		if (this._movingElement) {
 			this._movingElement = false;
@@ -254,50 +269,80 @@ class ListItemDragHandle extends LocalizeCoreElement(RtlMixin(LitElement)) {
 		e.stopPropagation();
 	}
 
-	_onInactiveKeyboard(e) {
-		if (e.type === 'click' || e.keyCode === keyCodes.ENTER || e.keyCode === keyCodes.SPACE) {
-			this._dispatchAction(dragActions.active);
-			this._keyboardActive = true;
-			e.preventDefault();
+	async _onMoveButtonKeydown(e) {
+		if (!this._keyboardActive) {
+			return;
 		}
+
+		let action = null;
+		switch (e.keyCode) {
+			case keyCodes.TAB:
+				action = e.shiftKey ? dragActions.previousElement : dragActions.nextElement;
+				break;
+			case keyCodes.ESC:
+				action = dragActions.cancel;
+				this.updateComplete.then(() => this._keyboardActive = false);
+				break;
+			case keyCodes.ENTER:
+			case keyCodes.SPACE:
+				action = dragActions.save;
+				this.updateComplete.then(() => this._keyboardActive = false);
+				break;
+			default:
+				return;
+		}
+
+		e.preventDefault();
+		e.stopPropagation();
+		this._doAction(action);
+
+	}
+
+	_onMoveButtonMouseDown(e) {
+		e.preventDefault();
 	}
 
 	_renderDragger() {
 		return html`
 			<button
-				class="d2l-list-item-drag-handle-dragger-button"
-				@click="${this._onInactiveKeyboard}"
-				@keydown="${this._onInactiveKeyboard}"
+				class="d2l-list-item-drag-handle-dragger-button d2l-list-item-drag-handle-button"
+				@click="${this._onDraggerButtonClick}"
 				aria-label="${this._defaultLabel}"
 				?disabled="${this.disabled}">
-				<d2l-icon icon="tier1:dragger" class="d2l-button-icon"></d2l-icon>
+				<d2l-icon icon="tier1:dragger" class="d2l-button-dragger-icon"></d2l-icon>
 			</button>
 		`;
 	}
 
 	_renderKeyboardDragging() {
 		return html`
-			<button
-				aria-label="${this._defaultLabel}"
-				class="d2l-list-item-drag-handle-keyboard-button"
-				@focusin="${this._onFocusInKeyboardButton}"
-				@focusout="${this._onFocusOutKeyboardButton}"
+			<d2l-button-move
+				class="d2l-list-item-drag-handle-button"
+				@d2l-button-move-action="${this._onMoveButtonAction}"
+				@focusin="${this._onMoveButtonFocusIn}"
+				@focusout="${this._onMoveButtonFocusOut}"
 				id="${this._buttonId}"
-				@keydown="${this._onActiveKeyboard}">
-				<d2l-icon icon="tier1:arrow-toggle-up" @click="${this._dispatchActionUp}" class="d2l-button-icon"></d2l-icon>
-				<d2l-icon icon="tier1:arrow-toggle-down" @click="${this._dispatchActionDown}" class="d2l-button-icon"></d2l-icon>
-			</button>
-			${this._displayKeyboardTooltip ? html`<d2l-tooltip align="start" for="${this._buttonId}" for-type="descriptor">${this._renderTooltipContent()}</d2l-tooltip>` : ''}
+				@keydown="${this._onMoveButtonKeydown}"
+				@mousedown="${this._onMoveButtonMouseDown}"
+				text="${this._defaultLabel}"
+				?side-to-side="${this.layout === 'tile'}">
+			</d2l-button-move>
+			${this._displayKeyboardTooltip ? html`<d2l-tooltip class="vdiff-target" align="start" announced for="${this._buttonId}" for-type="descriptor">${this._renderTooltipContent()}</d2l-tooltip>` : ''}
 		`;
 	}
 
 	_renderTooltipContent() {
+		const namespace = 'components.list-item-drag-handle-tooltip';
+		const controlNamespace = this.layout === 'tile'
+			? `${namespace}.side-to-side`
+			: namespace;
+
 		return html`
-			<div>${this.localize('components.list-item-drag-handle-tooltip.title')}</div>
+			<div>${this.localize(`${namespace}.title`)}</div>
 			<ul>
-				<li><span class="d2l-list-item-drag-handle-tooltip-key">${this.localize('components.list-item-drag-handle-tooltip.enter-key')}</span> - ${this.localize('components.list-item-drag-handle-tooltip.enter-desc')}</li>
-				<li><span class="d2l-list-item-drag-handle-tooltip-key">${this.localize('components.list-item-drag-handle-tooltip.up-down-key')}</span> - ${this.localize('components.list-item-drag-handle-tooltip.up-down-desc')}</li>
-				<li><span class="d2l-list-item-drag-handle-tooltip-key">${this.localize('components.list-item-drag-handle-tooltip.left-right-key')}</span> - ${this.localize('components.list-item-drag-handle-tooltip.left-right-desc')}</li>
+				<li><span class="d2l-list-item-drag-handle-tooltip-key">${this.localize(`${namespace}.enter-key`)}</span> - ${this.localize(`${namespace}.enter-desc`)}</li>
+				<li><span class="d2l-list-item-drag-handle-tooltip-key">${this.localize(`${namespace}.up-down-key`)}</span> - ${this.localize(`${controlNamespace}.up-down-desc`)}</li>
+				<li><span class="d2l-list-item-drag-handle-tooltip-key">${this.localize(`${namespace}.left-right-key`)}</span> - ${this.localize(`${controlNamespace}.left-right-desc`)}</li>
 			</ul>
 		`;
 	}

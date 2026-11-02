@@ -1,4 +1,3 @@
-/* eslint-disable indent */
 import '../../button/button-icon.js';
 import '../../dropdown/dropdown-button-subtle.js';
 import '../../dropdown/dropdown-menu.js';
@@ -10,12 +9,13 @@ import '../../selection/selection-action.js';
 import '../../selection/selection-action-dropdown.js';
 import '../../selection/selection-action-menu-item.js';
 import '../../tooltip/tooltip.js';
-import '../list-header.js';
+import '../list-controls.js';
 import '../list-item-content.js';
 import '../list-item.js';
-import '../list.js';
 import { css, html, LitElement } from 'lit';
 import { getUniqueId } from '../../../helpers/uniqueId.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { listFreshness } from '../list.js';
 import { repeat } from 'lit/directives/repeat.js';
 
 const items = [{
@@ -114,31 +114,32 @@ const items = [{
 
 class DemoList extends LitElement {
 
-	static get properties() {
-		return {
-			grid: { type: Boolean },
-			_lastItemLoadedIndex: { state: true }
-		};
-	}
+	static properties = {
+		addButton: { type: Boolean, attribute: 'add-button' },
+		grid: { type: Boolean },
+		extendSeparators: { type: Boolean, attribute: 'extend-separators' },
+		_freshness: { state: true },
+		_lastItemLoadedIndex: { state: true }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				display: block;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-			img {
-				height: 500px;
-				object-fit: cover;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			display: block;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		img {
+			height: 500px;
+			object-fit: cover;
+		}
+	`;
 
 	constructor() {
 		super();
+		this.extendSeparators = false;
 		this.items = JSON.parse(JSON.stringify(items));
+		this._freshness = listFreshness.fresh;
 		this._lastItemLoadedIndex = 2;
 		this._pageSize = 2;
 	}
@@ -146,10 +147,20 @@ class DemoList extends LitElement {
 	render() {
 		const loadedItems = this.items.slice(0, this._lastItemLoadedIndex + 1);
 		const remainingItemCount = this.items.length - loadedItems.length;
+		const addButtonText = this.addButton ? 'Add New Item' : undefined;
 		return html`
-			<d2l-list ?grid="${this.grid}" item-count="${this.items.length}">
-				<d2l-list-header slot="header" select-all-pages-allowed>
+			<d2l-list
+				?add-button="${this.addButton}"
+				add-button-text="${ifDefined(addButtonText)}"
+				@d2l-list-stale-button-click="${this._handleListStaleButtonClick}"
+				?extend-separators="${this.extendSeparators}"
+				freshness="${this._freshness}"
+				freshness-stale-text="Click the shiny button to show a fresh list."
+				?grid="${this.grid}"
+				item-count="${this.items.length}">
+				<d2l-list-controls slot="controls" select-all-pages-allowed>
 					<d2l-selection-action icon="tier1:plus-default" text="Add" @d2l-selection-action-click="${this._handleAddItem}"></d2l-selection-action>
+					<d2l-selection-action icon="tier1:refresh" text="Freshness" @d2l-selection-action-click="${this._handleFreshnessClick}"></d2l-selection-action>
 					<d2l-selection-action-dropdown text="Move To" requires-selection>
 						<d2l-dropdown-menu>
 							<d2l-menu label="Move To Options">
@@ -173,7 +184,7 @@ class DemoList extends LitElement {
 						</d2l-dropdown-menu>
 					</d2l-dropdown-button-subtle>
 					<d2l-selection-action icon="tier1:gear" text="Settings" requires-selection></d2l-selection-action>
-				</d2l-list-header>
+				</d2l-list-controls>
 				${repeat(loadedItems, item => item.key, item => {
 					const tooltipButtonId = getUniqueId();
 					return html`
@@ -201,7 +212,6 @@ class DemoList extends LitElement {
 				<d2l-pager-load-more slot="pager"
 					@d2l-pager-load-more="${this._handlePagerLoadMore}"
 					?has-more="${this._lastItemLoadedIndex < this.items.length - 1}"
-					item-count="${this.items.length}"
 					page-size="${remainingItemCount < this._pageSize ? remainingItemCount : this._pageSize}">
 				</d2l-pager-load-more>
 			</d2l-list>
@@ -218,6 +228,20 @@ class DemoList extends LitElement {
 			items: []
 		});
 		this.requestUpdate();
+	}
+
+	_handleFreshnessClick() {
+		this._freshness = listFreshness.stale;
+	}
+
+	_handleListStaleButtonClick() {
+		this._freshness = listFreshness.loading;
+
+		setTimeout(() => {
+			this._freshness = listFreshness.fresh;
+			// make an update to test concept of refreshing the list in a different state
+			this._lastItemLoadedIndex = 10;
+		}, 3500);
 	}
 
 	_handlePagerLoadMore(e) {

@@ -1,17 +1,20 @@
+import '../colors/colors.js';
 import '../tooltip/tooltip.js';
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { formatNumber } from '@brightspace-ui/intl/lib/number.js';
 import { FormElementMixin } from '../form/form-element-mixin.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import { InputInlineHelpMixin } from './input-inline-help.js';
 import { inputLabelStyles } from './input-label-styles.js';
 import { inputStyles } from './input-styles.js';
-import { LabelledMixin } from '../../mixins/labelled-mixin.js';
+import { LabelledMixin } from '../../mixins/labelled/labelled-mixin.js';
 import { offscreenStyles } from '../offscreen/offscreen.js';
 import { PerfMonitor } from '../../helpers/perfMonitor.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { PropertyRequiredMixin } from '../../mixins/property-required/property-required-mixin.js';
+import { RtlMixin } from '../../mixins/rtl/rtl-mixin.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
@@ -20,231 +23,261 @@ import { styleMap } from 'lit/directives/style-map.js';
  * @slot left - Slot within the input on the left side. Useful for an "icon" or "button-icon".
  * @slot right - Slot within the input on the right side. Useful for an "icon" or "button-icon".
  * @slot after - Slot beside the input on the right side. Useful for an "icon" or "button-icon".
+ * @slot inline-help - Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
  * @fires change - Dispatched when an alteration to the value is committed (typically after focus is lost) by the user
  * @fires input - Dispatched immediately after changes by the user
  */
-class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(RtlMixin(LitElement))))) {
+class InputText extends InputInlineHelpMixin(PropertyRequiredMixin(FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(RtlMixin(LitElement))))))) {
 
-	static get properties() {
-		return {
-			/**
-			 * ADVANCED: Indicates that the input has a popup menu
-			 * @type {string}
-			 */
-			ariaHaspopup: { type: String, attribute: 'aria-haspopup' },
-			/**
-			 * ADVANCED: Indicates that the input value is invalid
-			 * @type {string}
-			 */
-			ariaInvalid: { type: String, attribute: 'aria-invalid' },
-			/**
-			 * ADVANCED: Specifies whether or not the screen reader should always present changes to the live region as a whole.
-			 * This only applies if live is set to polite or assertive.
-			 * @type {string}
-			 */
-			atomic: { type: String },
-			/**
-			 * Specifies which types of values can be autofilled by the browser
-			 * @type {string}
-			 */
-			autocomplete: { type: String },
-			/**
-			 * When set, will automatically place focus on the input
-			 * @type {boolean}
-			 */
-			autofocus: { type: Boolean },
-			/**
-			 * Additional information communicated in the aria-describedby on the input
-			 * @type {string}
-			 */
-			description: { type: String, reflect: true },
-			/**
-			 * Disables the input
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * ADVANCED: Hide the alert icon when input is invalid
-			 * @type {boolean}
-			 */
-			hideInvalidIcon: { attribute: 'hide-invalid-icon', type: Boolean, reflect: true },
-			/**
-			 * Restricts the maximum width of the input box without impacting the width of the label.
-			 * @type {string}
-			 */
-			inputWidth: { attribute: 'input-width', type: String },
-			/**
-			 * Hides the label visually (moves it to the input's "aria-label" attribute)
-			 * @type {boolean}
-			 */
-			labelHidden: { type: Boolean, attribute: 'label-hidden' },
-			/**
-			 * ADVANCED: Set the priority with which screen readers should treat updates to the input's live text region
-			 * @type {string}
-			 */
-			live: { type: String },
-			/**
-			 * For number inputs, maximum value
-			 * @type {string}
-			 */
-			max: { type: String },
-			/**
-			 * Imposes an upper character limit
-			 * @type {number}
-			 */
-			maxlength: { type: Number },
-			/**
-			 * For number inputs, minimum value
-			 * @type {string}
-			 */
-			min: { type: String },
-			/**
-			 * Imposes a lower character limit
-			 * @type {number}
-			 */
-			minlength: { type: Number },
-			/**
-			 * Regular expression pattern to validate the value
-			 * @type {string}
-			 */
-			pattern: { type: String },
-			/**
-			 * Placeholder text
-			 * @type {string}
-			 */
-			placeholder: { type: String },
-			/**
-			 * Prevents pressing ENTER from submitting forms
-			 * @type {boolean}
-			 */
-			preventSubmit: { type: Boolean, attribute: 'prevent-submit' },
-			/**
-			 * Makes the input read-only
-			 * @type {boolean}
-			 */
-			readonly: { type: Boolean },
-			/**
-			 * Indicates that a value is required
-			 * @type {boolean}
-			 */
-			required: { type: Boolean, reflect: true },
-			/**
-			 * Size of the input
-			 * @type {number}
-			 */
-			size: { type: Number },
-			/**
-			 * For number inputs, sets the step size
-			 * @type {string}
-			 */
-			step: { type: String },
-			/**
-			 * Text for additional screenreader and mouseover context
-			 * @type {string}
-			 */
-			title: { type: String },
-			/**
-			 * The type of the text input
-			 * @type {'text'|'email'|'number'|'password'|'search'|'tel'|'url'}
-			 */
-			type: { type: String },
-			/**
-			 * Unit associated with the input value, displayed next to input and announced as part of the label
-			 * @type {string}
-			 */
-			unit: { type: String },
-			/**
-			 * Value of the input
-			 * @type {string}
-			 */
-			value: { type: String },
-			_firstSlotWidth: { type: Number },
-			_hasAfterContent: { type: Boolean, attribute: false },
-			_focused: { type: Boolean },
-			_hovered: { type: Boolean },
-			_lastSlotWidth: { type: Number }
-		};
-	}
+	static properties = {
+		/**
+		 * ADVANCED: Indicates that the input has a popup menu
+		 * @type {string}
+		 */
+		ariaHaspopup: { type: String, attribute: 'aria-haspopup' },
+		/**
+		 * ADVANCED: Indicates that the input value is invalid
+		 * @type {string}
+		 */
+		ariaInvalid: { type: String, attribute: 'aria-invalid' },
+		/**
+		 * ADVANCED: Specifies which types of values can be autofilled by the browser
+		 * @type {string}
+		 */
+		autocomplete: { type: String },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		autofocus: { type: Boolean },
+		/**
+		 * Additional information communicated in the aria-describedby on the input
+		 * @type {string}
+		 */
+		description: { type: String, reflect: true },
+		/**
+		 * Disables the input
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * ADVANCED: Hide the alert icon when input is invalid
+		 * @type {boolean}
+		 */
+		hideInvalidIcon: { attribute: 'hide-invalid-icon', type: Boolean, reflect: true },
+		/**
+		 * ADVANCED: Hide the tooltip when input is invalid
+		 * @type {boolean}
+		 */
+		hideInvalidTooltip: { attribute: 'hide-invalid-tooltip', type: Boolean, reflect: true },
+		/**
+		 * Restricts the maximum width of the input box without restricting the width of the label.
+		 * @type {string}
+		 */
+		inputWidth: { attribute: 'input-width', type: String },
+		/**
+		 * ADVANCED: Additional information relating to how to use the component
+		 * @type {string}
+		 */
+		instructions: { type: String, attribute: 'instructions' },
+		/**
+		 * Hides the label visually (moves it to the input's "aria-label" attribute)
+		 * @type {boolean}
+		 */
+		labelHidden: { type: Boolean, attribute: 'label-hidden' },
+		/**
+		 * Imposes an upper character limit
+		 * @type {number}
+		 */
+		maxlength: { type: Number },
+		/**
+		 * Imposes a lower character limit
+		 * @type {number}
+		 */
+		minlength: { type: Number },
+		/**
+		 * ADVANCED: Regular expression pattern to validate the value
+		 * @type {string}
+		 */
+		pattern: { type: String },
+		/**
+		 * ADVANCED: Text to display when input fails validation against the pattern.  If a list of characters is included in the message, use `LocalizeMixin`'s `localizeCharacter`.
+		 */
+		patternFailureText: { type: String, attribute: 'pattern-failure-text' },
+		/**
+		 * @ignore
+		 */
+		placeholder: { type: String },
+		/**
+		 * Prevents pressing ENTER from submitting forms
+		 * @type {boolean}
+		 */
+		preventSubmit: { type: Boolean, attribute: 'prevent-submit' },
+		/**
+		 * ADVANCED: Makes the input read-only
+		 * @type {boolean}
+		 */
+		readonly: { type: Boolean },
+		/**
+		 * Indicates that a value is required
+		 * @type {boolean}
+		 */
+		required: { type: Boolean, reflect: true },
+		/**
+		 * Size of the input
+		 * @type {number}
+		 */
+		size: { type: Number },
+		/**
+		 * ADVANCED: For number inputs, sets the step size
+		 * @type {number}
+		 */
+		step: { type: Number },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		title: { type: String },
+		/**
+		 * The type of the text input
+		 * @type {'text'|'email'|'password'|'search'|'tel'|'url'}
+		 */
+		type: { type: String },
+		/**
+		 * Unit associated with the input value, displayed next to input and announced as part of the label
+		 * @type {string}
+		 */
+		unit: { type: String },
+		/**
+		 * Accessible label for the unit which will not be visually rendered
+		 * @type {string}
+		 */
+		unitLabel: {
+			attribute: 'unit-label',
+			required: {
+				dependentProps: ['unit'],
+				message: (_value, elem) => `<d2l-input-text>: missing required attribute "unit-label" for unit "${elem.unit}"`,
+				validator: (_value, elem, hasValue) => {
+					const hasUnit = (typeof elem.unit === 'string') && elem.unit.length > 0;
+					return !(hasUnit && elem.unit !== '%' && !hasValue);
+				}
+			},
+			type: String
+		},
+		/**
+		 * Value of the input
+		 * @type {string}
+		 */
+		value: { type: String },
+		/**
+		 * ADVANCED: Alignment of the value text within the input
+		 * @type {'start'|'end'}
+		 */
+		valueAlign: { attribute: 'value-align', type: String },
+		_firstSlotWidth: { type: Number },
+		_hasAfterContent: { state: true },
+		_focused: { type: Boolean },
+		_hovered: { type: Boolean },
+		_lastSlotWidth: { type: Number }
+	};
 
-	static get styles() {
-		return [ super.styles, inputStyles, inputLabelStyles, offscreenStyles,
-			css`
-				:host {
-					display: inline-block;
-					width: 100%;
-				}
-				:host([hidden]) {
-					display: none;
-				}
-				.d2l-input-label {
-					display: inline-block;
-					vertical-align: bottom;
-				}
-				.d2l-input-container {
-					display: flex;
-				}
-				.d2l-input-text-container {
-					flex: 1 1 auto;
-					position: var(--d2l-input-position, relative); /* overridden by sticky headers in grades */
-				}
-				.d2l-input {
-					-webkit-appearance: textfield;
-					overflow: hidden;
-					text-overflow: ellipsis;
-					white-space: nowrap;
-				}
-				#after-slot {
-					display: inline-block;
-					flex: 0 0 auto;
-				}
-				.d2l-input-inside-before, .d2l-input-inside-after {
-					align-items: center;
-					display: flex;
-					position: absolute;
-					top: 50%;
-					transform: translateY(-50%);
-				}
-				.d2l-input-inside-before {
-					left: 0;
-				}
-				.d2l-input-inside-after {
-					right: 0;
-				}
-				.d2l-input-inside-before .d2l-input-unit {
-					margin-left: 12px;
-					margin-right: 6px;
-				}
-				.d2l-input-inside-after .d2l-input-unit {
-					display: inline-block;
-					margin-left: 6px;
-					margin-right: 12px;
-				}
-				:host([disabled]) .d2l-input-unit {
-					opacity: 0.5;
-				}
-				.d2l-input-text-invalid-icon {
-					background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjIiIGhlaWdodD0iMjIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgIDxwYXRoIGZpbGw9IiNGRkYiIGQ9Ik0wIDBoMjJ2MjJIMHoiLz4KICAgIDxwYXRoIGQ9Ik0xOC44NjQgMTYuNDdMMTIuNjIzIDMuOTg5YTEuNzgzIDEuNzgzIDAgMDAtMy4xOTIgMEwzLjE4OSAxNi40N2ExLjc2MSAxLjc2MSAwIDAwLjA4IDEuNzNjLjMyNS41MjUuODk4Ljc5OCAxLjUxNi43OTloMTIuNDgzYy42MTggMCAxLjE5Mi0uMjczIDEuNTE2LS44LjIzNy0uMzM1LjI2NS0xLjM3LjA4LTEuNzN6IiBmaWxsPSIjQ0QyMDI2IiBmaWxsLXJ1bGU9Im5vbnplcm8iLz4KICAgIDxwYXRoIGQ9Ik0xMS4wMjcgMTcuMjY0YTEuMzM3IDEuMzM3IDAgMTEwLTIuNjc1IDEuMzM3IDEuMzM3IDAgMDEwIDIuNjc1ek0xMS45IDEyLjk4YS44OTIuODkyIDAgMDEtMS43NDcgMEw5LjI3IDguNTJhLjg5Mi44OTIgMCAwMS44NzQtMS4wNjRoMS43NjhhLjg5Mi44OTIgMCAwMS44NzQgMS4wNjVsLS44ODYgNC40NTh6IiBmaWxsPSIjRkZGIi8+CiAgPC9nPgo8L3N2Zz4K");
-					display: flex;
-					height: 22px;
-					position: absolute;
-					top: 50%;
-					transform: translateY(-50%);
-					width: 22px;
-				}
-			`
-		];
-	}
+	static styles = [super.styles, inputStyles, inputLabelStyles, offscreenStyles, css`
+		:host {
+			display: inline-block;
+			width: 100%;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		:host([value-align="end"]) {
+			--d2l-input-text-align: end;
+		}
+		.d2l-input-label {
+			display: inline-block;
+			vertical-align: bottom;
+		}
+		:host(:not([skeleton])) .d2l-input-label {
+			margin: 0;
+			padding-block: 0 0.4rem;
+			padding-inline: 0;
+		}
+		:host(:not([skeleton]):not([input-width])) .d2l-input-label {
+			width: 100%;
+		}
+		.d2l-input-container {
+			display: flex;
+		}
+		.d2l-input-text-container {
+			flex: 1 1 auto;
+			position: var(--d2l-input-position, relative); /* overridden by sticky headers in grades */
+		}
+		.d2l-input {
+			-webkit-appearance: textfield;
+			appearance: textfield;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		#after-slot {
+			display: inline-block;
+			flex: 0 0 auto;
+		}
+		.d2l-input-inside-before, .d2l-input-inside-after {
+			align-items: center;
+			display: flex;
+			position: absolute;
+			top: 50%;
+			transform: translateY(-50%);
+		}
+		.d2l-input-inside-before {
+			left: 0;
+		}
+		.d2l-input-inside-after {
+			right: 0;
+		}
+		.d2l-input-unit {
+			color: var(--d2l-theme-text-color-static-faint);
+			font-size: 0.7rem;
+			margin-top: 0.05rem;
+		}
+		.d2l-input-inside-before .d2l-input-unit {
+			margin-left: 12px;
+			margin-right: 6px;
+		}
+		.d2l-input-inside-after .d2l-input-unit {
+			display: inline-block;
+			margin-left: 6px;
+			margin-right: 12px;
+		}
+		:host([disabled]) .d2l-input-unit {
+			opacity: var(--d2l-theme-opacity-disabled-control);
+		}
+		.d2l-input-text-invalid-icon {
+			background-image: var(--d2l-input-invalid-image);
+			background-position: center center;
+			background-repeat: no-repeat;
+			background-size: 0.8rem 0.8rem;
+			display: flex;
+			height: 22px;
+			position: absolute;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 22px;
+		}
+	`];
 
 	constructor() {
 		super();
 		this.autofocus = false;
 		this.disabled = false;
 		this.hideInvalidIcon = false;
+		this.hideInvalidTooltip = false;
 		this.labelHidden = false;
 		this.preventSubmit = false;
 		this.readonly = false;
 		this.required = false;
 		this.type = 'text';
+		this.valueAlign = 'start';
 		this._value = '';
 
 		this._descriptionId = getUniqueId();
@@ -252,16 +285,13 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 		this._focused = false;
 		this._hasAfterContent = false;
 		this._hovered = false;
+		this._inlineHelpId = getUniqueId();
 		this._inputId = getUniqueId();
 		this._intersectionObserver = null;
 		this._isIntersecting = false;
 		this._lastSlotWidth = 0;
 		this._prevValue = '';
 
-		this._handleBlur = this._handleBlur.bind(this);
-		this._handleFocus = this._handleFocus.bind(this);
-		this._handleMouseEnter = this._handleMouseEnter.bind(this);
-		this._handleMouseLeave = this._handleMouseLeave.bind(this);
 		this._perfMonitor = new PerfMonitor(this);
 	}
 
@@ -288,11 +318,7 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 
 	/** @ignore */
 	get validationMessage() {
-		if (this.validity.rangeOverflow) {
-			return this.localize('components.form-element.input.number.rangeOverflow', { max: formatNumber(parseFloat(this.max)), maxExclusive: false });
-		} else if (this.validity.rangeUnderflow) {
-			return this.localize('components.form-element.input.number.rangeUnderflow', { min: formatNumber(parseFloat(this.min)), minExclusive: false });
-		} else if (this.validity.tooShort) {
+		if (this.validity.tooShort) {
 			return this.localize('components.form-element.input.text.tooShort', { label: this.label, minlength: formatNumber(this.minlength) });
 		} else if (this.validity.typeMismatch) {
 			if (this.type === 'email') {
@@ -300,6 +326,8 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 			} else if (this.type === 'url') {
 				return this.localize('components.form-element.input.url.typeMismatch');
 			}
+		} else if (this.validity.patternMismatch && (typeof this.patternFailureText === 'string')) {
+			return this.patternFailureText;
 		}
 		return super.validationMessage;
 	}
@@ -307,7 +335,7 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 	/** @ignore */
 	get validity() {
 		const elem = this.shadowRoot && this.shadowRoot.querySelector('.d2l-input');
-		if (!elem.validity.valid) {
+		if (elem && !elem.validity.valid) {
 			return elem.validity;
 		}
 		return super.validity;
@@ -325,10 +353,8 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 		if (this._intersectionObserver) this._intersectionObserver.disconnect();
 		const container = this.shadowRoot && this.shadowRoot.querySelector('.d2l-input-text-container');
 		if (!container) return;
-		container.removeEventListener('blur', this._handleBlur, true);
-		container.removeEventListener('focus', this._handleFocus, true);
-		container.removeEventListener('mouseover', this._handleMouseEnter);
-		container.removeEventListener('mouseout', this._handleMouseLeave);
+		container.removeEventListener('blur', this.#handleBlur, true);
+		container.removeEventListener('focus', this.#handleFocus, true);
 	}
 
 	firstUpdated(changedProperties) {
@@ -338,10 +364,8 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 
 		const container = this.shadowRoot && this.shadowRoot.querySelector('.d2l-input-text-container');
 		if (!container) return;
-		container.addEventListener('blur', this._handleBlur, true);
-		container.addEventListener('focus', this._handleFocus, true);
-		container.addEventListener('mouseover', this._handleMouseEnter);
-		container.addEventListener('mouseout', this._handleMouseLeave);
+		container.addEventListener('blur', this.#handleBlur, true);
+		container.addEventListener('focus', this.#handleFocus, true);
 
 		// if initially hidden then update layout when it becomes visible
 		if (typeof(IntersectionObserver) === 'function') {
@@ -385,30 +409,41 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 		const inputContainerStyles = {
 			maxWidth: this.inputWidth
 		};
+		const labelStyles = {
+			minWidth: this.inputWidth && !this.skeleton ? `min(100%, ${this.inputWidth})` : undefined
+		};
 
 		const firstSlotName = (this.dir === 'rtl') ? 'right' : 'left';
 		const lastSlotName = (this.dir === 'rtl') ? 'left' : 'right';
 
 		const isValid = ariaInvalid !== 'true' || this.disabled;
-		const invalidIconSide = (this.dir === 'rtl') ? 'left' : 'right';
-		const invalidIconOffset = Math.max((this.dir === 'rtl') ? this._firstSlotWidth : this._lastSlotWidth, 12);
+		const invalidIconSide = ((this.dir === 'rtl' && this.valueAlign === 'start') || (this.dir !== 'rtl' && this.valueAlign === 'end')) ? 'left' : 'right';
+		const invalidIconOffset = Math.max((invalidIconSide === 'left') ? this._firstSlotWidth : this._lastSlotWidth, 12);
 		const invalidIconStyles = {
 			[invalidIconSide]: `${invalidIconOffset}px`
 		};
+		const showInvalidIcon = !isValid && !this.hideInvalidIcon && !this._focused;
+		if (showInvalidIcon) {
+			const paddingProperty = invalidIconSide === 'left' ? 'paddingLeft' : 'paddingRight';
+			inputStyles[paddingProperty] = `${invalidIconOffset + 22 - (isFocusedOrHovered ? 1 : 0)}px`;
+		}
 
 		const unit = this.unit
 			? html`<span aria-hidden="true" class="d2l-input-unit" @click="${this._handleUnitClick}">${this.unit}</span>`
 			: null;
+		const ariaDescribedByIds = `${this.description ? this._descriptionId : ''} ${this._hasInlineHelp ? this._inlineHelpId : ''}`.trim();
 
 		const input = html`
 			<div class="d2l-input-container">
-				<div class="d2l-input-text-container d2l-skeletize" style="${styleMap(inputContainerStyles)}">
-					<input aria-atomic="${ifDefined(this.atomic)}"
-						aria-describedby="${ifDefined(this.description ? this._descriptionId : undefined)}"
+				<div class="d2l-input-text-container d2l-skeletize"
+						@mouseenter="${this._handleMouseEnter}"
+						@mouseleave="${this._handleMouseLeave}"
+						style="${styleMap(inputContainerStyles)}">
+					<input
+						aria-describedby="${ifDefined(ariaDescribedByIds.length > 0 ? ariaDescribedByIds : undefined)}"
 						aria-haspopup="${ifDefined(this.ariaHaspopup)}"
 						aria-invalid="${ifDefined(ariaInvalid)}"
 						aria-label="${ifDefined(this._getAriaLabel())}"
-						aria-live="${ifDefined(this.live)}"
 						aria-required="${ifDefined(ariaRequired)}"
 						?required="${this.required}"
 						autocomplete="${ifDefined(this.autocomplete)}"
@@ -420,9 +455,7 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 						@input="${this._handleInput}"
 						@invalid="${this._handleInvalid}"
 						@keypress="${this._handleKeypress}"
-						max="${ifDefined(this.max)}"
 						maxlength="${ifDefined(this.maxlength)}"
-						min="${ifDefined(this.min)}"
 						minlength="${ifDefined(this.minlength)}"
 						name="${ifDefined(this.name)}"
 						pattern="${ifDefined(this.pattern)}"
@@ -431,70 +464,67 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 						size="${ifDefined(this.size)}"
 						step="${ifDefined(this.step)}"
 						style="${styleMap(inputStyles)}"
-						tabindex="${ifDefined(this.tabindex)}"
 						title="${ifDefined(this.title)}"
 						type="${this._getType()}">
 					<div class="d2l-input-inside-before" @keypress="${this._suppressEvent}">${this.dir === 'rtl' ? unit : ''}<slot name="${firstSlotName}" @slotchange="${this._handleSlotChange}"></slot></div>
 					<div class="d2l-input-inside-after" @keypress="${this._suppressEvent}">${this.dir !== 'rtl' ? unit : ''}<slot name="${lastSlotName}" @slotchange="${this._handleSlotChange}"></slot></div>
-					${ (!isValid && !this.hideInvalidIcon && !this._focused) ? html`<div class="d2l-input-text-invalid-icon" style="${styleMap(invalidIconStyles)}" @click="${this._handleInvalidIconClick}"></div>` : null}
-					${ this.validationError ? html`<d2l-tooltip for=${this._inputId} state="error" align="start">${this.validationError} <span class="d2l-offscreen">${this.description}</span></d2l-tooltip>` : null }
+					${showInvalidIcon ? html`<div class="d2l-input-text-invalid-icon" style="${styleMap(invalidIconStyles)}" @click="${this._handleInvalidIconClick}"></div>` : null}
 				</div><div id="after-slot" class="d2l-skeletize" ?hidden="${!this._hasAfterContent}"><slot name="after" @slotchange="${this._handleAfterSlotChange}"></slot></div>
 			</div>
+			${this._renderInlineHelp(this._inlineHelpId)}
 			${offscreenContainer}
 		`;
+
+		let label = nothing;
 		if (this.label && !this.labelHidden && !this.labelledBy) {
-			return html`
-				<label class="d2l-input-label d2l-skeletize" for="${this._inputId}">${this.label}${this.unit ? html`<span class="d2l-offscreen"> ${this.unit}</span>` : ''}</label>
-				${input}`;
+			const unitLabel = this._getUnitLabel();
+			label = html`<label class="d2l-input-label d2l-skeletize" for="${this._inputId}" style="${styleMap(labelStyles)}">${this.label}${unitLabel ? html`<span class="d2l-offscreen">${unitLabel}</span>` : ''}</label>`;
 		}
-		return input;
+
+		let tooltip = nothing;
+		if (!this.skeleton && !this.disabled) {
+			if (this.validationError && !this.noValidate && !this.hideInvalidTooltip) {
+				// this tooltip is using "announced" since we don't want aria-describedby wire-up - VoiceOver ignores our message when the input is invalid
+				tooltip = html`<d2l-tooltip state="error" announced align="start" class="vdiff-target">${this.validationError} <span class="d2l-offscreen">${this.description}</span></d2l-tooltip>`;
+			} else if (this.instructions) {
+				tooltip = html`<d2l-tooltip align="start" for="${this._inputId}" delay="1000" class="vdiff-target">${this.instructions}</d2l-tooltip>`;
+			}
+		}
+
+		return html`${tooltip}${label}${input}`;
 	}
 
 	updated(changedProperties) {
 		super.updated(changedProperties);
 
 		changedProperties.forEach((oldVal, prop) => {
-			if (prop === 'unit') {
-				if (this.unit && this.unit !== '%') {
-					throw new Error('Invalid unit value for d2l-input-text.');
-				}
+			if (prop === 'unit' || prop === 'unitLabel') {
 				this._updateInputLayout();
 			} else if (prop === 'validationError') {
 				if (oldVal && this.validationError) {
 					const tooltip = this.shadowRoot.querySelector('d2l-tooltip');
 					tooltip.updatePosition();
 				}
+			} else if (prop === 'type') {
+				const input = this.shadowRoot?.querySelector('.d2l-input');
+				setTimeout(() => {
+					if (input && this.value !== input.value) {
+						this._setValue(input.value, false);
+					}
+				}, 0);
 			}
 		});
 	}
 
-	_getAriaLabel() {
-		let label;
-		if (this.label && (this.labelHidden || this.labelledBy)) {
-			label = this.label;
-		} else if (this.hasAttribute('aria-label')) {
-			label = this.getAttribute('aria-label');
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+		if (changedProperties.has('type') && this.type === 'number') {
+			this.type = 'text';
+			console.warn('d2l-input-text: "number" type is not supported, use d2l-input-number instead. Defaulting to "text"');
 		}
-		if (label) {
-			const unitLabel = this.unit ? ` ${this.unit}` : '';
-			return `${label}${unitLabel}`;
-		}
-		return undefined;
 	}
 
-	_getType() {
-		if (this.type === 'email' || this.type === 'number' || this.type === 'password' || this.type === 'tel' || this.type === 'text' || this.type === 'search' || this.type === 'url') {
-			return this.type;
-		}
-		return 'text';
-	}
-
-	_handleAfterSlotChange(e) {
-		const afterContent = e.target.assignedNodes({ flatten: true });
-		this._hasAfterContent = (afterContent && afterContent.length > 0);
-	}
-
-	async _handleBlur(e) {
+	#handleBlur = async(e) => {
 		this._focused = false;
 		this.requestValidate(true);
 
@@ -506,6 +536,41 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 		if (this._prevValue !== e.target.value && (browserType.indexOf('Edge') > -1)) {
 			this._handleChange();
 		}
+	};
+
+	#handleFocus = () => {
+		this._focused = true;
+	};
+
+	_getAriaLabel() {
+		let label;
+		if (this.label && (this.labelHidden || this.labelledBy)) {
+			label = this.label;
+		} else if (this.hasAttribute('aria-label')) {
+			label = this.getAttribute('aria-label');
+		}
+		if (label) {
+			return `${label}${this._getUnitLabel()}`;
+		}
+		return undefined;
+	}
+
+	_getType() {
+		if (this.type === 'email' || this.type === 'password' || this.type === 'tel' || this.type === 'text' || this.type === 'search' || this.type === 'url') {
+			return this.type;
+		}
+		return 'text';
+	}
+
+	_getUnitLabel() {
+		if (!this.unit) return '';
+		const unitLabel = this.unitLabel || this.unit;
+		return ` ${unitLabel}`;
+	}
+
+	_handleAfterSlotChange(e) {
+		const afterContent = e.target.assignedNodes({ flatten: true });
+		this._hasAfterContent = (afterContent && afterContent.length > 0);
 	}
 
 	_handleChange() {
@@ -514,10 +579,6 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 			'change',
 			{ bubbles: true, composed: false }
 		));
-	}
-
-	_handleFocus() {
-		this._focused = true;
 	}
 
 	_handleInput(e) {
@@ -550,22 +611,14 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 	}
 
 	_handleSlotChange() {
-		// requestUpdate needed for legacy-Edge
-		if (navigator.userAgent.indexOf('Edge/') > -1) {
-			this.requestUpdate();
-			this.updateComplete.then(() => {
-				this._updateInputLayout();
-			});
-		} else {
-			this._updateInputLayout();
-		}
+		this._updateInputLayout();
 	}
 
 	_handleUnitClick() {
 		this.focus();
 	}
 
-	_setValue(val, updateInput) {
+	async _setValue(val, updateInput) {
 
 		const oldVal = this.value;
 		this._prevValue = (oldVal === undefined) ? '' : oldVal;
@@ -575,16 +628,17 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 		if (!input) return;
 
 		this.setValidity({ tooShort: this.minlength && this.value.length > 0 && this.value.length < this.minlength });
-		this.requestValidate(false);
 		this.setFormValue(this.value);
 
 		// Can't bind to input's value as Safari moves the cursor each time an
 		// input's value gets set from render(). So we manually reach in
 		// and update it when source of the change isn't the input itself.
 		if (updateInput) {
+			await this.updateComplete;
 			input.value = this.value;
 		}
 
+		this.requestValidate(false);
 	}
 
 	_suppressEvent(e) {
@@ -615,6 +669,14 @@ class InputText extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(
 		} else {
 			this._lastSlotWidth = 0;
 		}
+
+		requestAnimationFrame(() => {
+			/** @ignore */
+			this.dispatchEvent(new CustomEvent(
+				'd2l-input-text-layout-updated',
+				{ bubbles: false, composed: false }
+			));
+		});
 
 	}
 

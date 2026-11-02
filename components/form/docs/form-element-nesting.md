@@ -35,12 +35,10 @@ import { FormElementMixin } from '@brightspace-ui/core/form/form-element-mixin.j
 // Use the FormElementMixin
 class MyNestingFormElement extends FormElementMixin(LitElement) {
 
-	static get properties() {
-		return {
-			_firstName: { type: String },
-			_lastName: { type: String }
-		};
-	}
+	static properties = {
+		_firstName: { type: String },
+		_lastName: { type: String }
+	};
 
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
@@ -199,7 +197,7 @@ render() {
 
 **8. Support Validate:**
 
-The last step is to ensure that calling validate on the parent will result in the nested components being validated. This is not required for self-validation but is important to ensure your custom form element works properly when used inside a [`d2l-form`](../form.md) or [`d2l-form-native`](../form-native.md).
+The last step is to ensure that calling validate on the parent will result in the nested components being validated. This is not required for self-validation but is important to ensure your custom form element works properly when used inside a [`d2l-form`].
 
 ```javascript
 async validate() {

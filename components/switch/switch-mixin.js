@@ -1,170 +1,162 @@
 import '../colors/colors.js';
 import { css, html } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
-import { FocusVisiblePolyfillMixin } from '../../mixins/focus-visible-polyfill-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
+import { getFocusRingStyles } from '../../helpers/focus.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { RtlMixin } from '../../mixins/rtl/rtl-mixin.js';
 
-export const SwitchMixin = superclass => class extends FocusMixin(RtlMixin(FocusVisiblePolyfillMixin(superclass))) {
+export const SwitchMixin = superclass => class extends FocusMixin(RtlMixin(superclass)) {
 
-	static get properties() {
-		return {
-			/**
-			 * Disables the switch from being toggled.
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * Active state.
-			 * @type {boolean}
-			 */
-			on: { type: Boolean, reflect: true },
-			/**
-			 * @ignore - Need to add documentation in each component that uses this mixin.
-			 */
-			text: { type: String, reflect: true },
-			/**
-			 * Determines where text should be positioned relative to the switch.
-			 * @type {'start'|'end'|'hidden'}
-			 * @default end
-			 */
-			textPosition: { type: String, attribute: 'text-position', reflect: true },
-			_hovering: { state: true }
-		};
-	}
+	static properties = {
+		/**
+		 * Disables the switch from being toggled.
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * Active state.
+		 * @type {boolean}
+		 */
+		on: { type: Boolean, reflect: true },
+		/**
+		 * @ignore - Need to add documentation in each component that uses this mixin.
+		 */
+		text: { type: String, reflect: true },
+		/**
+		 * Determines where text should be positioned relative to the switch.
+		 * @type {'start'|'end'|'hidden'}
+		 * @default end
+		 */
+		textPosition: { type: String, attribute: 'text-position', reflect: true },
+		_hovering: { state: true }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				display: inline-block;
-				user-select: none;
-				white-space: nowrap;
-			}
-			:host([hidden]) {
-				display: none;
-			}
+	static styles = css`
+		:host {
+			display: inline-block;
+			user-select: none;
+			white-space: nowrap;
+		}
+		:host([hidden]) {
+			display: none;
+		}
 
-			.d2l-switch-container {
-				background-color: var(--d2l-switch-container-background-color, '#fff');
-				border: 2px solid transparent;
-				border-radius: 1rem;
-				box-sizing: border-box;
-				cursor: default;
-				display: inline-block;
-				font-size: 0;
-				line-height: 0;
-				outline-style: none;
-				padding: 0.1rem;
-				vertical-align: middle;
+		.d2l-switch-container {
+			--d2l-focus-ring-offset: 0;
+			background-color: var(--d2l-switch-container-background-color, var(--d2l-theme-background-color-base));
+			border-radius: 1rem;
+			box-sizing: border-box;
+			cursor: default;
+			display: inline-block;
+			font-size: 0;
+			line-height: 0;
+			outline-style: none;
+			padding: 0.1rem;
+			vertical-align: middle;
+		}
+		${getFocusRingStyles('.d2l-switch-container', { extraStyles: css`position: relative;` })}
+		:host([disabled]) .d2l-switch-container {
+			cursor: default;
+			opacity: var(--d2l-theme-opacity-disabled-control);
+		}
+		:host([disabled]) .d2l-switch-container:hover > .d2l-switch-inner,
+		:host([disabled]) .d2l-switch-inner:hover,
+		:host([disabled]) .switch-hover {
+			outline: none;
+		}
+		.d2l-switch-inner {
+			border: 1px solid var(--d2l-theme-border-color-emphasized);
+			border-radius: 0.8rem;
+			box-sizing: border-box;
+			padding: 0.3rem;
+			position: relative;
+			width: 3rem;
+		}
+		:host([on]) .d2l-switch-inner {
+			background-color: var(--d2l-theme-background-color-interactive-highlighted);
+		}
+		.d2l-switch-toggle {
+			position: relative;
+			transition: transform 150ms ease-out;
+		}
+		.d2l-switch-toggle > div {
+			background-color: var(--d2l-theme-background-color-base);
+			border: 1px solid var(--d2l-theme-border-color-emphasized);
+			border-radius: 0.6rem;
+			box-sizing: border-box;
+			display: inline-block;
+			height: 1.1rem;
+			left: -0.1rem;
+			position: absolute;
+			top: -0.95rem;
+			width: 1.1rem;
+		}
+		:host([on]) .d2l-switch-toggle > div {
+			left: 0.1rem;
+		}
+		:host([dir="rtl"][on]) .d2l-switch-toggle > div {
+			right: 0.3rem;
+		}
+		:host([dir="rtl"]) .d2l-switch-toggle > div {
+			left: auto;
+			right: -0.1rem;
+		}
+		:host([on]) .d2l-switch-toggle {
+			transform: translateX(1.2rem);
+		}
+		:host([dir="rtl"][on]) .d2l-switch-toggle {
+			right: -0.2rem;
+			transform: translateX(-1.2rem);
+		}
+		d2l-icon, d2l-icon-custom {
+			height: 0.8rem;
+			width: 0.8rem;
+		}
+		.d2l-switch-icon-on, .d2l-switch-icon-off {
+			display: inline-block;
+			transform: scale(1);
+			transition: transform 150ms ease-out;
+		}
+		.d2l-switch-icon-on {
+			margin-right: 0.65rem;
+		}
+		:host([dir="rtl"]) .d2l-switch-icon-on {
+			margin-left: 0.65rem;
+			margin-right: 0;
+		}
+		:host([on]) .d2l-switch-icon-on > d2l-icon,
+		:host([on]) .d2l-switch-icon-on > d2l-icon-custom {
+			color: var(--d2l-theme-icon-color-active);
+		}
+		:host([on]) .d2l-switch-icon-off {
+			transform: scale(0.35);
+		}
+		:host(:not([on])) .d2l-switch-icon-on {
+			color: var(--d2l-theme-icon-color-active);
+			transform: scale(0.35);
+		}
+		.d2l-switch-text {
+			cursor: default;
+			font-size: 0.8rem;
+			font-weight: 400;
+		}
+		:host([text-position="hidden"]) .d2l-switch-text {
+			display: none;
+		}
+		.d2l-switch-inner:hover, .switch-hover {
+			outline: 2px solid var(--d2l-theme-border-color-focus);
+			outline-offset: -2px;
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.d2l-switch-toggle,
+			.d2l-switch-icon-on,
+			.d2l-switch-icon-off {
+				transition: none;
 			}
-			.d2l-switch-container.focus-visible {
-				border-color: var(--d2l-color-celestine);
-			}
-			:host([disabled]) .d2l-switch-container {
-				cursor: default;
-				opacity: 0.5;
-			}
-			:host([disabled]) .d2l-switch-container:hover > .d2l-switch-inner,
-			:host([disabled]) .d2l-switch-inner:hover {
-				border-color: var(--d2l-color-ferrite);
-				box-shadow: none;
-			}
-			.d2l-switch-inner {
-				background-color: var(--d2l-color-regolith);
-				border: 1px solid var(--d2l-color-ferrite);
-				border-radius: 0.8rem;
-				box-sizing: border-box;
-				padding: 0.3rem;
-				position: relative;
-				width: 3rem;
-			}
-			:host([on]) .d2l-switch-inner {
-				background-color: var(--d2l-color-celestine-plus-2);
-			}
-			.d2l-switch-toggle {
-				position: relative;
-				transition: transform 150ms ease-out;
-				z-index: 1;
-			}
-			.d2l-switch-toggle > div {
-				background-color: #ffffff;
-				border: 1px solid var(--d2l-color-ferrite);
-				border-radius: 0.6rem;
-				box-sizing: border-box;
-				display: inline-block;
-				height: 1.1rem;
-				left: -0.1rem;
-				position: absolute;
-				top: -0.15rem;
-				width: 1.1rem;
-			}
-			:host([on]) .d2l-switch-toggle > div {
-				left: 0.1rem;
-			}
-			:host([dir="rtl"][on]) .d2l-switch-toggle > div {
-				right: 0.3rem;
-			}
-			:host([dir="rtl"]) .d2l-switch-toggle > div {
-				left: auto;
-				right: -0.1rem;
-			}
-			:host([on]) .d2l-switch-toggle {
-				transform: translateX(1.2rem);
-			}
-			:host([dir="rtl"][on]) .d2l-switch-toggle {
-				right: -0.2rem;
-				transform: translateX(-1.2rem);
-			}
-			d2l-icon, d2l-icon-custom {
-				height: 0.8rem;
-				width: 0.8rem;
-			}
-			.d2l-switch-icon-on, .d2l-switch-icon-off {
-				display: inline-block;
-				transform: scale(1);
-				transition: transform 150ms ease-out;
-			}
-			.d2l-switch-icon-on {
-				margin-right: 0.65rem;
-			}
-			:host([dir="rtl"]) .d2l-switch-icon-on {
-				margin-left: 0.65rem;
-				margin-right: 0;
-			}
-			:host([on]) .d2l-switch-icon-on > d2l-icon,
-			:host([on]) .d2l-switch-icon-on > d2l-icon-custom {
-				color: var(--d2l-color-celestine);
-			}
-			:host([on]) .d2l-switch-icon-off {
-				transform: scale(0.35);
-			}
-			:host(:not([on])) .d2l-switch-icon-on {
-				color: var(--d2l-color-celestine);
-				transform: scale(0.35);
-			}
-			.d2l-switch-text {
-				cursor: default;
-				font-size: 0.8rem;
-				font-weight: 400;
-			}
-			:host([text-position="hidden"]) .d2l-switch-text {
-				display: none;
-			}
-			.d2l-switch-inner:hover, .switch-hover {
-				border-color: var(--d2l-color-celestine);
-				box-shadow: 0 0 0 1px var(--d2l-color-celestine) inset;
-			}
-			@media (prefers-reduced-motion: reduce) {
-				.d2l-switch-toggle,
-				.d2l-switch-icon-on,
-				.d2l-switch-icon-off {
-					transition: none;
-				}
-			}
-		`;
-	}
+		}
+	`;
 
 	constructor() {
 		super();
@@ -199,34 +191,33 @@ export const SwitchMixin = superclass => class extends FocusMixin(RtlMixin(Focus
 
 		// Note: we render the switchLabel in the case of textPosition === 'hidden' so that any slot handlers can pick up on content being passed in
 		return html`
-			${textPosition === 'start' ? switchLabel : ''}
 			<div
-				aria-checked="${this.on ? 'true' : 'false'}"
-				aria-label="${ifDefined(textPosition === 'hidden' ? this.text : undefined)}"
-				aria-labelledby="${ifDefined(textPosition !== 'hidden' ? this._textId : undefined)}"
-				class="d2l-switch-container"
 				@click="${this._handleClick}"
-				@keydown="${this._handleKeyDown}"
-				@keyup="${this._handleKeyUp}"
-				role="switch"
-				tabindex="${ifDefined(tabindex)}">
-				<div class="${classMap(innerSwitchClasses)}">
-					<div class="d2l-switch-toggle"><div></div></div>
-					<div class="d2l-switch-icon-on">${this.onIcon}</div>
-					<div class="d2l-switch-icon-off">${this.offIcon}</div>
+				@mouseenter="${this._handleSwitchHover}"
+				@mouseleave="${this._handleSwitchHoverLeave}">
+				${textPosition === 'start' ? switchLabel : ''}
+				<div
+					aria-checked="${this.on ? 'true' : 'false'}"
+					aria-label="${ifDefined(textPosition === 'hidden' ? this.text : undefined)}"
+					aria-labelledby="${ifDefined(textPosition !== 'hidden' ? this._textId : undefined)}"
+					class="d2l-switch-container"
+					@keydown="${this._handleKeyDown}"
+					@keyup="${this._handleKeyUp}"
+					role="switch"
+					tabindex="${ifDefined(tabindex)}">
+					<div class="${classMap(innerSwitchClasses)}">
+						<div class="d2l-switch-icon-on">${this.onIcon}</div>
+						<div class="d2l-switch-icon-off">${this.offIcon}</div>
+						<div class="d2l-switch-toggle"><div></div></div>
+					</div>
 				</div>
+				${textPosition === 'end' || textPosition === 'hidden' ? switchLabel : ''}
 			</div>
-			${textPosition === 'end' || textPosition === 'hidden' ? switchLabel : ''}
 		`;
 	}
 
 	get _labelContent() {
-		return html`<span 
-						@click='${this._handleClick}' 
-						@mouseenter='${this._handleSwitchHover}' 
-						@mouseleave='${this._handleSwitchHoverLeave}'>
-						${this.text}
-					</span>`;
+		return this.text;
 	}
 
 	_handleClick() {
@@ -234,13 +225,13 @@ export const SwitchMixin = superclass => class extends FocusMixin(RtlMixin(Focus
 	}
 
 	_handleKeyDown(e) {
-		// space pressed... prevent default browser scroll
-		if (e.keyCode === 32) e.preventDefault();
+		// enter/space pressed... prevent default browser scroll
+		if (e.keyCode === 13 || e.keyCode === 32) e.preventDefault();
 	}
 
 	_handleKeyUp(e) {
-		// space pressed... toggle state
-		if (e.keyCode === 32) this._toggleState();
+		// enter/space pressed... toggle state
+		if (e.keyCode === 13 || e.keyCode === 32) this._toggleState();
 	}
 
 	_handleSwitchHover() {
@@ -253,8 +244,23 @@ export const SwitchMixin = superclass => class extends FocusMixin(RtlMixin(Focus
 
 	_toggleState() {
 		if (this.disabled) return;
-		this.on = !this.on;
+
+		const beforeChangeEvent = new CustomEvent('d2l-switch-before-change', {
+			detail: { update: on => this._updateState(on) },
+			cancelable: true
+		});
+
+		this.dispatchEvent(beforeChangeEvent);
+		if (beforeChangeEvent.defaultPrevented) return;
+
+		this._updateState(!this.on);
+	}
+
+	_updateState(value) {
+		this.on = value;
+
 		/** Dispatched when the `on` property is updated */
 		this.dispatchEvent(new CustomEvent('change', { bubbles: true }));
 	}
+
 };

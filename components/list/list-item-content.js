@@ -10,42 +10,43 @@ import { css, html, LitElement } from 'lit';
  */
 class ListItemContent extends LitElement {
 
-	static get styles() {
-		return [ bodySmallStyles, bodyCompactStyles, css`
-			:host {
-				overflow-x: hidden;
-			}
-			.d2l-list-item-content-text {
-				color: var(--d2l-list-item-content-text-color);
-				margin: 0;
-				overflow: hidden;
-				text-decoration: var(--d2l-list-item-content-text-decoration, none);
-			}
+	static styles = [bodySmallStyles, bodyCompactStyles, css`
+		:host {
+			min-width: 0;
+		}
 
-			.d2l-list-item-content-text-secondary {
-				color: var(--d2l-list-item-content-text-secondary-color, var(--d2l-color-tungsten));
-				margin: 0;
-				overflow: hidden;
-			}
+		.d2l-list-item-content-text {
+			margin: 0;
+		}
 
-			.d2l-list-item-content-text-supporting-info {
-				color: var(--d2l-color-ferrite);
-				margin: 0;
-				overflow: hidden;
-			}
+		.d2l-list-item-content-text > div {
+			border-radius: var(--d2l-list-item-content-text-border-radius);
+			color: var(--d2l-list-item-content-text-color);
+			display: block; /* multi-line clamping won't work inside of inline-block in Safari - the compromise is the outline is full width */
+			max-width: 100%;
+			outline: var(--d2l-list-item-content-text-outline, none);
+			outline-offset: var(--d2l-list-item-content-text-outline-offset);
+			overflow-wrap: anywhere;
+			text-decoration: var(--d2l-list-item-content-text-decoration, none);
+		}
 
-			.d2l-list-item-content-text-secondary ::slotted(*),
-			.d2l-list-item-content-text-supporting-info ::slotted(*) {
-				margin-top: 0.15rem;
-			}
+		.d2l-list-item-content-text-secondary {
+			color: var(--d2l-list-item-content-text-secondary-color, var(--d2l-color-tungsten));
+		}
 
+		.d2l-list-item-content-text-supporting-info {
+			color: var(--d2l-color-ferrite);
+		}
 
-		`];
-	}
+		.d2l-list-item-content-text-secondary ::slotted(*),
+		.d2l-list-item-content-text-supporting-info ::slotted(*) {
+			margin-top: 0.15rem;
+		}
+	`];
 
 	render() {
 		return html`
-			<div class="d2l-list-item-content-text d2l-body-compact"><slot></slot></div>
+			<div class="d2l-list-item-content-text d2l-body-compact"><div><slot></slot></div></div>
 			<div class="d2l-list-item-content-text-secondary d2l-body-small"><slot name="secondary"></slot></div>
 			<div class="d2l-list-item-content-text-supporting-info d2l-body-small"><slot name="supporting-info"></slot></div>
 		`;

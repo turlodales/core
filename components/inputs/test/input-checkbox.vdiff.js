@@ -1,0 +1,95 @@
+import '../input-checkbox.js';
+import { expect, fixture, focusElem, hoverElem, html, oneEvent } from '@brightspace-ui/testing';
+import { checkboxFixtures } from './input-checkbox-fixtures.js';
+import { inlineHelpFixtures } from './input-shared-content.js';
+
+describe('d2l-input-checkbox', () => {
+	[false, true].forEach(skeleton => {
+		[false, true].forEach(disabled => {
+			const checkedStates = ['checked', 'unchecked'];
+			if (!skeleton) {
+				checkedStates.push('indeterminate');
+			}
+			checkedStates.forEach(checked => {
+
+				const name = `${skeleton ? 'skeleton-' : ''}${disabled ? 'disabled' : 'default'}-${checked}`;
+				let text = '';
+				if (skeleton) {
+					text = 'skeleton';
+					if (disabled) text += ', disabled';
+					text += `, ${checked}`;
+				} else {
+					text += `${checked}`;
+					if (disabled) text += ', disabled';
+				}
+				const checkboxFixture = html`
+					<d2l-input-checkbox
+						?checked="${checked === 'checked'}"
+						?disabled="${disabled}"
+						?indeterminate="${checked === 'indeterminate'}"
+						label="Checkbox (${text})"
+						?skeleton="${skeleton}"></d2l-input-checkbox>
+				`;
+
+				it(name, async() => {
+					const elem = await fixture(checkboxFixture);
+					await expect(elem).to.be.golden({ allColorModes: true });
+				});
+
+				if (!disabled) {
+					it(`${name}-focus`, async() => {
+						const elem = await fixture(checkboxFixture);
+						await focusElem(elem);
+						await expect(elem).to.be.golden({ allColorModes: true });
+					});
+				}
+
+			});
+		});
+	});
+
+	[
+		{ name: 'inline-help', template: new inlineHelpFixtures().checkbox(), allColorModes: true },
+		{ name: 'inline-help-rtl', rtl: true, template: new inlineHelpFixtures().checkbox() },
+		{ name: 'inline-help-multiline', template: new inlineHelpFixtures({ multiline: true }).checkbox() },
+		{ name: 'inline-help-multiline-rtl', rtl: true, template: new inlineHelpFixtures({ multiline: true }).checkbox() },
+		{ name: 'inline-help-skeleton', template: new inlineHelpFixtures({ skeleton: true }).checkbox(), allColorModes: true },
+		{ name: 'inline-help-skeleton-rtl', rtl: true, template: new inlineHelpFixtures({ skeleton: true }).checkbox() },
+		{ name: 'inline-help-skeleton-multiline', template: new inlineHelpFixtures({ multiline: true, skeleton: true }).checkbox() },
+		{ name: 'inline-help-disabled', template: new inlineHelpFixtures({ disabled: true }).checkbox(), allColorModes: true },
+		{ name: 'multiline', template: checkboxFixtures.labelMultiline },
+		{ name: 'multiline-rtl', rtl: true, template: checkboxFixtures.labelMultiline },
+		{ name: 'multiline-unbreakable', template: checkboxFixtures.labelMultilineUnbreakable },
+		{ name: 'multiline-unbreakable-rtl', rtl: true, template: checkboxFixtures.labelMultilineUnbreakable },
+		{ name: 'hidden-label', template: checkboxFixtures.labelHidden },
+		{ name: 'hidden-label-rtl', rtl: true, template: checkboxFixtures.labelHidden },
+		{ name: 'supporting', template: checkboxFixtures.supporting, allColorModes: true },
+		{ name: 'supporting-rtl', rtl: true, template: checkboxFixtures.supporting }
+	].forEach(({ name, allColorModes, rtl, template }) => {
+		it(name, async() => {
+			const elem = await fixture(template, { rtl });
+			await expect(elem).to.be.golden({ allColorModes });
+		});
+	});
+
+	describe('disabled-tooltip', () => {
+
+		let elem;
+		beforeEach(async() => {
+			elem = await fixture(checkboxFixtures.disabledTooltip);
+		});
+
+		it('hover', async() => {
+			hoverElem(elem.shadowRoot.querySelector('.d2l-input-checkbox-wrapper'));
+			await oneEvent(elem, 'd2l-tooltip-show');
+			await expect(elem).to.be.golden();
+		});
+
+		it('focus', async() => {
+			focusElem(elem);
+			await oneEvent(elem, 'd2l-tooltip-show');
+			await expect(elem).to.be.golden();
+		});
+
+	});
+});

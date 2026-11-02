@@ -1,13 +1,12 @@
 import '../button/button-subtle.js';
 import { css, html, LitElement } from 'lit';
+import { getOffsetParent, isComposedAncestor } from '../../helpers/dom.js';
 import { announce } from '../../helpers/announce.js';
-import { ArrowKeysMixin } from '../../mixins/arrow-keys-mixin.js';
-import { BACKDROP_ROLE } from '../backdrop/backdrop.js';
+import { ArrowKeysMixin } from '../../mixins/arrow-keys/arrow-keys-mixin.js';
 import { classMap } from 'lit/directives/class-map.js';
-import { getOffsetParent } from '../../helpers/dom.js';
-import { InteractiveMixin } from '../../mixins/interactive-mixin.js';
+import { getComposedActiveElement } from '../../helpers/focus.js';
+import { InteractiveMixin } from '../../mixins/interactive/interactive-mixin.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
-import ResizeObserver from 'resize-observer-polyfill/dist/ResizeObserver.es.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
 const CLEAR_ALL_THRESHOLD = 4;
@@ -33,64 +32,60 @@ async function filterAsync(arr, callback) {
 
 class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitElement))) {
 
-	static get properties() {
-		return {
-			/**
-			 * Enables the option to clear all inner tag list items. The `d2l-tag-list-item-clear` event will be dispatched for each list item when the user selects to Clear All. The consumer must handle the actual item deletion.
-			 * @type {boolean}
-			 */
-			clearable: { type: Boolean },
-			/**
-			 * ADVANCED: When an item is `clearable`, optionally add a timeout before the focus happens on clear. This is useful if the consumer has some operations that will reload the list items prior to wanting focus to occur.
-			 * @type {number}
-			 */
-			clearFocusTimeout: { type: Number, attribute: 'clear-focus-timeout' },
-			/**
-			 * REQUIRED: A description of the tag list for additional accessibility context
-			 * @type {string}
-			 */
-			description: { type: String },
-			_chompIndex: { type: Number },
-			_contentReady: { type: Boolean },
-			_lines: { type: Number },
-			_showHiddenTags: { type: Boolean }
-		};
-	}
+	static properties = {
+		/**
+		 * Enables the option to clear all inner tag list items. The `d2l-tag-list-item-clear` event will be dispatched for each list item when the user selects to Clear All. The consumer must handle the actual item deletion.
+		 * @type {boolean}
+		 */
+		clearable: { type: Boolean },
+		/**
+		 * ADVANCED: When an item is `clearable`, optionally add a timeout before the focus happens on clear. This is useful if the consumer has some operations that will reload the list items prior to wanting focus to occur.
+		 * @type {number}
+		 */
+		clearFocusTimeout: { type: Number, attribute: 'clear-focus-timeout' },
+		/**
+		 * REQUIRED: A description of the tag list for additional accessibility context
+		 * @type {string}
+		 */
+		description: { type: String },
+		_chompIndex: { type: Number },
+		_contentReady: { type: Boolean },
+		_lines: { type: Number },
+		_showHiddenTags: { type: Boolean }
+	};
 
-	static get styles() {
-		return [...super.styles, css`
-			:host {
-				display: block;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-			.tag-list-container {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 6px;
-				padding: 0;
-			}
-			::slotted([data-is-chomped]) {
-				display: none !important;
-			}
-			.d2l-tag-list-hidden-button {
-				position: absolute;
-				visibility: hidden;
-			}
-			.d2l-tag-list-clear-button {
-				position: absolute;
-				visibility: hidden;
-			}
-			.d2l-tag-list-clear-button.d2l-tag-list-clear-button-visible {
-				position: static;
-				visibility: visible;
-			}
-			.tag-list-hidden {
-				visibility: hidden;
-			}
-		`];
-	}
+	static styles = [...super.styles, css`
+		:host {
+			display: block;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		.tag-list-container {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			padding: 0;
+		}
+		::slotted([data-is-chomped]) {
+			display: none !important;
+		}
+		.d2l-tag-list-hidden-button {
+			position: absolute;
+			visibility: hidden;
+		}
+		.d2l-tag-list-clear-button {
+			position: absolute;
+			visibility: hidden;
+		}
+		.d2l-tag-list-clear-button.d2l-tag-list-clear-button-visible {
+			position: static;
+			visibility: visible;
+		}
+		.tag-list-hidden {
+			visibility: hidden;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -104,11 +99,11 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 		this._clearButtonWidth = 0;
 		this._contentReady = false;
 		this._hasResized = false;
-		this._hasShownKeyboardTooltip = false;
 		this._itemHeight = 0;
 		this._listContainerObserver = null;
 		this._resizeObserver = null;
 		this._showHiddenTags = false;
+		this._refocus = null;
 	}
 
 	disconnectedCallback() {
@@ -193,18 +188,16 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 			<div
 				aria-label="${this.description}"
 				class="${classMap(containerClasses)}"
-				role="list"
-				@d2l-tag-list-item-clear="${this._handleItemDeleted}"
-				@d2l-tag-list-item-tooltip-show="${this._handleKeyboardTooltipShown}"
-			>
-				<slot @slotchange="${this._handleSlotChange}"></slot>
+				role="group"
+				aria-roledescription="${this.localize('components.tag-list.role-description', { count: this._items ? this._items.length : 0 })}"
+				@d2l-tag-list-item-clear="${this._handleItemDeleted}">
+				<slot @slotchange="${this._handleSlotChange}" @focusout="${this._handleSlotFocusOut}" @focusin="${this._handleSlotFocusIn}"></slot>
 				${overflowButton}
 				<d2l-button-subtle
 					class="${classMap(clearableClasses)}"
 					@click="${this._handleClearAll}"
 					slim
-					text="${this.localize('components.tag-list.clear-all')}"
-				>
+					text="${this.localize('components.tag-list.clear-all')}">
 				</d2l-button-subtle>
 			</div>
 		`;
@@ -220,9 +213,10 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 					<d2l-button-subtle aria-hidden="true" slim text="${this.localize('components.tag-list.num-hidden', { count: '##' })}" class="d2l-tag-list-hidden-button"></d2l-button-subtle>
 					${this.arrowKeysContainer(list)}
 				</div>
-			`, this.localize('components.tag-list.interactive-label', { count: this._items ? this._items.length : 0 }),
+			`,
+			this.localize('components.tag-list.interactive-label', { count: this._items ? this._items.length : 0 }),
 			() => {
-				if (this._items && this._items.length > 0) this._items[0].focus();
+				this._items?.[0]?.focus?.();
 			}
 		);
 	}
@@ -313,10 +307,6 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 			if (node.nodeType !== Node.ELEMENT_NODE) return false;
 			await node.updateComplete;
 
-			const role = node.getAttribute('role');
-			const backdropRole = node.getAttribute(BACKDROP_ROLE);
-			if (role !== 'listitem' && backdropRole !== 'listitem') return false;
-
 			if (this.clearable) node.setAttribute('clearable', 'clearable');
 			node.removeAttribute('data-is-chomped');
 			node.removeAttribute('keyboard-tooltip-item');
@@ -337,7 +327,7 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 		return items.concat(showMoreButton).concat(clearButton);
 	}
 
-	_handleClearAll(e) {
+	_handleClearAll() {
 		if (!this._items) return;
 
 		/** Dispatched when a user selects to delete all tag list items. The consumer must handle the actual element deletion and focus behaviour. */
@@ -347,30 +337,23 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 		));
 
 		announce(this.localize('components.tag-list.cleared-all'));
-
-		this._items.forEach((item) => {
-			item.handleClearItem(e, true);
-		});
 	}
 
 	_handleItemDeleted(e) {
-		if (!e || !e.detail || !e.detail.handleFocus) return;
-
 		const rootTarget = e.composedPath()[0];
-		const children = this._getVisibleEffectiveChildren();
-		const itemIndex = children.indexOf(rootTarget);
+		const itemIndex = this._items.slice().indexOf(rootTarget);
 
-		if (children.length <= 1) return;
-		const focusableElem = children[itemIndex - 1] || children[itemIndex + 1];
+		if (this._items.length <= 1) return;
 
-		setTimeout(() => focusableElem.focus(), this.clearFocusTimeout);
-	}
-
-	_handleKeyboardTooltipShown() {
-		this._hasShownKeyboardTooltip = true;
+		setTimeout(() => {
+			const focusableElem = this._items[itemIndex - 1] || (this._items[itemIndex] === e.target ? this._items[itemIndex + 1] : this._items[itemIndex]);
+			focusableElem.focus();
+		}, this.clearFocusTimeout);
 	}
 
 	async _handleResize() {
+		let refocus = getComposedActiveElement();
+		if (!isComposedAncestor(this, refocus)) refocus = null;
 		this._contentReady = false;
 		this._chompIndex = 10000;
 		await this.updateComplete;
@@ -386,10 +369,14 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 			this._chomp();
 		}
 		this._contentReady = true;
+		await this.updateComplete;
+		refocus?.focus?.();
 	}
 
 	async _handleSlotChange() {
 		if (!this._hasResized) return;
+		let refocus = getComposedActiveElement();
+		if (!isComposedAncestor(this, refocus)) refocus = null;
 		this._contentReady = false;
 		await this.updateComplete;
 
@@ -410,20 +397,39 @@ class TagList extends LocalizeCoreElement(InteractiveMixin(ArrowKeysMixin(LitEle
 		this._chomp();
 
 		this._contentReady = true;
-		if (!this._hasShownKeyboardTooltip) this._items[0].setAttribute('keyboard-tooltip-item', 'keyboard-tooltip-item');
+		this._items[0].setAttribute('keyboard-tooltip-item', true);
+		await this.updateComplete;
+		if (this._refocus?.classList.contains('d2l-tag-list-button')) {
+			this._refocus = this.shadowRoot.querySelector('.d2l-tag-list-button');
+		}
+		await this._refocus?.updateComplete;
+		(this._refocus || refocus)?.focus?.();
+		this._refocus = null;
+	}
+
+	_handleSlotFocusIn() {
+		this._items[0].setAttribute('tabindex', '-1');
+	}
+
+	_handleSlotFocusOut(e) {
+		if (!isComposedAncestor(e.currentTarget, e.relatedTarget)) {
+			this._items[0].setAttribute('tabindex', '0');
+		}
 	}
 
 	async _toggleHiddenTagVisibility(e) {
 		this._showHiddenTags = !this._showHiddenTags;
 
-		if (!this.shadowRoot) return;
+		if (!this.shadowRoot || !e) return;
 
+		const isMoreButton = e.target.classList.contains('d2l-tag-list-button-show-more');
 		await this.updateComplete;
-		if (e.target.classList.contains('d2l-tag-list-button-show-more')) this._items[this._chompIndex].focus();
-		else {
-			const button = this.shadowRoot.querySelector('.d2l-tag-list-button');
-			if (button) button.focus();
+		if (isMoreButton) {
+			this._refocus = this._items[this._chompIndex];
+		} else {
+			this._refocus = this.shadowRoot.querySelector('.d2l-tag-list-button');
 		}
+		this._refocus.focus();
 	}
 }
 

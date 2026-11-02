@@ -13,15 +13,14 @@ import { formatDateInISO,
 	parseISODate,
 	parseISODateTime,
 	parseISOTime } from '../../helpers/dateTime.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { FormElementMixin } from '../form/form-element-mixin.js';
 import { getDefaultTime } from './input-time.js';
 import { getDocumentLocaleSettings } from '@brightspace-ui/intl/lib/common.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
-import { LabelledMixin } from '../../mixins/labelled-mixin.js';
+import { LabelledMixin } from '../../mixins/labelled/labelled-mixin.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
@@ -39,79 +38,86 @@ function _getFormattedDefaultTime(defaultValue) {
 
 /**
  * A component that consists of a "<d2l-input-date>" and a "<d2l-input-time>" component. The time input only appears once a date is selected. This component displays the "value" if one is specified, and reflects the selected value when one is selected or entered.
+ * @slot inline-help - Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
  * @fires change - Dispatched when there is a change to selected date or selected time. `value` corresponds to the selected value and is formatted in ISO 8601 combined date and time format (`YYYY-MM-DDTHH:mm:ss.sssZ`).
  */
-class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixin(LocalizeCoreElement(RtlMixin(LitElement)))))) {
+class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixin(LocalizeCoreElement(LitElement))))) {
 
-	static get properties() {
-		return {
-			/**
-			 * Disables the input
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean },
-			/**
-			 * Hides the fieldset label visually
-			 * @type {boolean}
-			 */
-			labelHidden: { attribute: 'label-hidden', reflect: true, type: Boolean },
-			/**
-			 * Indicates that localization will be handled by the consumer. `*value` will not be converted from/to UTC.
-			 * @type {boolean}
-			 */
-			localized: { reflect: true, type: Boolean },
-			/**
-			 * Maximum valid date/time that could be selected by a user
-			 * @type {string}
-			 */
-			maxValue: { attribute: 'max-value', reflect: true, type: String },
-			/**
-			 * Minimum valid date/time that could be selected by a user
-			 * @type {string}
-			 */
-			minValue: { attribute: 'min-value', reflect: true, type: String },
-			/**
-			 * Indicates if the date or time dropdown is open
-			 * @type {boolean}
-			 */
-			opened: { type: Boolean },
-			/**
-			 * Indicates that a value is required
-			 * @type {boolean}
-			 */
-			required: { type: Boolean, reflect: true },
-			/**
-			 * Default value of time input. Accepts times formatted as "hh:mm:ss", and the keywords "startOfDay" and "endOfDay".
-			 * @type {string}
-			 */
-			timeDefaultValue: { attribute: 'time-default-value', reflect: true, type: String },
-			/**
-			 * Value of the input
-			 * @type {string}
-			 */
-			value: { type: String },
-			_maxValueLocalized: { type: String },
-			_minValueLocalized: { type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * Disables the input
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean },
+		/**
+		 * Hides the fieldset label visually. Hidden labels are still read by screen readers so make sure to set an appropriate label.
+		 * @type {boolean}
+		 */
+		labelHidden: { attribute: 'label-hidden', reflect: true, type: Boolean },
+		/**
+		 * Indicates that localization will be handled by the consumer. `*value` will not be converted from/to UTC.
+		 * @type {boolean}
+		 */
+		localized: { reflect: true, type: Boolean },
+		/**
+		 * Maximum valid date/time that could be selected by a user
+		 * @type {string}
+		 */
+		maxValue: { attribute: 'max-value', reflect: true, type: String },
+		/**
+		 * Minimum valid date/time that could be selected by a user
+		 * @type {string}
+		 */
+		minValue: { attribute: 'min-value', reflect: true, type: String },
+		/**
+		 * Indicates if the date or time dropdown is open
+		 * @type {boolean}
+		 */
+		opened: { type: Boolean },
+		/**
+		 * Indicates that a value is required
+		 * @type {boolean}
+		 */
+		required: { type: Boolean, reflect: true },
+		/**
+		 * Default value of time input. Accepts times formatted as "hh:mm:ss", and the keywords "startOfDay" and "endOfDay".
+		 * @type {string}
+		 */
+		timeDefaultValue: { attribute: 'time-default-value', reflect: true, type: String },
+		/**
+		 * Time zone identifier for the time input to use.
+		 * @type {string}
+		 */
+		timeZoneId: { type: String, attribute: 'time-zone-id' },
+		/**
+		 * Hides the time zone inside the time selection dropdown. Should only be used when the time input value is not related to any one time zone
+		 * @type {Boolean}
+		 */
+		timeZoneHidden: { type: Boolean, attribute: 'time-zone-hidden' },
+		/**
+		 * Value of the input
+		 * @type {string}
+		 */
+		value: { type: String },
+		_maxValueLocalized: { type: String },
+		_minValueLocalized: { type: String }
+	};
 
-	static get styles() {
-		return [super.styles, css`
-			:host {
-				display: inline-block;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-			.d2l-input-date-time-container {
-				margin-top: -0.3rem;
-			}
-			d2l-input-date,
-			d2l-input-time {
-				margin-top: 0.3rem;
-			}
-		`];
-	}
+	static styles = [super.styles, css`
+		:host {
+			display: inline-block;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		.d2l-input-date-time-container {
+			margin-top: -0.3rem;
+		}
+		d2l-input-date,
+		d2l-input-time {
+			margin-top: 0.3rem;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -137,7 +143,7 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 				const dateObj = parseISODateTime(val);
 				const localDateTime = convertUTCToLocalDateTime(dateObj);
 				this._maxValueLocalized = formatDateInISO(localDateTime);
-			} catch (e) {
+			} catch {
 				this._maxValueLocalized = undefined;
 			}
 		}
@@ -154,7 +160,7 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 				const dateObj = parseISODateTime(val);
 				const localDateTime = convertUTCToLocalDateTime(dateObj);
 				this._minValueLocalized = formatDateInISO(localDateTime);
-			} catch (e) {
+			} catch {
 				this._minValueLocalized = undefined;
 			}
 		}
@@ -170,7 +176,7 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 			try {
 				getLocalDateTimeFromUTCDateTime(val);
 				this._value = val;
-			} catch (e) {
+			} catch {
 				this._value = '';
 			}
 		}
@@ -218,23 +224,19 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 
 		const dateStyle = {};
 		if (timeHidden) {
-			dateStyle.paddingLeft = '0';
-			dateStyle.paddingRight = '0';
-		} else if (!timeHidden && this.dir === 'rtl') {
-			dateStyle.paddingLeft = '0.3rem';
-			dateStyle.paddingRight = '0';
-		} else if (!timeHidden) {
-			dateStyle.paddingLeft = '0';
-			dateStyle.paddingRight = '0.3rem';
+			dateStyle.paddingInline = '0';
+		} else {
+			dateStyle.paddingInline = '0 0.3rem';
 		}
 
 		const dateOpened = this.opened && !this._timeOpened && !this.disabled && !this.skeleton;
 		const parsedValue = this.value ? (this.localized ? this.value : getLocalDateTimeFromUTCDateTime(this.value)) : '';
-		const tooltip = (this.validationError && !this.opened && this.childErrors.size === 0) ? html`<d2l-tooltip align="start" announced for="${this._inputId}" state="error">${this.validationError}</d2l-tooltip>` : null;
+		const tooltip = (this.validationError && !this.opened && this.childErrors.size === 0) ? html`<d2l-tooltip align="start" announced for="${this._inputId}" state="error" class="vdiff-target">${this.validationError}</d2l-tooltip>` : null;
 		const inputTime = !timeHidden ? html`<d2l-input-time
 				?novalidate="${this.noValidate}"
 				@blur="${this._handleInputTimeBlur}"
 				@change="${this._handleTimeChange}"
+				class="vdiff-target"
 				@d2l-input-time-dropdown-toggle="${this._handleDropdownToggle}"
 				default-value="${ifDefined(this.timeDefaultValue)}"
 				?disabled="${this.disabled}"
@@ -248,6 +250,8 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 				max-height="430"
 				?required="${this.required}"
 				?skeleton="${this.skeleton}"
+				time-zone-id="${ifDefined(this.timeZoneId)}"
+				?time-zone-hidden="${this.timeZoneHidden}"
 				.value="${parsedValue}">
 			</d2l-input-time>` : null;
 
@@ -264,6 +268,7 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 						novalidateminmax
 						has-now
 						@change="${this._handleDateChange}"
+						class="vdiff-target"
 						@d2l-input-date-dropdown-toggle="${this._handleDropdownToggle}"
 						?disabled="${this.disabled}"
 						.forceInvalid=${this.invalid}
@@ -280,6 +285,7 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 						.value="${parsedValue}">
 					</d2l-input-date>${inputTime}
 				</div>
+				<slot slot="inline-help" name="inline-help"></slot>
 			</d2l-input-fieldset>
 		`;
 	}
@@ -304,7 +310,12 @@ class InputDateTime extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMi
 		if (!this.shadowRoot) return;
 		const dateInput = this.shadowRoot.querySelector('d2l-input-date');
 		const timeInput = this.shadowRoot.querySelector('d2l-input-time');
-		const errors = await Promise.all([dateInput.validate(), timeInput.validate(), super.validate()]);
+
+		const errors = await Promise.all([
+			dateInput.validate(),
+			timeInput ? timeInput.validate() : Promise.resolve([]),
+			super.validate()
+		]);
 		return [...errors[0], ...errors[1], ...errors[2]];
 	}
 

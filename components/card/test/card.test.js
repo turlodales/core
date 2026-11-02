@@ -1,6 +1,5 @@
 import '../card.js';
-import { expect, fixture, html } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, html, runConstructor } from '@brightspace-ui/testing';
 
 describe('d2l-card', () => {
 
@@ -13,7 +12,7 @@ describe('d2l-card', () => {
 		elem.href = null;
 		await elem.updateComplete;
 		const anchorElem = elem.shadowRoot.querySelector('a');
-		expect(anchorElem.hasAttribute('href')).to.be.false;
+		expect(anchorElem).to.be.null;
 	});
 
 });

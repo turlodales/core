@@ -1,4 +1,4 @@
-import { convertLocalToUTCDateTime, convertUTCToLocalDateTime, getDateTimeDescriptor } from '@brightspace-ui/intl/lib/dateTime.js';
+import { convertLocalToUTCDateTime, convertUTCToLocalDateTime } from '@brightspace-ui/intl/lib/dateTime.js';
 
 // val is an object containing year, month, date
 export function formatDateInISO(val) {
@@ -139,12 +139,6 @@ export function getDateNoConversion(value) {
 	return new Date(parsed.year, parsed.month - 1, parsed.date, parsed.hours, parsed.minutes, parsed.seconds);
 }
 
-let dateTimeDescriptor = null;
-export function getDateTimeDescriptorShared(refresh) {
-	if (!dateTimeDescriptor || refresh) dateTimeDescriptor = getDateTimeDescriptor();
-	return dateTimeDescriptor;
-}
-
 export function getLocalDateTimeFromUTCDateTime(dateTime) {
 	const dateObj = parseISODateTime(dateTime);
 	const localDateTime = convertUTCToLocalDateTime(dateObj);
@@ -165,6 +159,53 @@ export function getUTCDateTimeFromLocalDateTime(date, time) {
 
 	const utcDateTime = convertLocalToUTCDateTime(Object.assign(dateObj, timeObj));
 	return formatDateTimeInISO(utcDateTime);
+}
+
+export function getUTCDateTimeRange(type, diff) {
+	if (!type || (!diff && diff !== 0) || (diff === 0 && type !== 'days')) return {};
+	if (type !== 'seconds' && type !== 'minutes' && type !== 'hours' && type !== 'days' && type !== 'months' && type !== 'years') return {};
+
+	if (type === 'days' && diff === 0) {
+		// assume "today" (midnight in user's time to 23:59:59 in user's time)
+		const today = formatDateInISO(getToday());
+		const startValue = getUTCDateTimeFromLocalDateTime(today, '0:0:0');
+		const endValue = getUTCDateTimeFromLocalDateTime(today, '23:59:59');
+		return { startValue, endValue };
+	}
+
+	/**
+	 * If diff is positive, range is in the future. Start date is now and end date is in the future.
+	 * If diff is negative, range is in the past. End date is now and start date is in the past.
+	 */
+
+	const rangeDate = new Date();
+	const nowUTCString = rangeDate.toISOString();
+
+	if (type === 'seconds') {
+		const newSeconds = rangeDate.getUTCSeconds() + diff;
+		rangeDate.setUTCSeconds(newSeconds);
+	} else if (type === 'minutes') {
+		const newMinutes = rangeDate.getUTCMinutes() + diff;
+		rangeDate.setUTCMinutes(newMinutes);
+	} else if (type === 'hours') {
+		const newHours = rangeDate.getUTCHours() + diff;
+		rangeDate.setUTCHours(newHours);
+	} else if (type === 'days') {
+		const newDate = rangeDate.getUTCDate() + diff;
+		rangeDate.setUTCDate(newDate);
+	} else if (type === 'months') {
+		const newMonth = rangeDate.getUTCMonth() + diff;
+		rangeDate.setUTCMonth(newMonth);
+	} else if (type === 'years') {
+		const newYear = rangeDate.getUTCFullYear() + diff;
+		rangeDate.setUTCFullYear(newYear);
+	}
+
+	if (diff > 0) {
+		return { startValue: nowUTCString, endValue: rangeDate.toISOString() };
+	} else {
+		return { startValue: rangeDate.toISOString(), endValue: nowUTCString };
+	}
 }
 
 export function isDateInRange(date, min, max) {

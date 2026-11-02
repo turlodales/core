@@ -1,6 +1,6 @@
 import '../inputs/input-checkbox.js';
 import { css, html, LitElement } from 'lit';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
 import { SelectionInfo } from './selection-mixin.js';
@@ -12,27 +12,23 @@ import { SelectionObserverMixin } from './selection-observer-mixin.js';
  */
 class SelectAll extends FocusMixin(LocalizeCoreElement(SelectionObserverMixin(LitElement))) {
 
-	static get properties() {
-		return {
-			/**
-			 * Disables the select all checkbox
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean }
-		};
-	}
+	static properties = {
+		/**
+		 * Disables the select all checkbox
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				display: inline-block;
-				line-height: normal;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			display: inline-block;
+			line-height: normal;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+	`;
 
 	constructor() {
 		super();
@@ -44,25 +40,40 @@ class SelectAll extends FocusMixin(LocalizeCoreElement(SelectionObserverMixin(Li
 	}
 
 	render() {
-		if (this._provider && this._provider.selectionSingle) return;
+		if (!this._provider || this._provider.selectionSingle) return;
 
 		const summary = (this.selectionInfo.state === SelectionInfo.states.none ? this.localize('components.selection.select-all')
 			: this.localize('components.selection.selected', 'count', this.selectionInfo.keys.length));
 
 		return html`
 			<d2l-input-checkbox
-				aria-label="${this.localize('components.selection.select-all')}"
-				@change="${this._handleCheckboxChange}"
-				?checked="${this.selectionInfo.state === SelectionInfo.states.all || this.selectionInfo.state === SelectionInfo.states.allPages}"
-				?disabled="${this.disabled}"
+				label="${this.localize('components.selection.select-all')}"
+				label-hidden
+				@change="${this.#handleCheckboxChange}"
+				?checked="${this.#getIsChecked()}"
+				?disabled="${this.disabled || this.selectionDisabled }"
 				description="${ifDefined(this.selectionInfo.state !== SelectionInfo.states.none ? summary : undefined)}"
-				?indeterminate="${this.selectionInfo.state === SelectionInfo.states.some}">
+				?indeterminate="${this.#getIsIndeterminate()}">
 			</d2l-input-checkbox>
 		`;
 	}
 
-	_handleCheckboxChange(e) {
-		if (this._provider) this._provider.setSelectionForAll(e.target.checked, false);
+	#getIsChecked() {
+		return this.selectionInfo.state === SelectionInfo.states.all || this.selectionInfo.state === SelectionInfo.states.allPages;
+	}
+
+	#getIsIndeterminate() {
+		return this.selectionInfo.state === SelectionInfo.states.some;
+	}
+
+	async #handleCheckboxChange(e) {
+		const checkbox = e.target;
+		if (this._provider) this._provider.setSelectionForAll(checkbox.checked, false);
+
+		// keep inner checkbox checked and indeterminate in sync with this.state
+		await this.updateComplete;
+		checkbox.checked = this.#getIsChecked();
+		checkbox.indeterminate = this.#getIsIndeterminate();
 	}
 
 }

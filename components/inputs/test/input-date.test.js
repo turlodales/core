@@ -1,7 +1,6 @@
-import { aTimeout, expect, fixture, oneEvent, waitUntil } from '@open-wc/testing';
+import { aTimeout, expect, fixture, focusElem, oneEvent, runConstructor, sendKeys, sendKeysElem, waitUntil } from '@brightspace-ui/testing';
 import { formatISODateInUserCalDescriptor } from '../input-date.js';
 import { getDocumentLocaleSettings } from '@brightspace-ui/intl/lib/common.js';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
 import sinon from 'sinon';
 
 const basicFixture = '<d2l-input-date has-now label="label text"></d2l-input-date>';
@@ -11,7 +10,7 @@ function dispatchEvent(elem, eventType, composed) {
 		eventType,
 		{ bubbles: true, composed: composed }
 	);
-	elem.dispatchEvent(e);
+	setTimeout(() => elem.dispatchEvent(e), 0);
 }
 
 function getChildElem(elem, selector) {
@@ -21,21 +20,6 @@ function getChildElem(elem, selector) {
 describe('d2l-input-date', () => {
 	const documentLocaleSettings = getDocumentLocaleSettings();
 	documentLocaleSettings.timezone.identifier = 'America/Toronto';
-
-	describe('accessibility', () => {
-
-		it('should set description when empty-text', async() => {
-			const elem = await fixture('<d2l-input-date empty-text="text description" label="label text"></d2l-input-date>');
-			const input = getChildElem(elem, 'd2l-input-text');
-			expect(input.getAttribute('description')).to.equal('text description');
-		});
-
-		it('should not set description when no empty-text', async() => {
-			const elem = await fixture(basicFixture);
-			const input = getChildElem(elem, 'd2l-input-text');
-			expect(input.hasAttribute('description')).to.be.false;
-		});
-	});
 
 	describe('constructor', () => {
 
@@ -117,6 +101,14 @@ describe('d2l-input-date', () => {
 		});
 	});
 
+	describe('properties', () => {
+		it('should have autocomplete off', async() => {
+			const elem = await fixture(basicFixture);
+			const inputElem = getChildElem(elem, 'd2l-input-text');
+			expect(inputElem.getAttribute('autocomplete')).to.equal('off');
+		});
+	});
+
 	describe('utility functions', () => {
 		describe('formatISODateInUserCalDescriptor', () => {
 			it('should return correct date when input is valid', () => {
@@ -142,7 +134,7 @@ describe('d2l-input-date', () => {
 			await elem.updateComplete;
 			const calendarElem = getChildElem(elem, 'd2l-calendar');
 			calendarElem.selectedValue = '2018-03-24';
-			setTimeout(() => dispatchEvent(calendarElem, 'd2l-calendar-selected', false));
+			dispatchEvent(calendarElem, 'd2l-calendar-selected', false);
 			await oneEvent(elem, 'change');
 			expect(elem.value).to.equal('2018-03-24');
 		});
@@ -196,7 +188,7 @@ describe('d2l-input-date', () => {
 			const elem = await fixture('<d2l-input-date label="label text" value="2019-02-01"></d2l-input-date>');
 			const inputElem = getChildElem(elem, 'd2l-input-text');
 			inputElem.value = '';
-			setTimeout(() => dispatchEvent(inputElem, 'change', false));
+			dispatchEvent(inputElem, 'change', false);
 			await oneEvent(elem, 'change');
 			expect(elem.value).to.equal('');
 		});
@@ -250,28 +242,28 @@ describe('d2l-input-date', () => {
 			const elem = await fixture('<d2l-input-date min-value="2020-01-02" value="2020-10-10" label="Date"></d2l-input-date>');
 			const inputElem = getChildElem(elem, 'd2l-input-text');
 			inputElem.value = '12/31/2019';
-			setTimeout(() => dispatchEvent(inputElem, 'change', false));
-			setTimeout(() => dispatchEvent(inputElem, 'blur', true));
+			dispatchEvent(inputElem, 'change', false);
+			dispatchEvent(inputElem, 'blur', true);
 			await oneEvent(elem, 'change');
 			await oneEvent(elem, 'blur');
 			await oneEvent(elem, 'invalid-change');
 			expect(elem.value).to.equal('2019-12-31');
 			expect(elem.invalid).to.be.true;
-			expect(elem.validationError).to.equal('Date must be after Jan 2, 2020');
+			expect(elem.validationError).to.equal('Date must be on or after Jan 2, 2020');
 		});
 
 		it('should change value if typed date after maxValue', async() => {
 			const elem = await fixture('<d2l-input-date max-value="2020-12-02" value="2020-10-10" label="Date"></d2l-input-date>');
 			const inputElem = getChildElem(elem, 'd2l-input-text');
 			inputElem.value = '12/31/2021';
-			setTimeout(() => dispatchEvent(inputElem, 'change', false));
-			setTimeout(() => dispatchEvent(inputElem, 'blur', true));
+			dispatchEvent(inputElem, 'change', false);
+			dispatchEvent(inputElem, 'blur', true);
 			await oneEvent(elem, 'change');
 			await oneEvent(elem, 'blur');
 			await oneEvent(elem, 'invalid-change');
 			expect(elem.value).to.equal('2021-12-31');
 			expect(elem.invalid).to.be.true;
-			expect(elem.validationError).to.equal('Date must be before Dec 2, 2020');
+			expect(elem.validationError).to.equal('Date must be before or on Dec 2, 2020');
 		});
 
 		it('should change value if typed date between min and max values', async() => {
@@ -280,7 +272,6 @@ describe('d2l-input-date', () => {
 			inputElem.value = dateInput;
 			dispatchEvent(inputElem, 'change', false);
 			await oneEvent(elem, 'change');
-			await elem.updateComplete;
 			expect(elem.value).to.equal('2019-02-08');
 			expect(elem.invalid).to.be.false;
 			expect(elem.validationError).to.be.null;
@@ -291,10 +282,19 @@ describe('d2l-input-date', () => {
 			const inputElem = getChildElem(elem, 'd2l-input-text');
 			inputElem.value = '';
 			dispatchEvent(inputElem, 'change', false);
-			await elem.updateComplete;
+			await oneEvent(elem, 'change');
 			expect(elem.value).to.equal('');
 			expect(elem.invalid).to.be.false;
 			expect(elem.validationError).to.be.null;
+		});
+		it('should fix value on blur', async() => {
+			const elem = await fixture('<d2l-input-date min-value="2019-01-01" max-value="2020-12-02" label="Date" value="2019-10-01"></d2l-input-date>');
+			const inputElem = elem.shadowRoot.querySelector('d2l-input-text');
+			await focusElem(inputElem);
+			await sendKeysElem(inputElem, 'press', 'Backspace');
+			await sendKeys('press', 'Tab');
+			await aTimeout(100);
+			expect(elem.value).to.equal('2019-10-01');
 		});
 
 		describe('required', () => {
@@ -312,14 +312,14 @@ describe('d2l-input-date', () => {
 				const elem = await fixture('<d2l-input-date min-value="2020-01-02" label="Date" required></d2l-input-date>');
 				const inputElem = getChildElem(elem, 'd2l-input-text');
 				inputElem.value = '12/31/2019';
-				setTimeout(() => dispatchEvent(inputElem, 'change', false));
-				setTimeout(() => dispatchEvent(inputElem, 'blur', true));
+				dispatchEvent(inputElem, 'change', false);
+				dispatchEvent(inputElem, 'blur', true);
 				await oneEvent(elem, 'change');
 				await oneEvent(elem, 'blur');
 				await oneEvent(elem, 'invalid-change');
 				expect(elem.value).to.equal('2019-12-31');
 				expect(elem.invalid).to.be.true;
-				expect(elem.validationError).to.equal('Date must be after Jan 2, 2020');
+				expect(elem.validationError).to.equal('Date must be on or after Jan 2, 2020');
 			});
 
 			it('should not fire "change" event when input value removed', async() => {

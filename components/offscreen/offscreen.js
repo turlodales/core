@@ -1,42 +1,18 @@
+import { _offscreenStyleDeclarations, offscreenStyles } from './offscreen-styles.js';
 import { css, html, LitElement } from 'lit';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
 
-export const offscreenStyles = css`
-	.d2l-offscreen {
-		height: 1px;
-		left: -10000px;
-		overflow: hidden;
-		position: absolute !important;
-		white-space: nowrap;
-		width: 1px;
-	}
-	:host([dir="rtl"]) .d2l-offscreen {
-		left: 0;
-		right: -10000px;
-	}
-`;
+export { _offscreenStyleDeclarations, offscreenStyles };
 
 /**
  * A component for positioning content offscreen to only be visible to screen readers.
  * @slot - Default content placed inside of the component
  */
-class Offscreen extends RtlMixin(LitElement) {
-	static get styles() {
-		return css`
-			:host {
-				height: 1px;
-				left: -10000px;
-				overflow: hidden;
-				position: absolute !important;
-				white-space: nowrap;
-				width: 1px;
-			}
-			:host([dir="rtl"]) {
-				left: 0;
-				right: -10000px;
-			}
-		`;
-	}
+class Offscreen extends LitElement {
+	static styles = css`
+		:host {
+			${_offscreenStyleDeclarations}
+		}
+	`;
 	render() {
 		return html`<slot></slot>`;
 	}

@@ -10,26 +10,17 @@ import { menuItemStyles } from './menu-item-styles.js';
  */
 class MenuItem extends MenuItemMixin(LitElement) {
 
-	static get styles() {
-		return [ menuItemStyles,
-			css`
-				:host {
-					align-items: center;
-					display: flex;
-					padding: 0.75rem 1rem;
-				}
-
-				d2l-icon {
-					flex: none;
-					margin-left: 6px;
-				}
-				:host([dir="rtl"]) d2l-icon {
-					margin-left: 0;
-					margin-right: 6px;
-				}
-			`
-		];
-	}
+	static styles = [menuItemStyles, css`
+		:host {
+			align-items: center;
+			display: flex;
+			padding: 0.75rem 1rem;
+		}
+		d2l-icon {
+			flex: none;
+			margin-inline-start: 6px;
+		}
+	`];
 
 	render() {
 		const icon = this.hasChildView ?

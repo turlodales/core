@@ -1,8 +1,10 @@
 import '../inputs/input-checkbox.js';
-import { css, html, LitElement } from 'lit';
+import '../tooltip/tooltip.js';
+import { css, html, LitElement, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
+import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
-import { LabelledMixin } from '../../mixins/labelled-mixin.js';
+import { LabelledMixin } from '../../mixins/labelled/labelled-mixin.js';
 import { radioStyles } from '../inputs/input-radio-styles.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
 
@@ -17,50 +19,55 @@ const keyCodes = {
  */
 class Input extends SkeletonMixin(LabelledMixin(LitElement)) {
 
-	static get properties() {
-		return {
-			/**
-			 * State of the input
-			 * @type {boolean}
-			 */
-			selected: { type: Boolean },
-			/**
-			 * Disables the input
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean },
-			/**
-			 * Private. Force hovering state of input
-			 * @ignore
-			 * @type {boolean}
-			 */
-			hovering: { type: Boolean },
-			/**
-			 * REQUIRED: Key for the selectable
-			 * @type {string}
-			 */
-			key: { type: String },
-			_indeterminate: { type: Boolean },
-			_provider: { type: Object }
-		};
-	}
+	static properties = {
+		/**
+		 * State of the input
+		 * @type {boolean}
+		 */
+		selected: { type: Boolean, reflect: true },
+		/**
+		 * Disables the input
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * Tooltip text when disabled
+		 * @type {string}
+		 */
+		disabledTooltip: { type: String, attribute: 'disabled-tooltip' },
+		/**
+		 * Private. Force hovering state of input
+		 * @ignore
+		 * @type {boolean}
+		 */
+		hovering: { type: Boolean },
+		/**
+		 * REQUIRED: Key for the selectable
+		 * @type {string}
+		 */
+		key: { type: String },
+		_indeterminate: { type: Boolean },
+		_provider: { type: Object }
+	};
 
-	static get styles() {
-		return [ super.styles, radioStyles, css`
-			:host {
-				display: inline-block;
-				line-height: normal;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-		`];
-	}
+	static styles = [super.styles, radioStyles, css`
+		:host {
+			display: inline-block;
+			line-height: normal;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+	`];
 
 	constructor() {
 		super();
 		this.selected = false;
 		this._indeterminate = false;
+	}
+
+	get focusDisabled() {
+		return this.disabled && !this.disabledTooltip;
 	}
 
 	connectedCallback() {
@@ -97,28 +104,36 @@ class Input extends SkeletonMixin(LabelledMixin(LitElement)) {
 				'd2l-selection-input-radio': true,
 				'd2l-skeletize': true,
 				'd2l-hovering': this.hovering,
-				'd2l-disabled': this.disabled
+				'd2l-disabled': this.disabled,
+				'd2l-input-radio-disabled-tooltip': this.disabled && this.disabledTooltip
 			};
+			const disabledTooltip = this.disabled && this.disabledTooltip ?
+				html`<d2l-tooltip align="start" class="vdiff-include" for="${this.#inputId}" ?force-show="${this.hovering}" position="top">${this.disabledTooltip}</d2l-tooltip>` :
+				nothing;
 			return html`
 				<div
 					aria-disabled="${ifDefined(this.disabled)}"
 					aria-label="${this.label}"
 					aria-checked="${this.selected ? 'true' : 'false'}"
 					class="${classMap(radioClasses)}"
+					id="${this.#inputId}"
 					@click="${this._handleRadioClick}"
 					@keydown="${this._handleRadioKeyDown}"
 					@keyup="${this._handleRadioKeyUp}"
 					role="radio"
-					tabindex="${ifDefined(this.disabled ? undefined : 0)}"></div>
+					tabindex="${ifDefined(this.focusDisabled ? undefined : 0)}"></div>
+					${disabledTooltip}
 			`;
 		} else {
 			return html`
 				<d2l-input-checkbox
-					aria-label="${this.label}"
+					label="${this.label}"
+					label-hidden
 					@change="${this._handleCheckboxChange}"
 					?checked="${this.selected}"
 					class="${ifDefined(this.hovering ? 'd2l-hovering' : undefined)}"
 					?disabled="${this.disabled}"
+					disabled-tooltip="${ifDefined(this.disabledTooltip)}"
 					?indeterminate="${this._indeterminate}"
 					?skeleton="${this.skeleton}">
 				</d2l-input-checkbox>
@@ -147,6 +162,8 @@ class Input extends SkeletonMixin(LabelledMixin(LitElement)) {
 		if (elem) elem.focus();
 	}
 
+	#inputId = getUniqueId();
+
 	_handleCheckboxChange(e) {
 		e.stopPropagation();
 		this.selected = e.target.checked;
@@ -155,7 +172,7 @@ class Input extends SkeletonMixin(LabelledMixin(LitElement)) {
 	_handleRadioClick(e) {
 		e.stopPropagation();
 		if (this.disabled) return;
-		this.selected = true;
+		this.selected = !this.selected;
 	}
 
 	_handleRadioKeyDown(e) {
@@ -163,7 +180,8 @@ class Input extends SkeletonMixin(LabelledMixin(LitElement)) {
 	}
 
 	_handleRadioKeyUp(e) {
-		if (e.keyCode === keyCodes.SPACE) this.selected = true;
+		if (e.keyCode !== keyCodes.SPACE || this.disabled) return;
+		this.selected = !this.selected;
 	}
 
 }

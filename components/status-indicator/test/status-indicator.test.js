@@ -1,6 +1,5 @@
 import '../status-indicator.js';
-import { expect, fixture, html } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, html, runConstructor } from '@brightspace-ui/testing';
 
 describe('d2l-status-indicator', () => {
 

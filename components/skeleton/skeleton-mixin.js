@@ -1,21 +1,44 @@
 import '../colors/colors.js';
 import { css } from 'lit';
 import { dedupeMixin } from '@open-wc/dedupe-mixin';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { EventSubscriberController } from '../../controllers/subscriber/subscriberControllers.js';
+import { svgToCSS } from '../../helpers/svg-to-css.js';
+
+// DE50056: starting in Safari 16, the pulsing animation causes FACE
+// (and possibly elsewhere) to render a blank page
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const animation = isSafari ? css`none` : css`loadingPulse 1.8s linear infinite`;
+
+const p2Mask = svgToCSS(`<svg xmlns="http://www.w3.org/2000/svg">
+  <rect y="11%" width="100%" height="27%" rx="4"/>
+  <rect y="61%" width="90%" height="27%" rx="4"/>
+</svg>`);
+
+const p3Mask = svgToCSS(`<svg xmlns="http://www.w3.org/2000/svg">
+  <rect y="7%" width="100%" height="18%" rx="4"/>
+  <rect y="40%" width="100%" height="18%" rx="4"/>
+  <rect y="74%" width="90%" height="18%" rx="4"/>
+</svg>`);
+
+const p5Mask = svgToCSS(`<svg xmlns="http://www.w3.org/2000/svg">
+  <rect y="4%" width="100%" height="11%" rx="4"/>
+  <rect y="24%" width="100%" height="11%" rx="4"/>
+  <rect y="44%" width="100%" height="11%" rx="4"/>
+  <rect y="64%" width="100%" height="11%" rx="4"/>
+  <rect y="84%" width="90%" height="11%" rx="4"/>
+</svg>`);
 
 export const skeletonStyles = css`
 	@keyframes loadingPulse {
-		0% { background-color: var(--d2l-color-sylvite); }
-		50% { background-color: var(--d2l-color-regolith); }
-		75% { background-color: var(--d2l-color-sylvite); }
-		100% { background-color: var(--d2l-color-sylvite); }
+		0%, 75%, 100% { background-color: var(--d2l-theme-background-color-interactive-faint-hover); }
+		50% { background-color: var(--d2l-theme-background-color-interactive-faint-default); }
 	}
 	:host([skeleton]) {
-		opacity: 0.999;
+		isolation: isolate;
 	}
 	:host([skeleton]) .d2l-skeletize::before {
-		animation: loadingPulse 1.8s linear infinite;
-		background-color: var(--d2l-color-sylvite);
+		animation: ${animation};
+		background-color: var(--d2l-theme-background-color-interactive-faint-hover);
 		border-radius: 0.2rem;
 		bottom: 0;
 		content: '';
@@ -23,9 +46,12 @@ export const skeletonStyles = css`
 		position: absolute;
 		right: 0;
 		top: 0;
-		z-index: 999;
+		z-index: 997;
 	}
 	@media (prefers-reduced-motion: reduce) {
+		:host([skeleton]) .d2l-skeletize-paragraph-2::after,
+		:host([skeleton]) .d2l-skeletize-paragraph-3::after,
+		:host([skeleton]) .d2l-skeletize-paragraph-5::after,
 		:host([skeleton]) .d2l-skeletize::before {
 			animation: none;
 		}
@@ -33,55 +59,51 @@ export const skeletonStyles = css`
 	:host([skeleton]) .d2l-skeletize,
 	:host([skeleton]) .d2l-skeletize-container {
 		background-color: transparent;
-		border-color: var(--d2l-color-sylvite);
+		border-color: var(--d2l-theme-background-color-interactive-faint-hover);
 		box-shadow: none;
 		color: transparent;
 		position: relative;
 	}
-	:host([skeleton]) .d2l-skeletize-paragraph-2 {
-		background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Cstyle%3E%0A%20%20%20%20%40keyframes%20loadingPulse%7B0%25%2C75%25%7Bfill%3A%23f1f5fb%7D50%25%7Bfill%3A%23f9fbff%7D%7D.skeleton%7Banimation%3AloadingPulse%201.8s%20linear%20infinite%3Bfill%3A%23f1f5fb%7D%0A%20%20%3C%2Fstyle%3E%0A%20%20%3Crect%20y%3D%2211%25%22%20width%3D%22100%25%22%20height%3D%2227%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%20%20%3Crect%20y%3D%2261%25%22%20width%3D%2290%25%22%20height%3D%2227%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%3C%2Fsvg%3E');
+	:host([skeleton]) .d2l-skeletize-paragraph-2,
+	:host([skeleton]) .d2l-skeletize-paragraph-3,
+	:host([skeleton]) .d2l-skeletize-paragraph-5 {
 		color: transparent;
+		position: relative;
 	}
-	@media (prefers-reduced-motion: reduce) {
-		:host([skeleton]) .d2l-skeletize-paragraph-2 {
-			background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Crect%20y%3D%2211%25%22%20width%3D%22100%25%22%20height%3D%2227%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%20%20%3Crect%20y%3D%2261%25%22%20width%3D%2290%25%22%20height%3D%2227%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%3C%2Fsvg%3E');
-		}
+	:host([skeleton]) .d2l-skeletize-paragraph-2::after,
+	:host([skeleton]) .d2l-skeletize-paragraph-3::after,
+	:host([skeleton]) .d2l-skeletize-paragraph-5::after {
+		background-color: var(--d2l-theme-background-color-interactive-faint-hover);
+		content: '';
+		inset: 0;
+		position: absolute;
+		transform: var(--d2l-mirror-transform, ${document.dir === 'rtl' ? css`scale(-1, 1)` : css`none`}); /* stylelint-disable-line @stylistic/string-quotes, @stylistic/function-whitespace-after */
+		transform-origin: center;
+		animation: ${animation};
+	}
+	:host([skeleton]) .d2l-skeletize-paragraph-2::after {
+		-webkit-mask-image: ${p2Mask};
+		mask-image: ${p2Mask};
 	}
 	:host([skeleton]) .d2l-skeletize-paragraph-2::before {
 		content: '\\A';
 		white-space: pre;
 	}
-	:host([skeleton]) .d2l-skeletize-paragraph-3 {
-		background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Cstyle%3E%0A%20%20%20%20%40keyframes%20loadingPulse%7B0%25%2C75%25%7Bfill%3A%23f1f5fb%7D50%25%7Bfill%3A%23f9fbff%7D%7D.skeleton%7Banimation%3AloadingPulse%201.8s%20linear%20infinite%3Bfill%3A%23f1f5fb%7D%0A%20%20%3C%2Fstyle%3E%0A%20%20%3Crect%20y%3D%227%25%22%20width%3D%22100%25%22%20height%3D%2218%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%20%20%3Crect%20y%3D%2240%25%22%20width%3D%22100%25%22%20height%3D%2218%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%20%20%3Crect%20y%3D%2274%25%22%20width%3D%2290%25%22%20height%3D%2218%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%3C%2Fsvg%3E');
-		color: transparent;
-	}
-	@media (prefers-reduced-motion: reduce) {
-		:host([skeleton]) .d2l-skeletize-paragraph-3 {
-			background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Crect%20y%3D%227%25%22%20width%3D%22100%25%22%20height%3D%2218%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%20%20%3Crect%20y%3D%2240%25%22%20width%3D%22100%25%22%20height%3D%2218%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%20%20%3Crect%20y%3D%2274%25%22%20width%3D%2290%25%22%20height%3D%2218%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%3C%2Fsvg%3E');
-		}
+	:host([skeleton]) .d2l-skeletize-paragraph-3::after {
+		-webkit-mask-image: ${p3Mask};
+		mask-image: ${p3Mask};
 	}
 	:host([skeleton]) .d2l-skeletize-paragraph-3::before {
 		content: '\\A \\A';
 		white-space: pre;
 	}
-	:host([skeleton]) .d2l-skeletize-paragraph-5 {
-		background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Cstyle%3E%0A%20%20%20%20%40keyframes%20loadingPulse%7B0%25%2C75%25%7Bfill%3A%23f1f5fb%7D50%25%7Bfill%3A%23f9fbff%7D%7D.skeleton%7Banimation%3AloadingPulse%201.8s%20linear%20infinite%3Bfill%3A%23f1f5fb%7D%0A%20%20%3C%2Fstyle%3E%0A%20%20%3Crect%20y%3D%224%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%20%20%3Crect%20y%3D%2224%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%20%20%3Crect%20y%3D%2244%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%20%20%3Crect%20y%3D%2264%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%20%20%3Crect%20y%3D%2284%25%22%20width%3D%2290%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20class%3D%22skeleton%22%2F%3E%0A%3C%2Fsvg%3E');
-		color: transparent;
-	}
-	@media (prefers-reduced-motion: reduce) {
-		:host([skeleton]) .d2l-skeletize-paragraph-5 {
-			background-image: url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Crect%20y%3D%224%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%20%20%3Crect%20y%3D%2224%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%20%20%3Crect%20y%3D%2244%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%20%20%3Crect%20y%3D%2264%25%22%20width%3D%22100%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%20%20%3Crect%20y%3D%2284%25%22%20width%3D%2290%25%22%20height%3D%2211%25%22%20rx%3D%224%22%20fill%3D%22%23f1f5fb%22%2F%3E%0A%3C%2Fsvg%3E');
-		}
+	:host([skeleton]) .d2l-skeletize-paragraph-5::after {
+		-webkit-mask-image: ${p5Mask};
+		mask-image: ${p5Mask};
 	}
 	:host([skeleton]) .d2l-skeletize-paragraph-5::before {
 		content: '\\A \\A \\A \\A';
 		white-space: pre;
-	}
-	:host([skeleton][dir="rtl"]) .d2l-skeletize-paragraph-2,
-	:host([skeleton][dir="rtl"]) .d2l-skeletize-paragraph-3,
-	:host([skeleton][dir="rtl"]) .d2l-skeletize-paragraph-5 {
-		transform: scale(-1, 1);
-		transform-origin: center;
 	}
 	:host([skeleton]) .d2l-skeletize-95::before {
 		width: 95%;
@@ -142,27 +164,71 @@ export const skeletonStyles = css`
 	}
 `;
 
-export const SkeletonMixin = dedupeMixin(superclass => class extends RtlMixin(superclass) {
+export const SkeletonMixin = dedupeMixin(superclass => class extends superclass {
 
-	static get properties() {
-		return {
-			/**
-			 * Renders the input as a [skeleton loader](https://github.com/BrightspaceUI/core/tree/main/components/skeleton)
-			 * @type {boolean}
-			 */
-			skeleton: { reflect: true, type: Boolean  }
-		};
-	}
+	static properties = {
+		/**
+		 * Render the component as a [skeleton loader](https://github.com/BrightspaceUI/core/tree/main/components/skeleton).
+		 * @type {boolean}
+		 */
+		skeleton: { reflect: true, type: Boolean },
+	};
 
 	static get styles() {
-		const styles = [ skeletonStyles ];
+		const styles = [skeletonStyles];
 		super.styles && styles.unshift(super.styles);
 		return styles;
 	}
 
 	constructor() {
 		super();
-		this.skeleton = false;
+		this._skeletonSetByParent = false;
+		this._skeletonSetExplicitly = false;
+		this._skeletonActive = false;
+		this._skeletonWait = false;
+
+		this._parentSkeleton = new EventSubscriberController(this, 'skeleton', {
+			onSubscribe: this._onSubscribe.bind(this),
+			onUnsubscribe: this._onUnsubscribe.bind(this)
+		});
+	}
+
+	get skeleton() {
+		return this._skeletonActive;
+	}
+
+	set skeleton(val) {
+		const oldVal = this._skeletonSetExplicitly;
+		if (oldVal === val) return;
+		this._skeletonSetExplicitly = val;
+
+		// keep _skeletonActive aligned with _skeletonSetExplicitly. _skeletonActive may be modified separately by a parent SkeletonGroup
+		this._skeletonActive = val;
+
+		this.requestUpdate('skeleton', oldVal);
+		this._parentSkeleton?.registry?.onSubscriberChange();
+	}
+
+	setSkeletonActive(skeletonActive) {
+		const oldVal = this._skeletonActive;
+		if (skeletonActive !== oldVal) {
+			this._skeletonActive = skeletonActive;
+			this.requestUpdate('skeleton', oldVal);
+		}
+	}
+
+	setSkeletonSetByParent(skeletonSetByParent) {
+		this._skeletonSetByParent = skeletonSetByParent;
+	}
+
+	_onSubscribe() {
+		this._skeletonWait = true;
+	}
+
+	_onUnsubscribe() {
+		this._skeletonWait = false;
+		this._skeletonActive = this._skeletonSetExplicitly;
+		this.requestUpdate('skeleton', this._skeletonSetExplicitly);
 	}
 
 });

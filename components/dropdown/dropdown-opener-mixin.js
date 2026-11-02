@@ -3,52 +3,50 @@ import { isComposedAncestor } from '../../helpers/dom.js';
 
 export const DropdownOpenerMixin = superclass => class extends superclass {
 
-	static get properties() {
-		return {
-			/**
-			 * Disables the dropdown opener
-			 * @type {boolean}
-			 */
-			disabled: {
-				type: Boolean,
-				reflect: true
-			},
+	static properties = {
+		/**
+		 * Disables the dropdown opener
+		 * @type {boolean}
+		 */
+		disabled: {
+			type: Boolean,
+			reflect: true
+		},
 
-			/**
-			 * @ignore
-			 */
-			dropdownOpened: { state: true },
+		/**
+		 * @ignore
+		 */
+		dropdownOpened: { state: true },
 
-			/**
-			 * @ignore
-			 */
-			dropdownOpener: {
-				type: Boolean
-			},
+		/**
+		 * @ignore
+		 */
+		dropdownOpener: {
+			type: Boolean
+		},
 
-			/**
-			 * Prevents the dropdown from opening automatically on or on key press
-			 * @type {boolean}
-			 */
-			noAutoOpen: {
-				type: Boolean,
-				reflect: true,
-				attribute: 'no-auto-open'
-			},
+		/**
+		 * Prevents the dropdown from opening automatically on or on key press
+		 * @type {boolean}
+		 */
+		noAutoOpen: {
+			type: Boolean,
+			reflect: true,
+			attribute: 'no-auto-open'
+		},
 
-			/**
-			 * Optionally open dropdown on click or hover action
-			 * @type {boolean}
-			 */
-			openOnHover: {
-				type: Boolean,
-				attribute: 'open-on-hover'
-			},
-			_isHovering: { type: Boolean },
-			_isOpenedViaClick: { type: Boolean },
-			_isFading: { type: Boolean }
-		};
-	}
+		/**
+		 * Optionally open dropdown on click or hover action
+		 * @type {boolean}
+		 */
+		openOnHover: {
+			type: Boolean,
+			attribute: 'open-on-hover'
+		},
+		_isHovering: { type: Boolean },
+		_isOpenedViaClick: { type: Boolean },
+		_isFading: { type: Boolean }
+	};
 
 	constructor() {
 		super();
@@ -64,7 +62,6 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		this._isHovering = false;
 		this._isFading = false;
 
-		this._onOutsideClick = this._onOutsideClick.bind(this);
 		this._contentRendered = null;
 		this._openerRendered = null;
 	}
@@ -74,12 +71,13 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 
 		// listeners
 		this.addEventListener('keypress', this.__onKeypress);
+		this.addEventListener('focusin', this.#handleFocusIn);
 		this.addEventListener('mouseup', this.__onMouseUp);
 		this.addEventListener('mouseenter', this.__onMouseEnter);
 		this.addEventListener('mouseleave', this.__onMouseLeave);
 
 		if (this.openOnHover) {
-			document.body.addEventListener('mouseup', this._onOutsideClick);
+			document.body.addEventListener('mouseup', this.#onOutsideClick);
 		}
 	}
 
@@ -92,7 +90,7 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		this.removeEventListener('mouseleave', this.__onMouseLeave);
 
 		if (this.openOnHover) {
-			document.body.removeEventListener('mouseup', this._onOutsideClick);
+			document.body.removeEventListener('mouseup', this.#onOutsideClick);
 		}
 	}
 
@@ -101,14 +99,9 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 
 		this.addEventListener('d2l-dropdown-open', this.__onOpened);
 		this.addEventListener('d2l-dropdown-close', this.__onClosed);
-
-		const opener = this.getOpenerElement();
 		const content = this.__getContentElement();
-		if (!opener) {
-			return;
-		}
-		opener.setAttribute('aria-haspopup', 'true');
-		opener.setAttribute('aria-expanded', (content && content.opened || false).toString());
+		const contentRole = content?.tagName === 'D2L-DROPDOWN-MENU' ? 'menu' : 'true';
+		this._setOpenerElementAttribute(content?.opened || false, false, contentRole);
 	}
 
 	updated(changedProperties) {
@@ -174,6 +167,22 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		this.dropdownOpened = !this.dropdownOpened;
 	}
 
+	/* used by open-on-hover option */
+	#onOutsideClick = (e) => {
+		if (!this.dropdownOpened) return;
+		const dropdownContent = this.__getContentElement();
+		const isWithinDropdown = isComposedAncestor(dropdownContent, e.composedPath()[0]);
+		const isWithinOpener = isComposedAncestor(this.getOpenerElement(), e.composedPath()[0]);
+
+		const isBackdropClick = isWithinDropdown
+			&& dropdownContent._mobile
+			&& e.composedPath().find(node => node.nodeName === 'D2L-BACKDROP');
+
+		if (!isWithinOpener && (!isWithinDropdown || isBackdropClick)) {
+			this.closeDropdown();
+		}
+	};
+
 	__dispatchOpenerClickEvent() {
 		/** Dispatched when the opener is clicked, useful for when no-auto-open is enabled */
 		this.dispatchEvent(new CustomEvent(
@@ -184,16 +193,11 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 	__getContentElement() {
 		if (!this.shadowRoot) return undefined;
 		return this.shadowRoot.querySelector('slot:not([name])').assignedNodes()
-			.filter(node => node.hasAttribute && node.hasAttribute('dropdown-content'))[0];
+			.filter(node => node.hasAttribute && (node._dropdownContent || node.hasAttribute('dropdown-content')))[0];
 	}
 
 	__onClosed() {
-		const opener = this.getOpenerElement();
-		if (!opener) {
-			return;
-		}
-		opener.setAttribute('aria-expanded', 'false');
-		opener.removeAttribute('active');
+		if (!this._setOpenerElementAttribute(false, true)) return;
 		this.dropdownOpened = false;
 		this._isOpenedViaClick = false;
 	}
@@ -222,22 +226,38 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		}
 	}
 
-	async __onMouseEnter() {
-		if (!this.openOnHover) return;
-		// do not respond to hover events on mobile screens
+	__onMouseEnter() {
 		const dropdownContent = this.__getContentElement();
-		if (dropdownContent._useMobileStyling) return;
+		if (!dropdownContent) return;
+
+		// do not respond to hover events on mobile screens
+		if (dropdownContent._mobile) return;
+
+		dropdownContent?.startAsyncLoad();
+
+		if (!this.openOnHover) return;
+
+		const afterOpen = () => {
+			this._closeTimerStop();
+			if (!this._isOpenedViaClick) this._isHovering = true;
+		};
+
 		clearTimeout(this._dismissTimerId);
-		if (!this.dropdownOpened) await this.openDropdown(false);
-		this._closeTimerStop();
-		if (!this._isOpenedViaClick) this._isHovering = true;
+		if (!this.dropdownOpened) {
+			this.openDropdown(false).then(afterOpen);
+		} else {
+			afterOpen();
+		}
 	}
 
 	async __onMouseLeave() {
 		if (!this.openOnHover) return;
 		// do not respond to hover events on mobile screens
 		const dropdownContent = this.__getContentElement();
-		if (dropdownContent._useMobileStyling) return;
+		if (!dropdownContent) return;
+
+		if (dropdownContent._mobile) return;
+
 		this._isHovering = false;
 		if (this._isOpenedViaClick) return;
 		//Wait before closing so we don't lose hover when we jump from opener to card
@@ -254,12 +274,7 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 	}
 
 	__onOpened() {
-		const opener = this.getOpenerElement();
-		if (!opener) {
-			return;
-		}
-		opener.setAttribute('aria-expanded', 'true');
-		opener.setAttribute('active', 'true');
+		if (!this._setOpenerElementAttribute(true, true)) return;
 		this._isFading = false;
 	}
 
@@ -279,7 +294,9 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 				this._isHovering = false;
 				this.openDropdown(false);
 			}
-		} else this.toggleOpen(true);
+		} else {
+			this.toggleOpen(true);
+		}
 	}
 
 	/* used by open-on-hover option */
@@ -300,16 +317,23 @@ export const DropdownOpenerMixin = superclass => class extends superclass {
 		this._isFading = false;
 	}
 
-	/* used by open-on-hover option */
-	_onOutsideClick(e) {
-		if (!this.dropdownOpened) return;
-		const isWithinDropdown = isComposedAncestor(this.__getContentElement(), e.composedPath()[0]);
-		const isWithinOpener = isComposedAncestor(this.getOpenerElement(), e.composedPath()[0]);
-		const isBackdropClick = isWithinDropdown
-			&& this.__getContentElement()._useMobileStyling
-			&& e.composedPath().find(node => node.nodeName === 'D2L-BACKDROP');
-		if (!isWithinOpener && (!isWithinDropdown || isBackdropClick)) {
-			this.closeDropdown();
+	_setOpenerElementAttribute(val, setActive = false, hasPopup) {
+		const opener = this.getOpenerElement();
+		if (!opener) return false;
+		const attribute = opener.isButtonMixin ? 'expanded' : 'aria-expanded';
+		opener.setAttribute(attribute, val.toString());
+		if (hasPopup) opener.setAttribute('aria-haspopup', hasPopup);
+		if (setActive) {
+			if (val) opener.setAttribute('active', 'true');
+			else opener.removeAttribute('active');
+		}
+		return true;
+	}
+
+	#handleFocusIn(e) {
+		const opener = this.getOpenerElement();
+		if (e.target === this || isComposedAncestor(opener, e.target)) {
+			this.__getContentElement()?.startAsyncLoad();
 		}
 	}
 };

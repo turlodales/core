@@ -1,5 +1,4 @@
 # Tag List
-*This component is in progress. The API is generally stable but there could be some appearance or minor behavior churn in the short-term.*
 
 Tag lists are used to present a list of compact, discrete pieces of information.
 
@@ -30,50 +29,58 @@ The `d2l-tag-list` element can take a combination of any type of `d2l-tag-list-i
 
 The corresponding `*-clear` event must be listened to for whatever component (`d2l-tag-list` or `d2l-tag-list-item`) has `clearable` on it and that listener must handle individual `d2l-tag-list-item` deletion as well as potentially focus behavior (see individual event descriptions).
 
-<!-- docs: demo live name:d2l-tag-list autoSize:false display:block size:small -->
+<!-- docs: demo code properties name:d2l-tag-list sandboxTitle:'Tag List' autoSize:false display:block size:small -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/tag-list/tag-list.js';
   import '@brightspace-ui/core/components/tag-list/tag-list-item.js';
 
   document.addEventListener('d2l-tag-list-item-clear', (e) => {
+    console.log(`d2l-tag-list-item-clear event dispatched. Key: ${e.detail.key}`);
     e.target.parentNode.removeChild(e.target);
-    console.log(`d2l-tag-list-item-clear event dispatched. Value: ${e.detail.value}, handleFocus: ${e.detail.handleFocus}`);
   });
 
   document.addEventListener('d2l-tag-list-clear', (e) => {
-    const items = e.target.querySelectorAll('[role="listitem"]');
+    const items = e.target.querySelectorAll('d2l-tag-list-item');
     items.forEach((item) => {
       item.parentNode.removeChild(item);
     });
     console.log('d2l-tag-list-clear event dispatched');
   });
 </script>
-<d2l-tag-list description="Example Tags">
-  <d2l-tag-list-item text="Lorem ipsum dolor"></d2l-tag-list-item>
-  <d2l-tag-list-item text="Reprehenderit in voluptate velit esse lorem ipsum dolor"></d2l-tag-list-item>
-  <d2l-tag-list-item text="Sit amet"></d2l-tag-list-item>
-  <d2l-tag-list-item text="Duis aute irure"></d2l-tag-list-item>
+<d2l-tag-list description="Example Tags" clearable>
+  <d2l-tag-list-item key="lorem-ipsum" text="Lorem ipsum dolor"></d2l-tag-list-item>
+  <d2l-tag-list-item key="reprehenderit" text="Reprehenderit in voluptate velit esse lorem ipsum dolor"></d2l-tag-list-item>
+  <d2l-tag-list-item key="sit-amet" text="Sit amet"></d2l-tag-list-item>
+  <d2l-tag-list-item key="duis-aute-irure" text="Duis aute irure"></d2l-tag-list-item>
 </d2l-tag-list>
 ```
 
 ## Tag List Item [d2l-tag-list-item]
-The `d2l-tag-list-item` provides the appropriate `listitem` semantics and styling for children within a tag list. Tag List items do not work outside of a Tag List and should not be used on their own.
+The `d2l-tag-list-item` provides the appropriate semantics and styling for children within a tag list. Tag List items do not work outside of a Tag List and should not be used on their own.
 
-<!-- docs: demo live name:d2l-tag-list-item autoSize:false display:block size:small -->
+<!-- docs: demo code properties name:d2l-tag-list-item sandboxTitle:'Tag List Item' autoSize:false display:block size:small -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/tag-list/tag-list.js';
   import '@brightspace-ui/core/components/tag-list/tag-list-item.js';
 
   document.addEventListener('d2l-tag-list-item-clear', (e) => {
+    console.log(`d2l-tag-list-item-clear event dispatched. Key: ${e.detail.key}`);
     e.target.parentNode.removeChild(e.target);
-    console.log(`d2l-tag-list-item-clear event dispatched. Value: ${e.detail.value}, handleFocus: ${e.detail.handleFocus}`);
+  });
+
+  document.addEventListener('d2l-tag-list-clear', (e) => {
+    const items = e.target.querySelectorAll('d2l-tag-list-item');
+    items.forEach((item) => {
+      item.parentNode.removeChild(item);
+    });
+    console.log('d2l-tag-list-clear event dispatched');
   });
 </script>
 
-<d2l-tag-list description="Example Tags">
-  <d2l-tag-list-item text="Tag"></d2l-tag-list-item>
+<d2l-tag-list description="Example Tags" clearable>
+  <d2l-tag-list-item key="tag" text="Tag"></d2l-tag-list-item>
 </d2l-tag-list>
 ```
 

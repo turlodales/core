@@ -2,15 +2,15 @@ import '../focus-trap/focus-trap.js';
 import '../../helpers/viewport-size.js';
 import { allowBodyScroll, preventBodyScroll } from '../backdrop/backdrop.js';
 import { clearDismissible, setDismissible } from '../../helpers/dismissible.js';
-import { findComposedAncestor, isComposedAncestor } from '../../helpers/dom.js';
-import { forceFocusVisible, getComposedActiveElement, getNextFocusable, tryApplyFocus } from '../../helpers/focus.js';
+import { findComposedAncestor, getComposedChildren, isComposedAncestor } from '../../helpers/dom.js';
+import { getComposedActiveElement, getFirstFocusableDescendant, getFirstFocusableRelative, getNextFocusable, isFocusable } from '../../helpers/focus.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { html } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { tryGetIfrauBackdropService } from '../../helpers/ifrauBackdropService.js';
+import { waitForElem } from '../../helpers/internal/waitForElem.js';
 
 window.D2L = window.D2L || {};
 window.D2L.DialogMixin = window.D2L.DialogMixin || {};
@@ -19,81 +19,92 @@ window.D2L.DialogMixin = window.D2L.DialogMixin || {};
 // https://bugs.webkit.org/show_bug.cgi?id=233320
 // starting in Chrome 102, all elements inside <dialog>s that are inside shadow roots have null offsetParent
 // https://bugs.chromium.org/p/chromium/issues/detail?id=1331803
-window.D2L.DialogMixin.hasNative = false && (window.HTMLDialogElement !== undefined)
-	&& (navigator.vendor && navigator.vendor.toLowerCase().indexOf('apple') === -1);
-if (window.D2L.DialogMixin.preferNative === undefined) {
-	window.D2L.DialogMixin.preferNative = true;
-}
+window.D2L.DialogMixin.hasNative = (window.HTMLDialogElement !== undefined);
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const abortAction = 'abort';
-const defaultMargin = { top: 100, right: 30, bottom: 30, left: 30 };
+const defaultMargin = { top: 75, right: 30, bottom: 30, left: 30 };
 
-export const DialogMixin = superclass => class extends RtlMixin(superclass) {
+export const DialogMixin = superclass => class extends superclass {
 
-	static get properties() {
-		return {
-			/**
-			 * Whether or not the dialog is open
-			 */
-			opened: { type: Boolean, reflect: true },
-
-			/**
-			 * The optional title for the dialog
-			 */
-			titleText: { type: String, attribute: 'title-text' },
-			_autoSize: { type: Boolean, attribute: false },
-			_fullscreenWithin: { type: Number },
-			_height: { type: Number },
-			_inIframe: { type: Boolean, attribute: 'in-iframe', reflect: true },
-			_left: { type: Number },
-			_margin: { type: Object },
-			_nestedShowing: { type: Boolean },
-			_overflowBottom: { type: Boolean },
-			_overflowTop: { type: Boolean },
-			_parentDialog: { type: Object },
-			_scroll: { type: Boolean },
-			_state: { type: String, reflect: true },
-			_top: { type: Number },
-			_width: { type: Number },
-			_useNative: { type: Boolean }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		focusableContentElemPresent: { state: true },
+		/**
+		 * Whether or not the dialog is open
+		 */
+		opened: { type: Boolean, reflect: true },
+		/**
+		 * ADVANCED: Opt out of dialog content scrolling
+		 */
+		noContentScroll: { type: Boolean, attribute: 'no-content-scroll', reflect: true },
+		/**
+		 * @ignore
+		 * Do NOT use this
+		 */
+		preferNative: { type: Boolean, attribute: 'prefer-native' },
+		/**
+		 * The optional title for the dialog
+		 */
+		titleText: { type: String, attribute: 'title-text' },
+		_autoSize: { state: true },
+		_fullscreenWithin: { state: true },
+		_height: { state: true },
+		_inIframe: { type: Boolean, attribute: 'in-iframe', reflect: true },
+		_isFullHeight: { state: true },
+		_left: { state: true },
+		_margin: { state: true },
+		_nestedShowing: { state: true },
+		_overflowBottom: { state: true },
+		_overflowTop: { state: true },
+		_parentDialog: { state: true },
+		_scroll: { state: true },
+		_state: { type: String, reflect: true },
+		_top: { state: true },
+		_width: { state: true },
+		_useNative: { state: true }
+	};
 
 	constructor() {
 		super();
+		this.focusableContentElemPresent = false;
+		this.noContentScroll = false;
 		this.opened = false;
+		this.preferNative = false;
 		this._autoSize = true;
 		this._dialogId = getUniqueId();
 		this._fullscreenWithin = 0;
-		this._handleMvcDialogOpen = this._handleMvcDialogOpen.bind(this);
 		this._inIframe = false;
+		this._isDialogMixin = true;
+		this._isFullHeight = false;
 		this._height = 0;
-		this._margin = { top: defaultMargin.top, right: defaultMargin.right, bottom: defaultMargin.bottom, left: defaultMargin.left };
-		this._parentDialog = null;
-		this._nestedShowing = false;
-		this._state = null;
 		this._left = 0;
+		this._margin = { top: defaultMargin.top, right: defaultMargin.right, bottom: defaultMargin.bottom, left: defaultMargin.left };
+		this._nestedShowing = false;
 		this._overflowBottom = false;
 		this._overflowTop = false;
+		this._parentDialog = null;
 		this._scroll = false;
+		this._state = null;
 		this._top = 0;
 		this._width = 0;
-		this._useNative = (window.D2L.DialogMixin.hasNative && window.D2L.DialogMixin.preferNative);
-		this._updateSize = this._updateSize.bind(this);
-		this._updateOverflow = this._updateOverflow.bind(this);
 	}
 
 	async connectedCallback() {
 		super.connectedCallback();
 		if (this._useNative) {
-			window.addEventListener('d2l-mvc-dialog-open', this._handleMvcDialogOpen);
+			window.addEventListener('d2l-mvc-dialog-open', this.#handleMvcDialogOpen);
 		}
 	}
 
 	disconnectedCallback() {
 		super.disconnectedCallback();
-		window.removeEventListener('d2l-mvc-dialog-open', this._handleMvcDialogOpen);
+		window.removeEventListener('d2l-mvc-dialog-open', this.#handleMvcDialogOpen);
+
+		// If the dialog is disconnected before the close animation finishes
+		this._handleClose();
 	}
 
 	async updated(changedProperties) {
@@ -103,6 +114,7 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		const ifrauDialogService = await tryGetIfrauBackdropService();
 		if (this.opened) {
 			if (ifrauDialogService) {
+				this.#ifrauDialogService = ifrauDialogService;
 				this._ifrauContextInfo = await ifrauDialogService.showBackdrop();
 				this._inIframe = true;
 			}
@@ -112,8 +124,16 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 				ifrauDialogService.hideBackdrop();
 				this._ifrauContextInfo = null;
 			}
+			this.#ifrauDialogService = null;
 			this._close();
 		}
+	}
+
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+		if (this.#useNativeInitialized) return;
+		this._useNative = (window.D2L.DialogMixin.hasNative && this.preferNative);
+		this.#useNativeInitialized = true;
 	}
 
 	open() {
@@ -132,15 +152,73 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 	resize() {
 		return new Promise(resolve => {
 			setTimeout(async() => {
-				await this._updateSize();
+				await this.#updateSize();
 				resolve();
 			}, 0);
 		});
 	}
 
+	async waitForUpdateComplete() {
+		const predicate = () => true;
+		const composedChildren = getComposedChildren(this, predicate);
+		await Promise.all(composedChildren.map(child => waitForElem(child, predicate)));
+	}
+
+	#useNativeInitialized = false;
+	#ifrauDialogService = null;
+	#closeHandled = true;
+
+	#handleMvcDialogOpen = () => {
+		// native dialogs on top layer will be stacked on non-native dialogs regardless of z-index
+		// so we need to opt out of native dialogs if a non-native nested dialog is launched
+		this._useNative = false;
+	};
+
+	#updateOverflow = () => {
+		if (!this.shadowRoot) return;
+		const content = this.shadowRoot.querySelector('.d2l-dialog-content');
+		// On Windows, browser zoom can cause scrollTop to be a fraction
+		const bottomOverflow = content.scrollHeight - (Math.ceil(content.scrollTop) + content.clientHeight);
+		this._overflowTop = (content.scrollTop > 0);
+		this._overflowBottom = (bottomOverflow > 0);
+	};
+
+	#updateSize = async() => {
+		if (this._inIframe && this.#ifrauDialogService) this._ifrauContextInfo = await this.#ifrauDialogService.getContextInfo();
+		if (this._autoSize) {
+			if (this._ifrauContextInfo) {
+				if (this._ifrauContextInfo.top > defaultMargin.top) {
+					this._top = 0;
+					this._margin.top = 0;
+				} else if (this._ifrauContextInfo.top < 0) {
+					this._top = defaultMargin.top - this._ifrauContextInfo.top;
+					this._margin.top = defaultMargin.top;
+				} else {
+					this._top = defaultMargin.top - this._ifrauContextInfo.top;
+					this._margin.top = defaultMargin.top - this._ifrauContextInfo.top;
+				}
+			}
+			this._width = this._getWidth();
+			this._left = this._getLeft();
+			await this.updateComplete;
+			this._height = this._getHeight();
+			await this.updateComplete;
+		} else {
+			this._width = 0;
+		}
+		await new Promise(resolve => {
+			requestAnimationFrame(async() => {
+				this.#updateOverflow();
+				await this.updateComplete;
+				resolve();
+			});
+		});
+	};
+
 	_addHandlers() {
-		window.addEventListener('resize', this._updateSize);
-		if (this.shadowRoot) this.shadowRoot.querySelector('.d2l-dialog-content').addEventListener('scroll', this._updateOverflow);
+		window.addEventListener('resize', this.#updateSize);
+		this.addEventListener('touchstart', this._handleTouchStart);
+		if (this.shadowRoot) this.shadowRoot.querySelector('.d2l-dialog-content').addEventListener('scroll', this.#updateOverflow);
 	}
 
 	_close(action) {
@@ -199,15 +277,19 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		return autofocusElement;
 	}
 
+	_focusElemOrDescendant(elem) {
+		if (!isFocusable(elem, false, false)) {
+			elem = getFirstFocusableDescendant(elem);
+		}
+		if (elem) elem.focus();
+	}
+
 	_focusFirst() {
 		if (!this.shadowRoot) return;
-		const content = this.shadowRoot.querySelector('.d2l-dialog-content');
-		if (content) {
-			const elementToFocus = this._findAutofocusElement(content) ?? getNextFocusable(content);
-			if (isComposedAncestor(this.shadowRoot.querySelector('.d2l-dialog-inner'), elementToFocus)) {
-				forceFocusVisible(elementToFocus, false);
-				return;
-			}
+		const elementToFocus = this._updateFocusableContentElemPresent();
+		if (elementToFocus && isComposedAncestor(this.shadowRoot.querySelector('.d2l-dialog-inner'), elementToFocus)) {
+			this._focusElemOrDescendant(elementToFocus);
+			return;
 		}
 		const focusTrap = this.shadowRoot.querySelector('d2l-focus-trap');
 		if (focusTrap) {
@@ -217,7 +299,7 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		const header = this.shadowRoot.querySelector('.d2l-dialog-header');
 		if (header) {
 			const firstFocusable = getNextFocusable(header);
-			if (firstFocusable) forceFocusVisible(firstFocusable);
+			if (firstFocusable) this._focusElemOrDescendant(firstFocusable);
 		}
 	}
 
@@ -229,7 +311,7 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		if (this._opener && this._opener.focus) {
 			// wait for inactive focus trap
 			requestAnimationFrame(() => {
-				tryApplyFocus(this._opener);
+				this._tryApplyFocus(this._opener);
 				this._opener = null;
 			});
 		}
@@ -241,25 +323,32 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		const availableHeight = this._ifrauContextInfo
 			? this._ifrauContextInfo.availableHeight - this._margin.top - this._margin.bottom
 			: window.innerHeight - this._margin.top - this._margin.bottom;
-		let preferredHeight = 0;
+		let preferredHeight = 3; // content height is off by 2px and we need an extra 1px to account for rounding when zoomed
 
-		const header = this.shadowRoot.querySelector('.d2l-dialog-header');
-		if (header) preferredHeight += Math.ceil(header.getBoundingClientRect().height);
+		if (this.fullHeight) {
+			preferredHeight = 2 * this._width;
+		} else {
+			const header = this.shadowRoot.querySelector('.d2l-dialog-header');
+			if (header) preferredHeight += Math.ceil(header.getBoundingClientRect().height);
 
-		const contentOuter = this.shadowRoot.querySelector('.d2l-dialog-content');
-		const content = this.shadowRoot.querySelector('.d2l-dialog-content > div');
+			const contentOuter = this.shadowRoot.querySelector('.d2l-dialog-content');
+			const content = this.shadowRoot.querySelector('.d2l-dialog-content > div');
 
-		/* required to properly calculate the preferred height when there are top
-		margins at the beginning of slotted content */
-		if (contentOuter && content) {
-			const offsetDiff = content.offsetTop - contentOuter.offsetTop;
-			preferredHeight += content.offsetHeight + offsetDiff;
+			/* required to properly calculate the preferred height when there are top
+			margins at the beginning of slotted content */
+			if (contentOuter && content) {
+				const offsetDiff = content.offsetTop - contentOuter.offsetTop;
+				preferredHeight += content.offsetHeight + offsetDiff;
+			}
+
+			const footer = this.shadowRoot.querySelector('.d2l-dialog-footer');
+			if (footer) preferredHeight += Math.ceil(footer.getBoundingClientRect().height);
 		}
 
-		const footer = this.shadowRoot.querySelector('.d2l-dialog-footer');
-		if (footer) preferredHeight += Math.ceil(footer.getBoundingClientRect().height);
+		const exceedsHeight = preferredHeight > availableHeight;
+		this._isFullHeight = !this._ifrauContextInfo && exceedsHeight;
 
-		const height = (preferredHeight < availableHeight ? preferredHeight : availableHeight);
+		const height = exceedsHeight ? availableHeight : preferredHeight;
 		return height;
 	}
 
@@ -285,14 +374,15 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 	}
 
 	_handleClose() {
+		if (this.#closeHandled) return;
+		this.#closeHandled = true;
 		/* reset state if native dialog closes unexpectedly. ex. user highlights
 		text and then hits escape key - this is not caught by our key handler */
 		this._removeHandlers();
 		this._focusOpener();
 		this._state = null;
 		this.opened = false;
-		allowBodyScroll(this._bodyScrollKey);
-		this._bodyScrollKey = null;
+		if (this._useNative) allowBodyScroll(this);
 		if (this._action === undefined) this._action = abortAction;
 		/** Dispatched with the action value when the dialog is closed for any reason */
 		this.dispatchEvent(new CustomEvent(
@@ -304,12 +394,17 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		));
 	}
 
-	_handleDialogClose(e) {
+	_handleDialogCloseWithinNative(e) {
+		// prevent close event from bubbling and closing parent dialogs
+		e.stopPropagation();
+	}
+
+	_handleDialogCloseWithinNonNative(e) {
 		this._nestedShowing = false;
 		e.stopPropagation();
 	}
 
-	_handleDialogOpen(e) {
+	_handleDialogOpenWithinNonNative(e) {
 		this._nestedShowing = true;
 		e.stopPropagation();
 	}
@@ -334,10 +429,10 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		}
 	}
 
-	_handleMvcDialogOpen() {
-		// native dialogs on top layer will be stacked on non-native dialogs regardless of z-index
-		// so we need to opt out of native dialogs if a non-native nested dialog is launched
-		this._useNative = false;
+	_handleTouchStart(e) {
+		// elements external to the dialog such as primary-secondary template should not be reacting
+		// to touchstart events originating inside the dialog or backdrop
+		e.stopPropagation();
 	}
 
 	_isCloseAborted() {
@@ -353,8 +448,9 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		return abortEvent.defaultPrevented;
 	}
 
-	_open() {
+	async _open() {
 		if (!this.opened) return;
+		this.#closeHandled = false;
 
 		this._opener = getComposedActiveElement();
 		this._dismissibleId = setDismissible(() => {
@@ -377,6 +473,8 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		});
 
 		if (this._useNative) {
+			this._state = 'showing';
+			await this.updateComplete;
 			dialog.showModal();
 		}
 
@@ -384,8 +482,7 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 			return node.classList && node.classList.contains('d2l-dialog-outer');
 		});
 
-		// native dialog backdrop does not prevent body scrolling
-		this._bodyScrollKey = preventBodyScroll();
+		if (this._useNative) preventBodyScroll(this);
 
 		// focus first focusable child prior to auto resize (fixes screen reader hiccups)
 		this._focusInitial();
@@ -398,40 +495,51 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 				this._scroll = true;
 			}, 0);
 
-			await this._updateSize();
-			this._state = 'showing';
-			await this._updateComplete;
+			await this.#updateSize();
+			if (!this._useNative) this._state = 'showing';
+			await this.updateComplete;
 
 			// edge case: no children were focused, try again after one redraw
 			const activeElement = getComposedActiveElement();
 			if (!activeElement
-			|| !isComposedAncestor(dialog, activeElement)
-			|| !activeElement.classList.contains('focus-visible')) {
-				this._focusInitial();
+			|| !isComposedAncestor(dialog, activeElement)) {
+				// wait till the dialog is visible for Safari
+				requestAnimationFrame(() => this._focusInitial());
 			}
 
-			if (!reduceMotion) await animPromise;
+			// if not animating, we need to wait a frame before dispatching due to focus rAF above
+			if (reduceMotion) await new Promise(resolve => requestAnimationFrame(resolve));
+			else await animPromise;
+
+			// check if focusable content is present in order to set focusableContentElemPresent to true
+			requestAnimationFrame(() => this._updateFocusableContentElemPresent());
+
+			await this.waitForUpdateComplete();
+			await this.#updateSize();
 			/** Dispatched when the dialog is opened */
 			this.dispatchEvent(new CustomEvent(
 				'd2l-dialog-open', { bubbles: true, composed: true }
 			));
+
 		}, 0);
 
 	}
 
 	_removeHandlers() {
-		window.removeEventListener('resize', this._updateSize);
-		if (this.shadowRoot) this.shadowRoot.querySelector('.d2l-dialog-content').removeEventListener('scroll', this._updateOverflow);
+		window.removeEventListener('resize', this.#updateSize);
+		this.removeEventListener('touchstart', this._handleTouchStart);
+		this.shadowRoot?.querySelector('.d2l-dialog-content')?.removeEventListener('scroll', this.#updateOverflow);
 	}
 
 	_render(inner, info, iframeTopOverride) {
 
 		const styles = {};
+		if (this._width) styles.width = `${this._width}px`;
 		if (this._autoSize) {
 			if (this._ifrauContextInfo) styles.top = `${this._top}px`;
 			if (this._ifrauContextInfo) styles.bottom = 'auto';
 			if (this._left) styles.left = `${this._left}px`;
-			if (this._height) styles.height = `${this._height}px`;
+			if (this._height && !this._isFullHeight) styles.height = `${this._height}px`;
 			if (this._width) styles.width = `${this._width}px`;
 			else styles.width = 'auto';
 		} else if (iframeTopOverride && this._ifrauContextInfo) {
@@ -439,7 +547,9 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 		}
 
 		const dialogOuterClasses = {
+			'vdiff-target': true,
 			'd2l-dialog-outer': true,
+			'd2l-dialog-outer-full-height': this._autoSize && this._isFullHeight,
 			'd2l-dialog-outer-overflow-bottom': this._overflowBottom,
 			'd2l-dialog-outer-overflow-top': this._overflowTop,
 			'd2l-dialog-outer-nested': !this._useNative && this._parentDialog,
@@ -456,6 +566,7 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 				class="${classMap(dialogOuterClasses)}"
 				@click="${this._handleClick}"
 				@close="${this._handleClose}"
+				@d2l-dialog-close="${this._handleDialogCloseWithinNative}"
 				@d2l-fullscreen-within="${this._handleFullscreenWithin}"
 				id="${this._dialogId}"
 				@keydown="${this._handleKeyDown}"
@@ -468,8 +579,8 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 				aria-labelledby="${info.labelId}"
 				class="${classMap(dialogOuterClasses)}"
 				@click="${this._handleClick}"
-				@d2l-dialog-close="${this._handleDialogClose}"
-				@d2l-dialog-open="${this._handleDialogOpen}"
+				@d2l-dialog-close="${this._handleDialogCloseWithinNonNative}"
+				@d2l-dialog-open="${this._handleDialogOpenWithinNonNative}"
 				@d2l-fullscreen-within="${this._handleFullscreenWithin}"
 				id="${this._dialogId}"
 				role="${info.role}"
@@ -483,39 +594,46 @@ export const DialogMixin = superclass => class extends RtlMixin(superclass) {
 
 	}
 
-	_updateOverflow() {
-		if (!this.shadowRoot) return;
-		const content = this.shadowRoot.querySelector('.d2l-dialog-content');
-		this._overflowTop = (content.scrollTop > 0);
-		this._overflowBottom = (content.scrollHeight > content.scrollTop + content.clientHeight);
+	_renderContent(content, options) {
+		let tabIndex = undefined;
+		let autoFocus = false;
+		if (this._useNative) {
+			if (!options.hasTitleText) {
+				tabIndex = '-1';
+				autoFocus = true;
+			}
+		} else {
+			tabIndex = !this.focusableContentElemPresent ? '0' : undefined;
+		}
+		return html`<div ?autofocus="${autoFocus}" class="d2l-dialog-content" @pending-state="${ifDefined(options.handleAsyncItemState)}" tabindex="${ifDefined(tabIndex)}">${content}</div>`;
 	}
 
-	async _updateSize() {
-		if (this._autoSize) {
-			if (this._ifrauContextInfo) {
-				if (this._ifrauContextInfo.top > defaultMargin.top) {
-					this._top = 0;
-					this._margin.top = 0;
-				} else if (this._ifrauContextInfo.top < 0) {
-					this._top = defaultMargin.top - this._ifrauContextInfo.top;
-					this._margin.top = defaultMargin.top;
-				} else {
-					this._top = defaultMargin.top - this._ifrauContextInfo.top;
-					this._margin.top = defaultMargin.top - this._ifrauContextInfo.top;
-				}
+	_renderHeading(text, options) {
+		let tabIndex = undefined;
+		let autoFocus = false;
+		if (this._useNative) {
+			if (text) {
+				tabIndex = '-1';
+				autoFocus = true;
 			}
-			this._width = this._getWidth();
-			this._left = this._getLeft();
-			await this.updateComplete;
-			this._height = this._getHeight();
-			await this.updateComplete;
 		}
-		await new Promise(resolve => {
-			requestAnimationFrame(async() => {
-				this._updateOverflow();
-				await this.updateComplete;
-				resolve();
-			});
-		});
+		return html`<h2 ?autofocus="${autoFocus}" class="${ifDefined(options.class)}" id="${ifDefined(options.id)}" tabindex="${ifDefined(tabIndex)}">${text}</h2>`;
 	}
+
+	_tryApplyFocus(node) {
+		const focusable = getFirstFocusableRelative(node);
+		if (focusable) focusable.focus();
+	}
+
+	_updateFocusableContentElemPresent() {
+		const content = this.shadowRoot?.querySelector('.d2l-dialog-content');
+		if (!content) return null;
+
+		const elementToFocus = this._findAutofocusElement(content) ?? getNextFocusable(content);
+		if (isComposedAncestor(content, elementToFocus)) {
+			this.focusableContentElemPresent = true;
+		}
+		return elementToFocus;
+	}
+
 };

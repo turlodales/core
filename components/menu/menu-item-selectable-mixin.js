@@ -2,20 +2,18 @@ import { MenuItemMixin } from './menu-item-mixin.js';
 
 export const MenuItemSelectableMixin = superclass => class extends MenuItemMixin(superclass) {
 
-	static get properties() {
-		return {
-			/**
-			 * This will set the item to be selected by default
-			 * @type {boolean}
-			 */
-			selected: { type: Boolean, reflect: true },
-			/**
-			 * REQUIRED: The selectable item's value
-			 * @type {string}
-			 */
-			value: { type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * This will set the item to be selected by default
+		 * @type {boolean}
+		 */
+		selected: { type: Boolean, reflect: true },
+		/**
+		 * REQUIRED: The selectable item's value
+		 * @type {string}
+		 */
+		value: { type: String }
+	};
 
 	constructor() {
 		super();
@@ -48,7 +46,7 @@ export const MenuItemSelectableMixin = superclass => class extends MenuItemMixin
 	}
 
 	__onSelectedChanged(selected) {
-		selected ? this.setAttribute('aria-checked', 'true') : this.removeAttribute('aria-checked');
+		selected ? this.setAttribute('aria-checked', 'true') : this.setAttribute('aria-checked', 'false');
 	}
 
 };

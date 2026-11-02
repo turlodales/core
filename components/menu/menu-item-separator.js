@@ -5,20 +5,18 @@ import { css, LitElement } from 'lit';
  */
 class MenuItemSeparator extends LitElement {
 
-	static get styles() {
-		return css`
-			:host {
-				border-top: 1px solid var(--d2l-menu-separator-color);
-				display: block;
-				margin-top: -1px;
-				position: relative;
-				z-index: 1;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			border-top: 1px solid var(--d2l-menu-separator-color);
+			display: block;
+			margin-top: -1px;
+			position: relative;
+			z-index: 1;
+		}
+	`;
 
-	firstUpdated() {
-		super.firstUpdated();
+	firstUpdated(changedProperties) {
+		super.firstUpdated(changedProperties);
 
 		this.setAttribute('role', 'separator');
 	}

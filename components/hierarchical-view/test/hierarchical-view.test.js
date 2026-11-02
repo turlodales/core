@@ -1,6 +1,5 @@
 import '../hierarchical-view.js';
-import { aTimeout, expect, fixture, html, oneEvent } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { aTimeout, expect, fixture, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
 import { spy } from 'sinon';
 
 const viewsFixture = html`
@@ -24,7 +23,6 @@ describe('d2l-hierarchical-view', () => {
 		const el = await fixture(viewsFixture);
 		view1 = el.querySelector('#view1');
 		view2 = el.querySelector('#view2');
-		await oneEvent(view1, 'd2l-hierarchical-view-resize');
 	});
 
 	it('root view is initially active', () => {

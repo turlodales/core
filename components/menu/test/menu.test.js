@@ -2,17 +2,10 @@ import '../menu.js';
 import '../menu-item.js';
 import '../menu-item-radio.js';
 import './custom-slots.js';
-import { defineCE, expect, fixture, html, nextFrame, oneEvent } from '@open-wc/testing';
+import { clickElem, defineCE, expect, fixture, focusElem, html, nextFrame, oneEvent, runConstructor, sendKeys, sendKeysElem, waitUntil } from '@brightspace-ui/testing';
+import { createMessage } from '../../../mixins/property-required/property-required-mixin.js';
 import { LitElement } from 'lit';
 import { MenuItemMixin } from '../menu-item-mixin.js';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
-
-function dispatchKeyEvent(elem, key) {
-	const eventObj = document.createEvent('Events');
-	eventObj.initEvent('keydown', true, true);
-	eventObj.keyCode = key;
-	elem.dispatchEvent(eventObj);
-}
 
 describe('d2l-menu', () => {
 
@@ -22,8 +15,8 @@ describe('d2l-menu', () => {
 		beforeEach(async() => {
 			elem = await fixture(html`
 				<d2l-menu label="menu label">
-					<d2l-menu-item></d2l-menu-item>
-					<d2l-menu-item></d2l-menu-item>
+					<d2l-menu-item text="item 1"></d2l-menu-item>
+					<d2l-menu-item text="item 2"></d2l-menu-item>
 				</d2l-menu>
 			`);
 		});
@@ -82,57 +75,65 @@ describe('d2l-menu', () => {
 			}
 		});
 
-		it('focuses on first visible menu item when focus() is called', () => {
-			elem.focus();
+		it('focuses on first visible menu item when focus() is called', async() => {
+			await focusElem(elem);
 			expect(document.activeElement).to.equal(elem.querySelector('#a1'));
 		});
 
-		it('moves focus to next focusable item when down arrow is pressed', () => {
-			dispatchKeyEvent(elem.querySelector('#c1'), 40);
+		it('moves focus to next focusable item when down arrow is pressed', async() => {
+			await sendKeysElem(elem.querySelector('#c1'), 'press', 'ArrowDown');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('0');
+			expect(elem.querySelector('#c1').getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#d1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#d1'));
 		});
 
-		it('moves focus to previous focusable item when up arrow is pressed', () => {
-			dispatchKeyEvent(elem.querySelector('#d1'), 38);
+		it('moves focus to previous focusable item when up arrow is pressed', async() => {
+			await sendKeysElem(elem.querySelector('#d1'), 'press', 'ArrowUp');
+			expect(elem.querySelector('#d1').getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#c1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#c1'));
 		});
 
-		it('moves focus to first focusable item when down arrow is pressed on last focusable item', () => {
-			dispatchKeyEvent(elem.querySelector('#d1'), 40);
+		it('moves focus to first focusable item when down arrow is pressed on last focusable item', async() => {
+			await sendKeysElem(elem.querySelector('#d1'), 'press', 'ArrowDown');
+			expect(elem.querySelector('#d1').getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#a1'));
 		});
 
-		it('moves focus to last focusable item when up arrow is pressed on first focusable item', () => {
-			dispatchKeyEvent(elem.querySelector('#a1'), 38);
+		it('moves focus to last focusable item when up arrow is pressed on first focusable item', async() => {
+			await sendKeysElem(elem.querySelector('#a1'), 'press', 'ArrowUp');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('-1'); // first item
+			expect(elem.querySelector('#d1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#d1'));
 		});
 
-		it('sets focus to disabled menu items', () => {
-			dispatchKeyEvent(elem.querySelector('#a1'), 40);
+		it('sets focus to disabled menu items', async() => {
+			await sendKeysElem(elem.querySelector('#a1'), 'press', 'ArrowDown');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('-1'); // first item
+			expect(elem.querySelector('#b1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#b1'));
 		});
 
-		it('sets focus to next item that starts with character pressed', () => {
-			const eventObj = document.createEvent('Events');
-			eventObj.initEvent('keypress', true, true);
-			eventObj.charCode = 99;
-			elem.querySelector('#a1').dispatchEvent(eventObj);
+		it('sets focus to next item that starts with character pressed', async() => {
+			await sendKeysElem(elem.querySelector('#a1'), 'press', 'c');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('-1'); // first item
+			expect(elem.querySelector('#c1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#c1'));
 		});
 
-		it('sets focus to next item that starts with uppercase character pressed', () => {
-			const eventObj = document.createEvent('Events');
-			eventObj.initEvent('keypress', true, true);
-			eventObj.charCode = 67;
-			elem.querySelector('#a1').dispatchEvent(eventObj);
+		it('sets focus to next item that starts with uppercase character pressed', async() => {
+			await sendKeysElem(elem.querySelector('#a1'), 'press', 'C');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('-1'); // first item
+			expect(elem.querySelector('#c1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#c1'));
 		});
 
-		it('sets focus by rolling over to beginning of menu when searching if necessary', () => {
-			const eventObj = document.createEvent('Events');
-			eventObj.initEvent('keypress', true, true);
-			eventObj.charCode = 98;
-			elem.querySelector('#c1').dispatchEvent(eventObj);
+		it('sets focus by rolling over to beginning of menu when searching if necessary', async() => {
+			await sendKeysElem(elem.querySelector('#c1'), 'press', 'b');
+			expect(elem.querySelector('#c1').getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#b1').getAttribute('tabindex')).to.equal('0');
 			expect(document.activeElement).to.equal(elem.querySelector('#b1'));
 		});
 
@@ -146,7 +147,8 @@ describe('d2l-menu', () => {
 				</d2l-menu>
 			`);
 			await nextFrame();
-			elem.focus();
+			await focusElem(elem);
+			expect(elem.querySelector('#r3').getAttribute('tabindex')).to.equal('0');
 			await expect(document.activeElement).to.equal(elem.querySelector('#r3'));
 		});
 
@@ -158,71 +160,111 @@ describe('d2l-menu', () => {
 		beforeEach(async() => {
 			elem = await fixture(html`
 				<d2l-menu id="menu">
-					<d2l-menu-item id="a1"></d2l-menu-item>
+					<d2l-menu-item id="a1" text="a1"></d2l-menu-item>
 					<d2l-menu-item id="b1" text="b">
 						<d2l-menu id="nestedMenu">
-							<d2l-menu-item id="a2"></d2l-menu-item>
-							<d2l-menu-item id="b2"></d2l-menu-item>
+							<d2l-menu-item id="a2" text="a2"></d2l-menu-item>
+							<d2l-menu-item id="b2" text="b2"></d2l-menu-item>
 						</d2l-menu>
 					</d2l-menu-item>
-					<d2l-menu-item id="c1"></d2l-menu-item>
+					<d2l-menu-item id="c1" text="c1"></d2l-menu-item>
 				</d2l-menu>
 			`);
 			nestedMenu = elem.querySelector('#nestedMenu');
 		});
+
+		async function openNestedMenu() {
+			setTimeout(() => clickElem(elem.querySelector('#b1')));
+			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
+		}
 
 		it('sets label for nested menu to the opener item text', () => {
 			expect(nestedMenu.getAttribute('aria-label')).to.equal('b');
 		});
 
 		it('shows nested menu when opener is clicked', async() => {
-			setTimeout(() => elem.querySelector('#b1').click());
-			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
+			await openNestedMenu();
 			expect(nestedMenu.isActive()).to.be.true;
 		});
 
 		it('sets focus to d2l-menu-item-return when nested menu is displayed', async() => {
-			setTimeout(() => elem.querySelector('#b1').click());
-			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
-			let focused = (document.activeElement.tagName === 'D2L-MENU-ITEM-RETURN');
-			if (!focused) {
-				focused = (document.activeElement === nestedMenu);
-			}
-			expect(focused).to.be.true;
+			await openNestedMenu();
+			await waitUntil(() => {
+				return (document.activeElement.tagName === 'D2L-MENU-ITEM-RETURN') ||
+					(document.activeElement === nestedMenu);
+			}, 'Focus on return');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('0');
+			expect(elem.querySelector('#b1').hasAttribute('tabindex')).to.be.false;
+			const returnItem = elem.querySelector('#nestedMenu')._getMenuItemReturn();
+			expect(returnItem.getAttribute('tabindex')).to.equal('0');
+		});
+
+		it('moves focus to next focusable item when down arrow is pressed', async() => {
+			await openNestedMenu();
+
+			const returnItem = elem.querySelector('#nestedMenu')._getMenuItemReturn();
+			await sendKeysElem(returnItem, 'press', 'ArrowDown');
+
+			expect(returnItem.getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#a2').getAttribute('tabindex')).to.equal('0');
+			expect(document.activeElement).to.equal(elem.querySelector('#a2'));
 		});
 
 		it('shows nested menu when right arrow is pressed on opener', async() => {
-			setTimeout(() => dispatchKeyEvent(elem.querySelector('#b1'), 39));
+			setTimeout(() => sendKeysElem(elem.querySelector('#b1'), 'press', 'ArrowRight'));
 			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
 			expect(nestedMenu.isActive()).to.be.true;
 		});
 
 		it('hides nested menu when left arrow is pressed in nested menu', async() => {
-			setTimeout(() => elem.querySelector('#b1').click());
-			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
-			setTimeout(() => dispatchKeyEvent(elem.querySelector('#b2'), 37));
+			await openNestedMenu();
+			setTimeout(() => sendKeysElem(elem.querySelector('#b2'), 'press', 'ArrowLeft'));
 			await oneEvent(elem, 'd2l-hierarchical-view-hide-complete');
 			expect(elem.isActive()).to.be.true;
+
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#b1').getAttribute('tabindex')).to.equal('0');
 		});
 
 		it('hides nested menu when escape is pressed in nested menu', async() => {
-			setTimeout(() => elem.querySelector('#b1').click());
-			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
-			const eventObj = document.createEvent('Events');
-			eventObj.initEvent('keydown', true, true);
-			eventObj.keyCode = 27;
-			setTimeout(() => elem.querySelector('#b2').dispatchEvent(eventObj));
+			await openNestedMenu();
+			setTimeout(() => sendKeysElem(elem.querySelector('#b2'), 'press', 'Escape'));
 			await oneEvent(elem, 'd2l-hierarchical-view-hide-complete');
 			expect(elem.isActive()).to.be.true;
 		});
 
 		it('hides nested menu when d2l-menu-item-return is clicked', async() => {
-			setTimeout(() => elem.querySelector('#b1').click());
-			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
+			await openNestedMenu();
 			const returnItem = elem.querySelector('#nestedMenu')._getMenuItemReturn();
-			setTimeout(() => returnItem.click());
+			setTimeout(() => clickElem(returnItem));
 			await oneEvent(elem, 'd2l-hierarchical-view-hide-complete');
 			expect(elem.isActive()).to.be.true;
+		});
+
+		it('resets focusables when hiding nested menu', async() => {
+			await openNestedMenu();
+			await sendKeys('press', 'ArrowDown');
+			expect(elem.querySelector('#a2').getAttribute('tabindex')).to.equal('0');
+			sendKeys('press', 'Escape');
+			await oneEvent(elem, 'd2l-hierarchical-view-hide-complete');
+			expect(elem.querySelector('#a2').getAttribute('tabindex')).to.equal('-1');
+		});
+
+		it('preserves tabindex on focused item when hiding nested menu', async() => {
+			await focusElem(elem);
+			// Navigate to nested menu item opener to move tabindex(clicking does not change tabindex)
+			await sendKeys('press', 'ArrowDown');
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#b1').getAttribute('tabindex')).to.equal('0');
+
+			// Open, then close nested menu
+			sendKeys('press', 'ArrowRight');
+			await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
+			sendKeys('press', 'Escape');
+			await oneEvent(elem, 'd2l-hierarchical-view-hide-complete');
+
+			expect(elem.querySelector('#a1').getAttribute('tabindex')).to.equal('-1');
+			expect(elem.querySelector('#b1').getAttribute('tabindex')).to.equal('0');
 		});
 
 	});
@@ -249,20 +291,21 @@ describe('d2l-menu', () => {
 
 	it('waits for slow menu items to render', async() => {
 
+		let makeReady;
 		const delayedUpdateMenuItem = defineCE(
 			class extends MenuItemMixin(LitElement) {
-				static get properties() {
-					return {
-						_ready: { type: Boolean, state: true  }
-					};
-				}
+				static properties = {
+					_ready: { type: Boolean, state: true }
+				};
 				constructor() {
 					super();
 					this._ready = false;
-					this._resolve = null;
-					this._readyPromise = new Promise((resolve) => {
-						this._resolve = resolve;
-					});
+					this._readyPromise = new Promise((resolve) => makeReady = resolve);
+					this._readyPromise.then(() => this._ready = true);
+				}
+				async getUpdateComplete() {
+					await super.getUpdateComplete();
+					return this._readyPromise;
 				}
 				render() {
 					return 'i am slow';
@@ -271,30 +314,49 @@ describe('d2l-menu', () => {
 					if (!this._ready) return false;
 					return super.shouldUpdate(changedProperties);
 				}
-				async getUpdateComplete() {
-					await super.getUpdateComplete();
-					return this._readyPromise;
-				}
-				makeReady() {
-					this._ready = true;
-					this._resolve();
-				}
 			}
 		);
 
-		const elem = await fixture(`
+		const elemPromise = fixture(`
 			<d2l-menu>
 				<d2l-menu-item text="fast"></d2l-menu-item>
 				<${delayedUpdateMenuItem}></${delayedUpdateMenuItem}>
 				<span>not a menu item</span>
 			</d2l-menu>
 		`);
-		const slowItem = elem.querySelector(delayedUpdateMenuItem);
-		setTimeout(() => slowItem.makeReady());
+		await waitUntil(() => makeReady !== undefined);
+		setTimeout(() => makeReady());
+		const elem = await elemPromise;
 
 		const items = await elem._getMenuItems();
 		expect(items.length).to.equal(2);
 
+	});
+
+	describe('validation', () => {
+		it('should throw when label is missing', async() => {
+			const elem = await fixture(html`<d2l-menu></d2l-menu>`);
+			expect(() => elem.flushRequiredPropertyErrors())
+				.to.throw(TypeError, createMessage(elem, 'label'));
+		});
+
+		it('should not throw when label is provided', async() => {
+			const elem = await fixture(html`<d2l-menu label="options"></d2l-menu>`);
+			expect(() => elem.flushRequiredPropertyErrors()).to.not.throw();
+		});
+
+		it('should not throw when label is provided as a nested menu', async() => {
+			const elem = await fixture(html`
+				<d2l-menu label="options">
+					<d2l-menu-item text="option 1">
+						<d2l-menu>
+							<d2l-menu-item text="option 1A"></d2l-menu-item>
+						</d2l-menu>
+					</d2l-menu-item>
+				</d2l-menu>
+			`);
+			expect(() => elem.flushRequiredPropertyErrors()).to.not.throw();
+		});
 	});
 
 });

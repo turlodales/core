@@ -1,5 +1,6 @@
 import '../input-number.js';
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html } from '@brightspace-ui/testing';
+import { inlineHelpFixtures } from './input-shared-content.js';
 
 describe('d2l-input-number', () => {
 	it('normal', async() => {
@@ -22,11 +23,6 @@ describe('d2l-input-number', () => {
 		await expect(elem).to.be.accessible();
 	});
 
-	it('placeholder', async() => {
-		const elem = await fixture(html`<d2l-input-number label="label" placeholder="placeholder"></d2l-input-number>`);
-		await expect(elem).to.be.accessible();
-	});
-
 	it('hidden label', async() => {
 		const elem = await fixture(html`<d2l-input-number label="label" label-hidden></d2l-input-number>`);
 		await expect(elem).to.be.accessible();
@@ -43,6 +39,11 @@ describe('d2l-input-number', () => {
 	it('focused', async() => {
 		const elem = await fixture(html`<d2l-input-number label="label"></d2l-input-number>`);
 		elem.focus();
+		await expect(elem).to.be.accessible();
+	});
+
+	it('inline-help', async() => {
+		const elem = await fixture(new inlineHelpFixtures().number());
 		await expect(elem).to.be.accessible();
 	});
 });

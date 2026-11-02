@@ -1,8 +1,10 @@
 import { css, html, LitElement } from 'lit';
-import { forceFocusVisible, getNextFocusable, getPreviousFocusable } from '../../helpers/focus.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { getNextFocusable, getPreviousFocusable } from '../../helpers/focus.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { isComposedAncestor } from '../../helpers/dom.js';
+
+const traps = [];
 
 /**
  * A generic container component to trap user focus.
@@ -10,34 +12,27 @@ import { isComposedAncestor } from '../../helpers/dom.js';
  */
 class FocusTrap extends FocusMixin(LitElement) {
 
-	static get properties() {
-		return {
-			/**
-			 * Whether the component should trap user focus.
-			 * @type {boolean}
-			 */
-			trap: { type: Boolean },
-			_legacyPromptIds: { state: true }
-		};
-	}
+	static properties = {
+		/**
+		 * Whether the component should trap user focus.
+		 * @type {boolean}
+		 */
+		trap: { type: Boolean },
+		_legacyPromptIds: { state: true }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				display: inline-block;
-			}
-			:host([hidden]) {
-				display: hidden;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			display: inline-block;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+	`;
 
 	constructor() {
 		super();
 		this.trap = false;
-		this._handleBodyFocus = this._handleBodyFocus.bind(this);
-		this._handleLegacyPromptOpen = this._handleLegacyPromptOpen.bind(this);
-		this._handleLegacyPromptClose = this._handleLegacyPromptClose.bind(this);
 		this._legacyPromptIds = new Set();
 	}
 
@@ -47,16 +42,16 @@ class FocusTrap extends FocusMixin(LitElement) {
 
 	connectedCallback() {
 		super.connectedCallback();
-		document.body.addEventListener('focus', this._handleBodyFocus, true);
-		document.body.addEventListener('d2l-legacy-prompt-open', this._handleLegacyPromptOpen);
-		document.body.addEventListener('d2l-legacy-prompt-close', this._handleLegacyPromptClose);
+		document.body.addEventListener('focus', this.#handleBodyFocus, true);
+		document.body.addEventListener('d2l-legacy-prompt-open', this.#handleLegacyPromptOpen);
+		document.body.addEventListener('d2l-legacy-prompt-close', this.#handleLegacyPromptClose);
 	}
 
 	disconnectedCallback() {
 		super.disconnectedCallback();
-		document.body.removeEventListener('focus', this._handleBodyFocus, true);
-		document.body.removeEventListener('d2l-legacy-prompt-open', this._handleLegacyPromptOpen);
-		document.body.removeEventListener('d2l-legacy-prompt-close', this._handleLegacyPromptClose);
+		document.body.removeEventListener('focus', this.#handleBodyFocus, true);
+		document.body.removeEventListener('d2l-legacy-prompt-open', this.#handleLegacyPromptOpen);
+		document.body.removeEventListener('d2l-legacy-prompt-close', this.#handleLegacyPromptClose);
 	}
 
 	render() {
@@ -68,10 +63,46 @@ class FocusTrap extends FocusMixin(LitElement) {
 		`;
 	}
 
+	willUpdate(changedProperties) {
+		if (!changedProperties.has('trap')) return;
+		if (this.trap) {
+			traps.push(this);
+		} else {
+			const trapIndex = traps.findIndex(trap => trap === this);
+			if (trapIndex === -1) return;
+			traps.splice(trapIndex, 1);
+		}
+	}
+
+	static #exemptSelectors = [
+		'.d2l-focus-trap-exempt',
+		'.equatio-toolbar-wrapper',
+		'.equatio-toolbar-shadow-root-container'
+	].join(', ');
+
+	#handleBodyFocus = (e) => {
+		const lastTrap = traps[traps.length - 1];
+		if (!this.trap || this._legacyPromptIds.size > 0 || lastTrap !== this) return;
+		const container = this._getContainer();
+		const target = e.composedPath()[0];
+		if (isComposedAncestor(container, target) || FocusTrap.#isExempt(target)) return;
+		this._focusFirst();
+	};
+
+	#handleLegacyPromptClose = (e) => {
+		this._legacyPromptIds.delete(e.detail.id);
+		this.requestUpdate();
+	};
+
+	#handleLegacyPromptOpen = (e) => {
+		this._legacyPromptIds.add(e.detail.id);
+		this.requestUpdate();
+	};
+
 	_focusFirst() {
 		const focusable = this.shadowRoot &&
 			getNextFocusable(this.shadowRoot.querySelector('.d2l-focus-trap-start'));
-		if (focusable) forceFocusVisible(focusable);
+		if (focusable) focusable.focus();
 		this.dispatchEvent(new CustomEvent('d2l-focus-trap-enter', { bubbles: true, composed: true }));
 	}
 
@@ -79,54 +110,34 @@ class FocusTrap extends FocusMixin(LitElement) {
 		return this.shadowRoot && this.shadowRoot.querySelector('.d2l-focus-trap-start').parentNode;
 	}
 
-	_handleBodyFocus(e) {
-		if (!this.trap || this._legacyPromptIds.size > 0) return;
-		const container = this._getContainer();
-		const target = e.composedPath()[0];
-		if (isComposedAncestor(container, target)) return;
-		this._focusFirst();
-	}
-
 	_handleEndFocusIn(e) {
 		const container = this._getContainer();
-		if (this.shadowRoot && isComposedAncestor(container, e.relatedTarget)) {
+		if (this.shadowRoot && (isComposedAncestor(container, e.relatedTarget) || FocusTrap.#isExempt(e.relatedTarget))) {
 			// user is exiting trap via forward tabbing...
 			const firstFocusable = getNextFocusable(this.shadowRoot.querySelector('.d2l-focus-trap-start'));
 			if (firstFocusable) {
-				// Delay to re-apply the focus effects as a visual clue when there is only one focusable element
-				setTimeout(() => {
-					forceFocusVisible(firstFocusable);
-				}, 50);
+				firstFocusable.focus();
 				return;
 			}
 		}
 		this._focusFirst();
-	}
-
-	_handleLegacyPromptClose(e) {
-		this._legacyPromptIds.delete(e.detail.id);
-		this.requestUpdate();
-	}
-
-	_handleLegacyPromptOpen(e) {
-		this._legacyPromptIds.add(e.detail.id);
-		this.requestUpdate();
 	}
 
 	_handleStartFocusIn(e) {
 		const container = this._getContainer();
-		if (this.shadowRoot && isComposedAncestor(container, e.relatedTarget)) {
+		if (this.shadowRoot && (isComposedAncestor(container, e.relatedTarget) || FocusTrap.#isExempt(e.relatedTarget))) {
 			// user is exiting trap via back tabbing...
 			const lastFocusable = getPreviousFocusable(this.shadowRoot.querySelector('.d2l-focus-trap-end'));
 			if (lastFocusable) {
-				// Delay to re-apply the focus effects as a visual clue when there is only one focusable element
-				setTimeout(() => {
-					forceFocusVisible(lastFocusable);
-				}, 50);
+				lastFocusable.focus();
 				return;
 			}
 		}
 		this._focusFirst();
+	}
+
+	static #isExempt(target) {
+		return !!target?.closest(this.#exemptSelectors);
 	}
 
 }

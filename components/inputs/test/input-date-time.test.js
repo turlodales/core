@@ -1,10 +1,10 @@
-import { aTimeout, expect, fixture, oneEvent } from '@open-wc/testing';
+import { aTimeout, expect, fixture, oneEvent, runConstructor } from '@brightspace-ui/testing';
 import { _formatLocalDateTimeInISO } from '../input-date-time.js';
 import { getDocumentLocaleSettings } from '@brightspace-ui/intl/lib/common.js';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
 import sinon from 'sinon';
 
 const basicFixture = '<d2l-input-date-time label="label text"></d2l-input-date-time>';
+const requiredFixture = '<d2l-input-date-time label="label text" required></d2l-input-date-time>';
 const valueFixture = '<d2l-input-date-time label="label text" value="2019-03-02T05:00:00.000Z"></d2l-input-date-time>';
 const minMaxFixture = '<d2l-input-date-time label="label text" min-value="2018-08-27T03:30:00Z" max-value="2018-09-30T17:30:00Z"></d2l-input-date-time>';
 const minMaxLocalizedFixture = '<d2l-input-date-time label="label text" localized min-value="2018-08-27T03:30:00" max-value="2018-09-30T17:30:00"></d2l-input-date-time>';
@@ -35,14 +35,14 @@ describe('d2l-input-date-time', () => {
 
 	describe('min and max value', () => {
 		it('should set correct min and max on d2l-input-date', async() => {
-			await aTimeout(5); // Fixes flaky test potentially caused by timezone not yet being set
+			await aTimeout(5); // Fixes flaky test potentially caused by time zone not yet being set
 			const elem = await fixture(minMaxFixture);
 			const inputElem = getChildElem(elem, 'd2l-input-date');
 			expect(inputElem.minValue).to.equal('2018-08-26');
 			expect(inputElem.maxValue).to.equal('2018-09-30');
 		});
 
-		it('should set correct min and max on d2l-input-date in Australia/Eucla timezone', async() => {
+		it('should set correct min and max on d2l-input-date in Australia/Eucla time zone', async() => {
 			documentLocaleSettings.timezone.identifier = 'Australia/Eucla';
 			const elem = await fixture(minMaxFixture);
 			const inputElem = getChildElem(elem, 'd2l-input-date');
@@ -52,8 +52,8 @@ describe('d2l-input-date-time', () => {
 		});
 
 		describe('localized', () => {
-			const expectedStart = 'Aug 27, 2018 3:30 AM';
-			const expectedEnd = 'Sep 30, 2018 5:30 PM';
+			const expectedStart = 'Aug 27, 2018 3:30 AM';
+			const expectedEnd = 'Sep 30, 2018 5:30 PM';
 
 			it('should set correct min and max on d2l-input-date', async() => {
 				const elem = await fixture(minMaxLocalizedFixture);
@@ -91,8 +91,8 @@ describe('d2l-input-date-time', () => {
 		});
 
 		describe('validation', () => {
-			const expectedStart = 'Aug 26, 2018 11:30 PM';
-			const expectedEnd = 'Sep 30, 2018 1:30 PM';
+			const expectedStart = 'Aug 26, 2018 11:30 PM';
+			const expectedEnd = 'Sep 30, 2018 1:30 PM';
 
 			it('should change value if min and max value and typed date before minValue', async() => {
 				const elem = await fixture(minMaxFixture);
@@ -131,7 +131,7 @@ describe('d2l-input-date-time', () => {
 				await oneEvent(elem, 'change');
 				expect(elem.value).to.equal('2018-08-27T03:29:00.000Z');
 				expect(elem.invalid).to.be.true;
-				expect(elem.validationError).to.equal(`Date must be after ${expectedStart}`);
+				expect(elem.validationError).to.equal(`Date must be on or after ${expectedStart}`);
 			});
 
 			it('should change value if max value and typed date after maxValue', async() => {
@@ -148,8 +148,31 @@ describe('d2l-input-date-time', () => {
 				await oneEvent(elem, 'invalid-change');
 				expect(elem.value).to.equal('2018-09-30T17:31:00.000Z');
 				expect(elem.invalid).to.be.true;
-				expect(elem.validationError).to.equal(`Date must be before ${expectedEnd}`);
+				expect(elem.validationError).to.equal(`Date must be before or on ${expectedEnd}`);
 			});
+
+			it('should return no errors when not required', async() => {
+				const elem = await fixture(basicFixture);
+				const errors = await elem.validate();
+				expect(errors.length).to.equal(0);
+			});
+
+			it('should return no errors when required and a value is provided', async() => {
+				const elem = await fixture(requiredFixture);
+				const inputElem = getChildElem(elem, 'd2l-input-date');
+				inputElem.value = '2018-02-02';
+				setTimeout(() => dispatchEvent(inputElem, 'change'));
+				await oneEvent(elem, 'change');
+				const errors = await elem.validate();
+				expect(errors.length).to.equal(0);
+			});
+
+			it('should return 1 error when required and no value is provided', async() => {
+				const elem = await fixture(requiredFixture);
+				const errors = await elem.validate();
+				expect(errors.length).to.equal(1);
+			});
+
 		});
 	});
 
@@ -297,7 +320,6 @@ describe('d2l-input-date-time', () => {
 			const clock = sinon.useFakeTimers({ now: newToday.getTime(), toFake: ['Date'] });
 			const elem = await fixture(basicFixture);
 			const dateInput = getChildElem(elem, 'd2l-input-date');
-			await elem.updateComplete;
 			dateInput.opened = true;
 			await oneEvent(dateInput, 'd2l-input-date-dropdown-toggle');
 			await elem.updateComplete;
@@ -338,8 +360,8 @@ describe('d2l-input-date-time', () => {
 			expect(elem.value).to.equal('');
 		});
 
-		describe('timezone', () => {
-			it('should return expected day in Australia/Eucla timezone', async() => {
+		describe('time zone', () => {
+			it('should return expected day in Australia/Eucla time zone', async() => {
 				documentLocaleSettings.timezone.identifier = 'Australia/Eucla';
 				const elem = await fixture('<d2l-input-date-time label="label text" value="2018-03-03T08:00:00.000Z"></d2l-input-date-time>');
 				const inputElem = getChildElem(elem, 'd2l-input-time');

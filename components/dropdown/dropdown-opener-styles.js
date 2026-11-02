@@ -5,7 +5,7 @@ export const dropdownOpenerStyles = css`
 		display: inline-block;
 		outline: none;
 		overflow: visible;
-		position: relative;
+		position: static;
 	}
 	:host([hidden]) {
 		display: none;

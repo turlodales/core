@@ -1,104 +1,95 @@
 import '../colors/colors.js';
 import '../../helpers/requestIdleCallback.js';
 import { css, html, LitElement } from 'lit';
-import { getBoundingAncestor, getComposedParent } from '../../helpers/dom.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { getBoundingAncestor, getComposedParent, isComposedAncestor } from '../../helpers/dom.js';
+import { getComposedActiveElement } from '../../helpers/focus.js';
+import { getLegacyOffsetParent } from '../../helpers/offsetParent-legacy.js';
+import { LoadingCompleteMixin } from '../../mixins/loading-complete/loading-complete-mixin.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
 const mediaQueryList = window.matchMedia('(max-height: 500px)');
+const MINIMUM_TARGET_SIZE = 24;
 
 /**
  * A wrapper component to display floating workflow buttons. When the normal position of the workflow buttons is below the bottom edge of the viewport, they will dock at the bottom edge. When the normal position becomes visible, they will undock.
  * @slot - Content to be displayed in the floating container
  */
-class FloatingButtons extends RtlMixin(LitElement) {
+class FloatingButtons extends LoadingCompleteMixin(LitElement) {
 
-	static get properties() {
-		return {
-			/**
-			 * Indicates to display buttons as always floating
-			 * @type {boolean}
-			 */
-			alwaysFloat: { type: Boolean, attribute: 'always-float', reflect: true },
-			_containerMarginLeft: { attribute: false, type: String },
-			_containerMarginRight: { attribute: false, type: String },
-			_floating: { type: Boolean, reflect: true },
-			_innerContainerLeft: { attribute: false, type: String },
-			_innerContainerRight: { attribute: false, type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * Indicates to display buttons as always floating
+		 * @type {boolean}
+		 */
+		alwaysFloat: { type: Boolean, attribute: 'always-float', reflect: true },
+		_containerMarginLeft: { state: true },
+		_containerMarginRight: { state: true },
+		_floating: { type: Boolean, reflect: true },
+		_innerContainerLeft: { state: true }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				box-sizing: border-box;
-				display: block;
-			}
+	static styles = css`
+		:host {
+			box-sizing: border-box;
+			display: block;
+		}
 
-			:host([_floating]) {
-				bottom: -10px;
-				left: 0;
-				position: -webkit-sticky;
-				position: sticky;
-				right: 0;
-				z-index: 999;
-			}
+		:host([_floating]) {
+			bottom: -10px;
+			left: 0;
+			position: -webkit-sticky;
+			position: sticky;
+			right: 0;
+			z-index: 997;
+		}
 
-			:host([_floating][always-float]) {
-				bottom: 0;
-			}
+		:host([_floating][always-float]) {
+			bottom: 0;
+		}
 
-			:host([hidden]) {
-				display: none;
-			}
+		:host([hidden]) {
+			display: none;
+		}
 
-			.d2l-floating-buttons-container {
-				border-top: 1px solid transparent;
-				display: block;
-			}
+		.d2l-floating-buttons-container {
+			border-top: 1px solid transparent;
+			display: block;
+		}
 
-			:host([_floating]) .d2l-floating-buttons-container {
-				background-color: #ffffff;
-				background-color: rgba(255, 255, 255, 0.88);
-				border-top-color: var(--d2l-color-mica);
-				box-shadow: 0 -2px 4px rgba(32, 33, 34, 0.2); /* ferrite */
-			}
+		:host([_floating]) .d2l-floating-buttons-container {
+			background-color: #ffffff;
+			background-color: rgba(255, 255, 255, 0.88);
+			border-top-color: var(--d2l-color-mica);
+			box-shadow: 0 -2px 4px rgba(32, 33, 34, 0.2); /* ferrite */
+		}
 
+		:host([_floating]:not([always-float])) .d2l-floating-buttons-container {
+			transform: translate(0, -10px);
+			transition: transform 500ms, border-top-color 500ms, background-color 500ms;
+		}
+
+		.d2l-floating-buttons-inner-container {
+			padding: 0.75rem 0 0 0;
+			position: relative;
+		}
+
+		.d2l-floating-buttons-inner-container ::slotted(d2l-button),
+		.d2l-floating-buttons-inner-container ::slotted(button),
+		.d2l-floating-buttons-inner-container ::slotted(.d2l-button) {
+			margin-inline-end: 0.75rem !important;
+			margin-bottom: 0.75rem !important;
+		}
+
+		.d2l-floating-buttons-inner-container ::slotted(d2l-overflow-group) {
+			padding-bottom: 0.75rem !important;
+		}
+
+		@media (prefers-reduced-motion: reduce) {
 			:host([_floating]:not([always-float])) .d2l-floating-buttons-container {
-				transform: translate(0, -10px);
-				transition: transform 500ms, border-top-color 500ms, background-color 500ms;
+				transition: none;
 			}
-
-			.d2l-floating-buttons-inner-container {
-				padding: 0.75rem 0 0 0;
-				position: relative;
-			}
-
-			.d2l-floating-buttons-inner-container ::slotted(d2l-button),
-			.d2l-floating-buttons-inner-container ::slotted(button),
-			.d2l-floating-buttons-inner-container ::slotted(.d2l-button) {
-				margin-bottom: 0.75rem !important;
-				margin-right: 0.75rem !important;
-			}
-
-			.d2l-floating-buttons-inner-container ::slotted(d2l-overflow-group) {
-				padding-bottom: 0.75rem !important;
-			}
-
-			:host([dir="rtl"]) .d2l-floating-buttons-inner-container ::slotted(d2l-button),
-			:host([dir="rtl"]) .d2l-floating-buttons-inner-container ::slotted(button),
-			:host([dir="rtl"]) .d2l-floating-buttons-inner-container ::slotted(.d2l-button) {
-				margin-left: 0.75rem !important;
-				margin-right: 0 !important;
-			}
-
-			@media (prefers-reduced-motion: reduce) {
-				:host([_floating]:not([always-float])) .d2l-floating-buttons-container {
-					transition: none;
-				}
-			}
-		`;
-	}
+		}
+	`;
 
 	constructor() {
 		super();
@@ -107,11 +98,11 @@ class FloatingButtons extends RtlMixin(LitElement) {
 		this._containerMarginRight = '';
 		this._floating = false;
 		this._innerContainerLeft = '';
-		this._innerContainerRight = '';
 		this._intersectionObserver = null;
 		this._isIntersecting = false;
 		this._recalculateFloating = this._recalculateFloating.bind(this);
 		this._testElem = null;
+		this._scrollIfFloatObsuringFocus = this._scrollIfFloatObsuringFocus.bind(this);
 	}
 
 	connectedCallback() {
@@ -121,13 +112,15 @@ class FloatingButtons extends RtlMixin(LitElement) {
 		// if browser doesn't support IntersectionObserver, we don't float
 		if (typeof(IntersectionObserver) !== 'function') {
 			this._isIntersecting = true;
+			this.resolveLoadingComplete();
 			return;
 		}
-		this._intersectionObserver = this._intersectionObserver || new IntersectionObserver((entries) => {
-			entries.forEach((entry) => {
+		this._intersectionObserver = this._intersectionObserver || new IntersectionObserver(async(entries) => {
+			for (const entry of entries) {
 				this._isIntersecting = entry.isIntersecting;
-				this._recalculateFloating();
-			});
+				await this._recalculateFloating();
+			}
+			this.resolveLoadingComplete();
 		});
 
 		// observe intersection of a fake sibling element since host is sticky
@@ -143,6 +136,8 @@ class FloatingButtons extends RtlMixin(LitElement) {
 			}
 		}, { timeout: 5000 });
 
+		document.addEventListener('focusin', this._scrollIfFloatObsuringFocus);
+
 	}
 
 	disconnectedCallback() {
@@ -153,17 +148,17 @@ class FloatingButtons extends RtlMixin(LitElement) {
 			this._testElem.parentNode.removeChild(this._testElem);
 			this._testElem = null;
 		}
+		document.removeEventListener('focusin', this._scrollIfFloatObsuringFocus);
 	}
 
 	render() {
 		const containerStyle = {
-			marginLeft: this._containerMarginLeft,
-			marginRight: this._containerMarginRight
+			marginInlineStart: this._containerMarginLeft,
+			marginInlineEnd: this._containerMarginRight
 		};
 
 		const innerContainerStyle = {
-			marginLeft: this._innerContainerLeft,
-			marginRight: this._innerContainerRight
+			marginInlineStart: this._innerContainerLeft
 		};
 
 		return html`
@@ -186,7 +181,6 @@ class FloatingButtons extends RtlMixin(LitElement) {
 		this._containerMarginLeft = '';
 		this._containerMarginRight = '';
 		this._innerContainerLeft = '';
-		this._innerContainerRight = '';
 
 		if (!this._floating) return;
 
@@ -211,12 +205,8 @@ class FloatingButtons extends RtlMixin(LitElement) {
 			this._containerMarginRight = `-${containerRight}px`;
 		}
 
-		if (this.dir !== 'rtl') {
-			if (containerLeft !== 0) {
-				this._innerContainerLeft = `${containerLeft}px`;
-			}
-		} else {
-			this._innerContainerRight = `${containerRight}px`;
+		if (containerLeft !== 0) {
+			this._innerContainerLeft = `${containerLeft}px`;
 		}
 
 	}
@@ -224,7 +214,7 @@ class FloatingButtons extends RtlMixin(LitElement) {
 	_getBoundingAncestor() {
 
 		const boundingAncestor = getBoundingAncestor(this);
-		const offsetParent = this.offsetParent;
+		const offsetParent = getLegacyOffsetParent(this);
 		if (!offsetParent) {
 			return null;
 		}
@@ -244,29 +234,51 @@ class FloatingButtons extends RtlMixin(LitElement) {
 
 	}
 
-	_recalculateFloating() {
-		requestAnimationFrame(() => {
+	async _recalculateFloating() {
+		await new Promise(resolve => requestAnimationFrame(resolve));
 
-			if (this.alwaysFloat) {
-				this._floating = true;
-				this._calcContainerPosition();
-				return;
-			}
+		if (this.alwaysFloat) {
+			this._floating = true;
+			this._calcContainerPosition();
+			await this.updateComplete;
+			return;
+		}
 
-			const viewportIsLessThanMinHeight = mediaQueryList.matches;
-			if (viewportIsLessThanMinHeight) {
-				this._floating = false;
-				this._calcContainerPosition();
-				return;
-			}
+		const viewportIsLessThanMinHeight = mediaQueryList.matches;
+		if (viewportIsLessThanMinHeight) {
+			this._floating = false;
+			this._calcContainerPosition();
+			await this.updateComplete;
+			return;
+		}
 
-			const shouldFloat = !this._isIntersecting;
-			if (shouldFloat !== this._floating) {
-				this._floating = shouldFloat;
-				this._calcContainerPosition();
-			}
+		const shouldFloat = !this._isIntersecting;
+		if (shouldFloat !== this._floating) {
+			this._floating = shouldFloat;
+			this._calcContainerPosition();
+			await this.updateComplete;
+		}
+	}
 
-		});
+	_scrollIfFloatObsuringFocus() {
+
+		if (!this._floating) return;
+
+		const currentFocusedItem = getComposedActiveElement();
+		if (isComposedAncestor(this, currentFocusedItem)) return;
+
+		const { y: focusedY, height: focusedHeight } = currentFocusedItem.getBoundingClientRect();
+		const { y: floatingY, height: floatingHeight } = this.shadowRoot.querySelector('.d2l-floating-buttons-container').getBoundingClientRect();
+		if (focusedY === 0 || floatingY === 0) return;
+
+		const isObscuring = (floatingY - focusedY) < Math.min(MINIMUM_TARGET_SIZE, focusedHeight);
+		if (!isObscuring) return;
+
+		const prev = currentFocusedItem.style.scrollMarginBottom;
+		currentFocusedItem.style.scrollMarginBottom = `${floatingHeight}px`;
+		currentFocusedItem.scrollIntoView(false);
+		currentFocusedItem.style.scrollMarginBottom = prev;
+
 	}
 
 }

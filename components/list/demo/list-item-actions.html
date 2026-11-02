@@ -13,7 +13,7 @@
 			import '../../menu/menu-item.js';
 			import '../../selection/selection-action.js';
 			import '../../tooltip/tooltip.js';
-			import '../list-header.js';
+			import '../list-controls.js';
 			import '../list-item-button.js';
 			import '../list-item-content.js';
 			import '../list-item.js';
@@ -24,11 +24,11 @@
 
 		<d2l-demo-page page-title="d2l-list-item (actions)">
 
-			<h2>No Action</h2>
+			<h2>No Action, Add Button</h2>
 
 			<d2l-demo-snippet>
 				<template>
-					<d2l-list>
+					<d2l-list add-button>
 						<d2l-list-item>
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 						</d2l-list-item>
@@ -44,32 +44,30 @@
 
 			<h2>Navigation (href) Primary Action</h2>
 
-			<d2l-demo-snippet id="link-demo">
+			<d2l-demo-snippet>
 				<template>
-					<d2l-list>
-						<d2l-list>
-							<d2l-list-item href="http://www.d2l.com">
-								<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
-							</d2l-list-item>
-							<d2l-list-item href="http://www.d2l.com">
-								<d2l-list-item-content>Engineering Materials for Energy Systems</d2l-list-item-content>
-							</d2l-list-item>
-							<d2l-list-item href="http://www.d2l.com">
-								<d2l-list-item-content>Geomorphology and GIS</d2l-list-item-content>
-							</d2l-list-item>
-						</d2l-list>
+					<d2l-list add-button>
+						<d2l-list-item href="http://www.d2l.com">
+							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
+						</d2l-list-item>
+						<d2l-list-item href="http://www.d2l.com">
+							<d2l-list-item-content>Engineering Materials for Energy Systems</d2l-list-item-content>
+						</d2l-list-item>
+						<d2l-list-item href="http://www.d2l.com">
+							<d2l-list-item-content>Geomorphology and GIS</d2l-list-item-content>
+						</d2l-list-item>
 					</d2l-list>
 					<script>
-						document.querySelector('#link-demo').addEventListener('d2l-list-item-link-click', (e) => {
-							console.log('d2l-list-item-link clicked!', e);
-						});
+						(demo => {
+							demo.addEventListener('d2l-list-item-link-click', e => console.log('d2l-list-item-link clicked!', e));
+						})(document.currentScript.parentNode);
 					</script>
 				</template>
 			</d2l-demo-snippet>
 
 			<h2>Button Primary Action</h2>
 
-			<d2l-demo-snippet id="button-demo">
+			<d2l-demo-snippet>
 				<template>
 					<d2l-list>
 						<d2l-list-item-button>
@@ -83,9 +81,9 @@
 						</d2l-list-item-button>
 					</d2l-list>
 					<script>
-						document.querySelector('#button-demo').addEventListener('d2l-list-item-button-click', (e) => {
-							console.log('d2l-list-item-button clicked!', e);
-						});
+						(demo => {
+							demo.addEventListener('d2l-list-item-button-click', e => console.log('d2l-list-item-button clicked!', e));
+						})(document.currentScript.parentNode);
 					</script>
 				</template>
 			</d2l-demo-snippet>
@@ -149,18 +147,21 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-list>
-						<d2l-list-header slot="header">
+						<d2l-list-controls slot="controls">
 							<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
-						</d2l-list-header>
+						</d2l-list-controls>
 						<d2l-list-item selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 						</d2l-list-item>
 						<d2l-list-item selectable key="2" selected label="Engineering Materials for Energy Systems">
 							<d2l-list-item-content>Engineering Materials for Energy Systems</d2l-list-item-content>
 						</d2l-list-item>
-						<d2l-list-item selectable key="3" label="Geomorphology and GIS">
+						<d2l-list-item selectable selection-disabled key="3" label="Geomorphology and GIS">
 							<d2l-list-item-content>Geomorphology and GIS</d2l-list-item-content>
+						</d2l-list-item>
+						<d2l-list-item selectable selection-disabled selection-disabled-tooltip="This option is not currently available"  key="5" label="Fermentation Biology">
+							<d2l-list-item-content>Fermentation Biology</d2l-list-item-content>
 						</d2l-list-item>
 					</d2l-list>
 				</template>
@@ -171,10 +172,10 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-list selection-single>
-						<d2l-list-header slot="header">
+						<d2l-list-controls slot="controls">
 							<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
-						</d2l-list-header>
+						</d2l-list-controls>
 						<d2l-list-item selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 						</d2l-list-item>
@@ -183,6 +184,12 @@
 						</d2l-list-item>
 						<d2l-list-item selectable key="3" label="Geomorphology and GIS">
 							<d2l-list-item-content>Geomorphology and GIS</d2l-list-item-content>
+						</d2l-list-item>
+						<d2l-list-item selectable key="4" label="Introductory Differential Equations">
+							<d2l-list-item-content>Introductory Differential Equations</d2l-list-item-content>
+						</d2l-list-item>
+						<d2l-list-item selectable selection-disabled selection-disabled-tooltip="This option is not currently available"  key="5" label="Fermentation Biology">
+							<d2l-list-item-content>Fermentation Biology</d2l-list-item-content>
 						</d2l-list-item>
 					</d2l-list>
 				</template>
@@ -193,13 +200,13 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-list>
-						<d2l-list-header slot="header">
+						<d2l-list-controls slot="controls">
 							<d2l-selection-action icon="tier1:tag-hollow" text="Tag" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:share" text="Share" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:delete" text="Delete" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
-						</d2l-list-header>
+						</d2l-list-controls>
 						<d2l-list-item selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 						</d2l-list-item>
@@ -218,7 +225,7 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-list>
-						<d2l-list-header slot="header"></d2l-list-header>
+						<d2l-list-controls slot="controls"></d2l-list-controls>
 						<d2l-list-item selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 						</d2l-list-item>
@@ -234,13 +241,13 @@
 
 			<h2>Selection & Navigation (href) Primary Action</h2>
 
-			<d2l-demo-snippet id="selection-link-demo">
+			<d2l-demo-snippet>
 				<template>
 					<d2l-list>
-						<d2l-list-header slot="header">
+						<d2l-list-controls slot="controls">
 							<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
-						</d2l-list-header>
+						</d2l-list-controls>
 						<d2l-list-item href="http://www.d2l.com" selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 						</d2l-list-item>
@@ -252,22 +259,22 @@
 						</d2l-list-item>
 					</d2l-list>
 					<script>
-						document.querySelector('#selection-link-demo').addEventListener('d2l-list-item-link-click', (e) => {
-							console.log('d2l-list-item-link clicked!', e);
-						});
+						(demo => {
+							demo.addEventListener('d2l-list-item-link-click', e => console.log('d2l-list-item-link clicked!', e));
+						})(document.currentScript.parentNode);
 					</script>
 				</template>
 			</d2l-demo-snippet>
 
 			<h2>Selection & Button Primary Action</h2>
 
-			<d2l-demo-snippet id="selection-button-demo">
+			<d2l-demo-snippet>
 				<template>
 					<d2l-list>
-						<d2l-list-header slot="header">
+						<d2l-list-controls slot="controls">
 							<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
-						</d2l-list-header>
+						</d2l-list-controls>
 						<d2l-list-item-button selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 						</d2l-list-item-button>
@@ -279,22 +286,22 @@
 						</d2l-list-item-button>
 					</d2l-list>
 					<script>
-						document.querySelector('#selection-button-demo').addEventListener('d2l-list-item-button-click', (e) => {
-							console.log('d2l-list-item-button clicked!', e);
-						});
+						(demo => {
+							demo.addEventListener('d2l-list-item-button-click', e => console.log('d2l-list-item-button clicked!', e));
+						})(document.currentScript.parentNode);
 					</script>
 				</template>
 			</d2l-demo-snippet>
 
 			<h2>Grid Actions with Navigation (href) Primary Action</h2>
 
-			<d2l-demo-snippet id="grid-link-demo">
+			<d2l-demo-snippet>
 				<template>
-					<d2l-list grid>
-						<d2l-list-header slot="header">
+					<d2l-list grid add-button>
+						<d2l-list-controls slot="controls">
 							<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
 							<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
-						</d2l-list-header>
+						</d2l-list-controls>
 						<d2l-list-item href="http://www.d2l.com" selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 							<div slot="actions">
@@ -315,22 +322,22 @@
 						</d2l-list-item>
 					</d2l-list>
 					<script>
-						document.querySelector('#grid-link-demo').addEventListener('d2l-list-item-link-click', (e) => {
-							console.log('d2l-list-item-link clicked!', e);
-						});
+						(demo => {
+							demo.addEventListener('d2l-list-item-link-click', e => console.log('d2l-list-item-link clicked!', e));
+						})(document.currentScript.parentNode);
 					</script>
 				</template>
 			</d2l-demo-snippet>
 
 			<h2>Grid Actions with Button Primary Action</h2>
 
-			<d2l-demo-snippet id="grid-button-demo">
+			<d2l-demo-snippet>
 				<template>
-					<d2l-list-header slot="header">
-						<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
-						<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
-					</d2l-list-header>
 					<d2l-list grid>
+						<d2l-list-controls slot="controls">
+							<d2l-selection-action icon="tier1:bookmark-hollow" text="Bookmark" requires-selection></d2l-selection-action>
+							<d2l-selection-action icon="tier1:gear" text="Settings"></d2l-selection-action>
+						</d2l-list-controls>
 						<d2l-list-item-button selectable key="1" label="Introductory Earth Sciences">
 							<d2l-list-item-content>Introductory Earth Sciences</d2l-list-item-content>
 							<div slot="actions">
@@ -351,9 +358,9 @@
 						</d2l-list-item-button>
 					</d2l-list>
 					<script>
-						document.querySelector('#grid-button-demo').addEventListener('d2l-list-item-button-click', (e) => {
-							console.log('d2l-list-item-button clicked!', e);
-						});
+						(demo => {
+							demo.addEventListener('d2l-list-item-button-click', e => console.log('d2l-list-item-button clicked!', e));
+						})(document.currentScript.parentNode);
 					</script>
 				</template>
 			</d2l-demo-snippet>

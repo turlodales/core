@@ -1,6 +1,5 @@
-import { css, html, LitElement } from 'lit';
-import { DropdownContentMixin } from './dropdown-content-mixin.js';
-import { dropdownContentStyles } from './dropdown-content-styles.js';
+import { css, LitElement } from 'lit';
+import { DropdownPopoverMixin } from './dropdown-popover-mixin.js';
 
 /**
  * A container for a "d2l-tabs" component. It provides additional support on top of "d2l-dropdown-content" for automatic resizing when the tab changes.
@@ -9,59 +8,49 @@ import { dropdownContentStyles } from './dropdown-content-styles.js';
  * @slot footer - Sticky container at the bottom of the dropdown
  * @fires d2l-dropdown-open - Dispatched when the dropdown is opened
  */
-class DropdownTabs extends DropdownContentMixin(LitElement) {
+class DropdownTabs extends DropdownPopoverMixin(LitElement) {
 
-	static get styles() {
-		return [ dropdownContentStyles, css`
-			::slotted(d2l-tabs) {
-				margin-bottom: 0;
-			}
-		`];
-	}
+	static styles = [super.styles, css`
+		::slotted(d2l-tabs) {
+			margin-bottom: 0;
+		}
+	`];
 
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
 
-		this.addEventListener('d2l-dropdown-open', this._onOpen);
-		this.addEventListener('d2l-menu-resize', this._onMenuResize);
-		this.addEventListener('d2l-tab-panel-selected', this._onTabSelected);
+		this.addEventListener('d2l-dropdown-open', this.#handleOpen);
+		this.addEventListener('d2l-menu-resize', this.#handleMenuResize);
+		this.addEventListener('d2l-tab-selected', this.#handleTabSelected);
 	}
 
-	render() {
-		return html`
-			${this._renderContent()}
-			<div class="d2l-dropdown-content-pointer">
-				<div></div>
-			</div>
-		`;
-	}
+	#initializingHeight;
 
-	_getTabsElement() {
-		if (!this.shadowRoot) return undefined;
-		return this.shadowRoot.querySelector('.d2l-dropdown-content-container > slot')
+	#handleMenuResize(e) {
+
+		const tabs = this.shadowRoot?.querySelector('.dropdown-content > slot')
 			.assignedNodes()
 			.filter(node => node.hasAttribute && node.tagName === 'D2L-TABS')[0];
-	}
 
-	_onMenuResize(e) {
-		const tabs = this._getTabsElement();
+		if (!tabs) return;
 		const tabListRect = tabs.getTabListRect();
+
 		// need to include height of tablist, dropdown padding, tab margins
 		const rect = {
 			height: e.detail.height + tabListRect.height + 52,
 			width: e.detail.width
 		};
-		this.__position(!this._initializingHeight, rect);
-		this._initializingHeight = false;
+		this.position(rect, { updateLocation: this.#initializingHeight });
+		this.#initializingHeight = false;
 	}
 
-	_onOpen(e) {
+	#handleOpen(e) {
 		if (e.target !== this) return;
-		this._initializingHeight = true;
+		this.#initializingHeight = true;
 	}
 
-	_onTabSelected() {
-		this.__position(false);
+	#handleTabSelected() {
+		this.position();
 	}
 
 }

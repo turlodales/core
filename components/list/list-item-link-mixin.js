@@ -1,50 +1,43 @@
 import '../colors/colors.js';
-import { css, html } from 'lit';
+import { css, html, nothing } from 'lit';
+import { isInteractiveInListItemComposedPath, ListItemMixin } from './list-item-mixin.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
-import { ListItemMixin } from './list-item-mixin.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
 
 export const ListItemLinkMixin = superclass => class extends ListItemMixin(superclass) {
 
-	static get properties() {
-		return {
-			/**
-			 * Address of item link if navigable
-			 * @type {string}
-			 */
-			actionHref: { type: String, attribute: 'action-href', reflect: true }
-		};
-	}
+	static properties = {
+		/**
+		 * Address of item link if navigable
+		 * @type {string}
+		 */
+		actionHref: { type: String, attribute: 'action-href', reflect: true },
+		_ariaCurrent: { type: String }
+	};
 
 	static get styles() {
 
-		const styles = [ css`
+		const styles = [css`
 			:host([action-href]:not([action-href=""])) {
 				--d2l-list-item-content-text-color: var(--d2l-color-celestine);
 			}
-			:host([action-href]:not([action-href=""])[_hovering]) [slot="control-container"]::before,
-			:host([action-href]:not([action-href=""])[_hovering]) [slot="control-container"]::after,
-			:host([action-href]:not([action-href=""])[_focusing]) [slot="control-container"]::before,
-			:host([action-href]:not([action-href=""])[_focusing]) [slot="control-container"]::after {
-				border-top-color: transparent;
-			}
-			:host(:not([disabled]):not([skeleton])[action-href]:not([action-href=""])[_hovering]) [slot="outside-control-container"],
-			:host(:not([disabled]):not([skeleton])[action-href]:not([action-href=""])[_focusing]) [slot="outside-control-container"] {
-				background-color: white;
-				border-color: #b6cbe8; /* celestine alpha 0.3 */
-			}
-			:host(:not([disabled]):not([skeleton])[action-href]:not([action-href=""])[_hovering]) [slot="outside-control-container"] {
-				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-			}
 			a[href] {
+				color: unset;
 				display: block;
 				height: 100%;
 				outline: none;
+				text-decoration: none;
 				width: 100%;
 			}
-			:host([skeleton]) a {
-				display: none;
+			:host([action-href]:not([action-href=""])) [slot="control-action"],
+			:host([action-href]:not([action-href=""])) [slot="outside-control-action"] {
+				grid-column-end: control-end;
 			}
-		` ];
+
+			:host([action-href]:not([action-href=""])[layout="tile"]) [slot="outside-control-action"] {
+				grid-column-end: end;
+			}
+		`];
 
 		super.styles && styles.unshift(super.styles);
 		return styles;
@@ -56,14 +49,48 @@ export const ListItemLinkMixin = superclass => class extends ListItemMixin(super
 		this._primaryActionId = getUniqueId();
 	}
 
-	_handleLinkClick() {
-		/** Dispatched when the item's primary link action is clicked */
-		this.dispatchEvent(new CustomEvent('d2l-list-item-link-click', { bubbles: true }));
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+		if (changedProperties.has('actionHref') && !this.actionHref) this._hoveringPrimaryAction = false;
 	}
 
-	_renderPrimaryAction(labelledBy) {
+	_getDescendantClicked(e) {
+		const isPrimaryAction = (elem) => elem === this.shadowRoot.querySelector(`#${this._primaryActionId}`);
+		return isInteractiveInListItemComposedPath(e, isPrimaryAction);
+	}
+
+	_handleLinkClick(e) {
+		if (this._getDescendantClicked(e)) {
+			e.preventDefault();
+		} else {
+			/** Dispatched when the item's primary link action is clicked */
+			this.dispatchEvent(new CustomEvent('d2l-list-item-link-click', { bubbles: true }));
+		}
+	}
+
+	_handleLinkFocus(e) {
+		if (this._getDescendantClicked(e)) {
+			requestAnimationFrame(() => this._focusingPrimaryAction = false);
+		}
+	}
+
+	_handleLinkKeyDown(e) {
+		if (e.keyCode !== 32) return;
+		// handle the space key
+		e.preventDefault();
+		e.stopPropagation();
+		e.target.click();
+	}
+
+	_renderPrimaryAction(labelledBy, content) {
 		if (!this.actionHref) return;
-		return html`<a id="${this._primaryActionId}" aria-labelledby="${labelledBy}" href="${this.actionHref}" @click="${this._handleLinkClick}"></a>`;
+		return html`<a aria-labelledby="${labelledBy}"
+			aria-current="${ifDefined(this._ariaCurrent)}"
+			@click="${this._handleLinkClick}"
+			@focusin="${this._handleLinkFocus}"
+			href="${this.actionHref}"
+			id="${this._primaryActionId}"
+			@keydown="${this._handleLinkKeyDown}">${content || nothing}</a>`;
 	}
 
 };

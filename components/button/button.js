@@ -13,76 +13,84 @@ import { labelStyles } from '../typography/styles.js';
  */
 class Button extends ButtonMixin(LitElement) {
 
-	static get properties() {
-		return {
-			/**
-			 * A description to be added to the button for accessibility when text on button does not provide enough context
-			 * @type {string}
-			 */
-			description: { type: String },
+	static properties = {
+		/**
+		 * ACCESSIBILITY: A description to be added to the button for accessibility when text on button does not provide enough context
+		 * @type {string}
+		 */
+		description: { type: String },
 
-			/**
-			 * Styles the button as a primary button
-			 * @type {boolean}
-			 */
-			primary: { type: Boolean, reflect: true }
-		};
-	}
+		/**
+		 * Styles the button as a primary button
+		 * @type {boolean}
+		 */
+		primary: { type: Boolean, reflect: true }
+	};
 
-	static get styles() {
-		return [ labelStyles, buttonStyles,
-			css`
-				:host {
-					display: inline-block;
-				}
-				:host([hidden]) {
-					display: none;
-				}
+	static styles = [labelStyles, buttonStyles,
+		css`
+			:host {
+				display: inline-block;
+			}
+			:host([hidden]) {
+				display: none;
+			}
 
-				button {
-					font-family: inherit;
-					padding: 0.55rem 1.5rem;
-					width: 100%;
-				}
+			button {
+				font-family: inherit;
+				padding-block-end: 0;
+				padding-block-start: 0;
+				padding-inline-end: var(--d2l-button-padding-inline-end, 1.5rem);
+				padding-inline-start: var(--d2l-button-padding-inline-start, 1.5rem);
+				width: 100%;
+			}
 
-				/* Firefox includes a hidden border which messes up button dimensions */
-				button::-moz-focus-inner {
-					border: 0;
-				}
+			/* Firefox includes a hidden border which messes up button dimensions */
+			button::-moz-focus-inner {
+				border: 0;
+			}
 
-				button,
-				button[disabled]:hover,
-				button[disabled]:focus,
-				:host([active]) button[disabled] {
-					background-color: var(--d2l-color-gypsum);
-					color: var(--d2l-color-ferrite);
-				}
+			button,
+			button[disabled]:hover,
+			button[disabled]:focus,
+			:host([active]) button[disabled] {
+				background-color: var(--d2l-theme-background-color-interactive-secondary-default);
+				color: var(--d2l-theme-text-color-static-standard);
+			}
 
-				button:hover,
-				button:focus,
-				:host([active]) button {
-					background-color: var(--d2l-color-mica);
-				}
+			button:hover,
+			button:focus,
+			:host([active]) button {
+				background-color: var(--d2l-theme-background-color-interactive-secondary-hover);
+			}
 
-				:host([disabled]) button {
-					cursor: default;
-					opacity: 0.5;
-				}
-				:host([primary]) button,
-				:host([primary]) button[disabled]:hover,
-				:host([primary]) button[disabled]:focus,
-				:host([primary][active]) button[disabled] {
-					background-color: var(--d2l-color-celestine);
-					color: #ffffff;
-				}
-				:host([primary]) button:hover,
-				:host([primary]) button:focus,
-				:host([primary][active]) button {
-					background-color: var(--d2l-color-celestine-minus-1);
-				}
-			`
-		];
-	}
+			:host([disabled]) button {
+				cursor: default;
+				position: relative;
+			}
+			:host([disabled]) button::before {
+				background-color: var(--d2l-theme-background-color-base);
+				border-radius: inherit;
+				content: "";
+				inset: 0;
+				opacity: var(--d2l-theme-opacity-disabled-control);
+				position: absolute;
+			}
+
+			:host([primary]) button,
+			:host([primary]) button[disabled]:hover,
+			:host([primary]) button[disabled]:focus,
+			:host([primary][active]) button[disabled] {
+				background-color: var(--d2l-theme-background-color-interactive-primary-default);
+				color: var(--d2l-theme-text-color-static-inverted);
+			}
+			:host([primary]) button:hover,
+			:host([primary]) button:focus,
+			:host([primary][active]) button {
+				background-color: var(--d2l-theme-background-color-interactive-primary-hover);
+			}
+		`
+	];
 
 	constructor() {
 		super();
@@ -99,7 +107,7 @@ class Button extends ButtonMixin(LitElement) {
 			<button
 				aria-describedby="${ifDefined(this.description ? this._describedById : undefined)}"
 				aria-disabled="${ifDefined(this.disabled && this.disabledTooltip ? 'true' : undefined)}"
-				aria-expanded="${ifDefined(this.ariaExpanded)}"
+				aria-expanded="${ifDefined(this.expanded)}"
 				aria-haspopup="${ifDefined(this.ariaHaspopup)}"
 				aria-label="${ifDefined(this.ariaLabel)}"
 				?autofocus="${this.autofocus}"
@@ -117,7 +125,7 @@ class Button extends ButtonMixin(LitElement) {
 				<slot></slot>
 			</button>
 			${this.description ? html`<span id="${this._describedById}" hidden>${this.description}</span>` : null}
-			${this.disabled && this.disabledTooltip ? html`<d2l-tooltip for="${this._buttonId}">${this.disabledTooltip}</d2l-tooltip>` : ''}
+			${this.disabled && this.disabledTooltip ? html`<d2l-tooltip class="vdiff-target" for="${this._buttonId}">${this.disabledTooltip}</d2l-tooltip>` : ''}
 		`;
 	}
 }

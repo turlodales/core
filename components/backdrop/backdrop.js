@@ -1,77 +1,78 @@
 import '../colors/colors.js';
 import { css, html, LitElement } from 'lit';
-import { cssEscape, getComposedChildren, getComposedParent, isVisible } from '../../helpers/dom.js';
-import { getUniqueId } from '../../helpers/uniqueId.js';
+import { getComposedChildren, getComposedParent, isComposedAncestor, isVisible } from '../../helpers/dom.js';
+import { getComposedActiveElement } from '../../helpers/focus.js';
 
-export const BACKDROP_ROLE = 'd2l-backdrop-role';
+const BACKDROP_HIDDEN = 'data-d2l-backdrop-hidden';
+const BACKDROP_ARIA_HIDDEN = 'data-d2l-backdrop-aria-hidden';
+const BACKDROP_TABINDEX = 'data-d2l-backdrop-tabindex';
+const BACKDROP_INERT = 'data-d2l-backdrop-inert';
+const TRANSITION_DURATION = 200;
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const scrollKeys = [];
+const modals = new Set();
 let scrollOverflow = null;
 
 /**
- * A component for displaying a semi-transparent backdrop behind a specified sibling element. It also hides elements other than the target from assistive technologies by applying 'role="presentation"' and 'aria-hidden="true"'.
+ * A component for displaying a semi-transparent backdrop behind a specified sibling element. It also hides elements other than the target from assistive technologies by applying 'aria-hidden="true"'.
  */
 class Backdrop extends LitElement {
 
-	static get properties() {
-		return {
-			/**
-			 * REQUIRED: id of the target element to display backdrop behind
-			 * @type {string}
-			 */
-			forTarget: { type: String, attribute: 'for-target' },
+	static properties = {
+		/**
+		 * REQUIRED: id of the target element to display backdrop behind
+		 * @type {string}
+		 */
+		forTarget: { type: String, attribute: 'for-target' },
 
-			/**
-			 * Disables the fade-out transition while the backdrop is being hidden
-			 * @type {boolean}
-			 */
-			noAnimateHide: { type: Boolean, attribute: 'no-animate-hide' },
+		/**
+		 * Disables the fade-out transition while the backdrop is being hidden
+		 * @type {boolean}
+		 */
+		noAnimateHide: { type: Boolean, attribute: 'no-animate-hide' },
 
-			/**
-			 * Used to control whether the backdrop is shown
-			 * @type {boolean}
-			 */
-			shown: { type: Boolean },
-			_state: { type: String, reflect: true }
-		};
-	}
+		/**
+		 * Used to control whether the backdrop is shown
+		 * @type {boolean}
+		 */
+		shown: { type: Boolean },
+		_state: { type: String, reflect: true }
+	};
 
-	static get styles() {
-		return [ css`
-			:host {
-				background-color: var(--d2l-color-regolith);
-				height: 0;
-				left: 0;
-				opacity: 0;
-				position: fixed;
-				top: 0;
-				transition: opacity 200ms ease-in;
-				width: 0;
-				z-index: 999;
-			}
+	static styles = [css`
+		:host {
+			background-color: var(--d2l-theme-backdrop-background-color);
+			height: 0;
+			left: 0;
+			opacity: 0;
+			position: fixed;
+			top: 0;
+			transition: opacity ${TRANSITION_DURATION}ms ease-in;
+			width: 0;
+			z-index: 999;
+		}
+		:host([slow-transition]) {
+			transition: opacity 1200ms ease-in;
+		}
+		:host([_state="showing"]) {
+			opacity: var(--d2l-theme-backdrop-opacity);
+		}
+		:host([_state="showing"]),
+		:host([_state="hiding"]) {
+			height: 100%;
+			width: 100%;
+		}
+		:host([_state=null][no-animate-hide]) {
+			transition: none;
+		}
+		@media (prefers-reduced-motion: reduce) {
+			:host,
 			:host([slow-transition]) {
-				transition: opacity 1200ms ease-in;
-			}
-			:host([_state="showing"]) {
-				opacity: 0.7;
-			}
-			:host([_state="showing"]),
-			:host([_state="hiding"]) {
-				height: 100%;
-				width: 100%;
-			}
-			:host([_state=null][no-animate-hide]) {
 				transition: none;
 			}
-			@media (prefers-reduced-motion: reduce) {
-				:host {
-					transition: none;
-				}
-			}
-		`];
-	}
+		}
+	`];
 
 	constructor() {
 		super();
@@ -82,14 +83,9 @@ class Backdrop extends LitElement {
 
 	disconnectedCallback() {
 		// allow body scrolling, show hidden elements, if backdrop is removed from the DOM
-		if (this._bodyScrollKey) {
-			allowBodyScroll(this._bodyScrollKey);
-			this._bodyScrollKey = null;
-		}
-		if (this._hiddenElements) {
-			showAccessible(this._hiddenElements);
-			this._hiddenElements = null;
-		}
+		allowBodyScroll(this);
+		showAccessible(this._hiddenElements);
+		this._hiddenElements = null;
 		this._state = null;
 		super.disconnectedCallback();
 	}
@@ -106,8 +102,13 @@ class Backdrop extends LitElement {
 		if (this.shown) {
 
 			if (this._state === null) {
-				this._bodyScrollKey = preventBodyScroll();
-				this._hiddenElements = hideAccessible(this.parentNode.querySelector(`#${cssEscape(this.forTarget)}`));
+				preventBodyScroll(this);
+				const target = this.parentNode.querySelector(`#${CSS.escape(this.forTarget)}`);
+				// aria-hidden elements cannot have focus, so wait for focus to be within target
+				waitForFocusWithinTarget(target, Date.now() + 200).then(() => {
+					if (!this.shown || this._state !== 'showing') return;
+					this._hiddenElements = hideAccessible(target);
+				});
 			}
 			this._state = 'showing';
 
@@ -115,8 +116,7 @@ class Backdrop extends LitElement {
 
 			const hide = () => {
 				if (!this.shown) {
-					allowBodyScroll(this._bodyScrollKey);
-					this._bodyScrollKey = null;
+					allowBodyScroll(this);
 					showAccessible(this._hiddenElements);
 					this._hiddenElements = null;
 					this._state = null;
@@ -126,6 +126,7 @@ class Backdrop extends LitElement {
 			if (!reduceMotion && !this.noAnimateHide && isVisible(this)) {
 				this.addEventListener('transitionend', hide, { once: true });
 				this._state = 'hiding';
+				setTimeout(() => this._state === 'hiding' && hide(), TRANSITION_DURATION + 100);
 			} else {
 				hide();
 			}
@@ -133,17 +134,23 @@ class Backdrop extends LitElement {
 		}
 
 	}
-
 }
 
-export function allowBodyScroll(key) {
-	const index = scrollKeys.indexOf(key);
-	if (index === -1) return;
-	scrollKeys.splice(index, 1);
-	if (scrollKeys.length === 0) {
+export function allowBodyScroll(modal) {
+	if (!modals.has(modal)) return;
+	modals.delete(modal);
+	if (!modals.size) {
 		document.body.style.overflow = scrollOverflow;
 		scrollOverflow = null;
 	}
+}
+
+export function preventBodyScroll(modal) {
+	if (!modals.size) {
+		scrollOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+	}
+	modals.add(modal);
 }
 
 function hideAccessible(target) {
@@ -158,22 +165,25 @@ function hideAccessible(target) {
 
 			if (child.tagName === 'SCRIPT' || child.tagName === 'STYLE') continue;
 			if (path.indexOf(child) !== -1) continue;
-			if (child.hasAttribute('d2l-backdrop-hidden')) continue;
+			if (child.hasAttribute(BACKDROP_HIDDEN)) continue;
 
-			const role = child.getAttribute('role');
-			if (role) child.setAttribute(BACKDROP_ROLE, role);
-			child.setAttribute('role', 'presentation');
-
-			if (child.nodeName === 'FORM' || child.nodeName === 'A') {
-				const ariaHidden = child.getAttribute('aria-hidden');
-				if (ariaHidden) child.setAttribute('d2l-backdrop-aria-hidden', ariaHidden);
-				child.setAttribute('aria-hidden', 'true');
+			if (child.hasAttribute('aria-hidden')) {
+				child.setAttribute(BACKDROP_ARIA_HIDDEN, child.getAttribute('aria-hidden'));
 			}
+			child.setAttribute('aria-hidden', 'true');
 
-			child.setAttribute('d2l-backdrop-hidden', 'd2l-backdrop-hidden');
+			if (child.hasAttribute('tabindex')) {
+				child.setAttribute(BACKDROP_TABINDEX, child.getAttribute('tabindex'));
+			}
+			child.setAttribute('tabindex', '-1');
+
+			if (child.hasAttribute('inert')) {
+				child.setAttribute(BACKDROP_INERT, '');
+			}
+			child.setAttribute('inert', '');
+
+			child.setAttribute(BACKDROP_HIDDEN, BACKDROP_HIDDEN);
 			hiddenElements.push(child);
-
-			hideAccessibleChildren(child);
 		}
 	};
 
@@ -189,35 +199,43 @@ function hideAccessible(target) {
 	return hiddenElements;
 }
 
-export function preventBodyScroll() {
-	if (scrollKeys.length === 0) {
-		scrollOverflow = document.body.style.overflow;
-		document.body.style.overflow = 'hidden';
-	}
-	const key = getUniqueId();
-	scrollKeys.push(key);
-	return key;
-}
-
 function showAccessible(elems) {
+	if (!elems) return;
 	for (let i = 0; i < elems.length; i++) {
 		const elem = elems[i];
-		const role = elem.getAttribute(BACKDROP_ROLE);
-		if (role) {
-			elem.setAttribute('role', role);
-			elem.removeAttribute(BACKDROP_ROLE);
-		} else {
-			elem.removeAttribute('role');
-		}
-		const ariaHidden = elem.getAttribute('d2l-backdrop-aria-hidden');
-		if (ariaHidden) {
-			elem.setAttribute('aria-hidden', ariaHidden);
-			elem.removeAttribute('d2l-backdrop-aria-hidden');
+		if (elem.hasAttribute(BACKDROP_ARIA_HIDDEN)) {
+			elem.setAttribute('aria-hidden', elem.getAttribute(BACKDROP_ARIA_HIDDEN));
+			elem.removeAttribute(BACKDROP_ARIA_HIDDEN);
 		} else {
 			elem.removeAttribute('aria-hidden');
 		}
-		elem.removeAttribute('d2l-backdrop-hidden');
+		if (elem.hasAttribute(BACKDROP_TABINDEX)) {
+			elem.setAttribute('tabindex', elem.getAttribute(BACKDROP_TABINDEX));
+			elem.removeAttribute(BACKDROP_TABINDEX);
+		} else {
+			elem.removeAttribute('tabindex');
+		}
+		if (elem.hasAttribute(BACKDROP_INERT)) {
+			elem.removeAttribute(BACKDROP_INERT);
+		} else {
+			elem.removeAttribute('inert');
+		}
+		elem.removeAttribute(BACKDROP_HIDDEN);
 	}
+}
+
+async function waitForFocusWithinTarget(target, expireTime) {
+
+	if (Date.now() > expireTime) return;
+
+	const activeElem = getComposedActiveElement();
+	const targetIsAncestor = isComposedAncestor(target, activeElem);
+
+	if (targetIsAncestor) return;
+
+	await new Promise(resolve => requestAnimationFrame(resolve));
+	return waitForFocusWithinTarget(target, expireTime);
+
 }
 
 customElements.define('d2l-backdrop', Backdrop);

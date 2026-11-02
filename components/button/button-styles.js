@@ -1,11 +1,14 @@
 import '../colors/colors.js';
 import { css } from 'lit';
+import { getFocusRingStyles } from '../../helpers/focus.js';
 
 export const buttonStyles = css`
 	button {
-		border-radius: 0.3rem;
+		border-end-end-radius: var(--d2l-button-end-end-radius, 0.3rem);
+		border-end-start-radius: var(--d2l-button-end-start-radius, 0.3rem);
+		border-start-end-radius: var(--d2l-button-start-end-radius, 0.3rem);
+		border-start-start-radius: var(--d2l-button-start-start-radius, 0.3rem);
 		border-style: none;
-		box-shadow: 0 0 0 4px rgba(0, 0, 0, 0);
 		box-sizing: border-box;
 		cursor: pointer;
 		display: inline-block;
@@ -21,10 +24,10 @@ export const buttonStyles = css`
 		white-space: nowrap;
 		width: auto;
 	}
-	/* Outline on focus for elements not using FocusVisiblePolyfillMixin
-	 * or when focus-visible for those who are */
-	:host(:not([data-js-focus-visible])) button:focus,
-	button.focus-visible {
-		box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--d2l-color-celestine);
+	${getFocusRingStyles('button')}
+	@media (prefers-contrast: more) {
+		button {
+			border: 2px solid transparent;
+		}
 	}
 `;

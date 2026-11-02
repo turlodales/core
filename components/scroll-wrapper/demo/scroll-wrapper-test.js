@@ -1,59 +1,103 @@
 import '../scroll-wrapper.js';
 import { css, html, LitElement } from 'lit';
-import { forceFocusVisible } from '../../../helpers/focus.js';
-import { RtlMixin } from '../../../mixins/rtl-mixin.js';
+import { LocalizeCoreElement } from '../../../helpers/localize-core-element.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
-class TestScrollWrapper extends RtlMixin(LitElement) {
+class TestScrollWrapper extends LocalizeCoreElement(LitElement) {
 
-	static get properties() {
-		return {
-			hideActions: { attribute: 'hide-actions', type: Boolean },
-			scroll: { attribute: 'scroll', type: Number },
-			width: { type: Number }
-		};
-	}
+	static properties = {
+		hideActions: { attribute: 'hide-actions', type: Boolean },
+		scroll: { attribute: 'scroll', type: Number },
+		splitScrollers: { attribute: 'split-scrollers', type: Boolean },
+		width: { type: Number },
+		_customScrollers: { state: true }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				display: block;
-			}
-			.d2l-scroll-wrapper-gradient {
-				background: linear-gradient(to right, #e66465, #9198e5);
-				height: 100px;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			display: block;
+		}
+		.d2l-scroll-wrapper-gradient {
+			background: linear-gradient(to right, #e66465, #9198e5);
+			height: 100px;
+		}
+		.d2l-scroll-wrapper-gradient-secondary {
+			background: linear-gradient(to left, #e66465, #9198e5);
+			height: 40px;
+			position: relative;
+		}
+		.d2l-scroll-wrapper-gradient-secondary button {
+			inset-inline-end: 0;
+			position: absolute;
+			top: 0;
+		}
+	`;
 
 	constructor() {
 		super();
 		this.hideActions = false;
 		this.scroll = 0;
+		this.splitScrollers = false;
 		this.width = 300;
+		this._customScrollers = {};
 	}
 
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
-		if (this.scroll === 0) return;
-		requestAnimationFrame(() => {
-			this.shadowRoot.querySelector('d2l-scroll-wrapper').scrollDistance(this.scroll, false);
-		});
+		this.scrollDistance();
+		if (this.splitScrollers) {
+			this._customScrollers = { primary: this.shadowRoot.querySelector('.primary'), secondary: this.shadowRoot.querySelectorAll('.secondary') };
+		}
 	}
 
 	render() {
 		const style = {
 			width: `${this.width}px`
 		};
-		return html`
-			<d2l-scroll-wrapper ?hide-actions="${this.hideActions}">
+
+		const secondaryScroller = html`
+			<div class="secondary">
+				<div class="d2l-scroll-wrapper-gradient-secondary" style="${styleMap(style)}">
+					Secondary scroller (No mouse scroll)
+					<button>Focus</button>
+				</div>
+			</div>
+		`;
+
+		const contents = this.splitScrollers ? html`
+			${secondaryScroller}
+			<div class="primary">
 				<div class="d2l-scroll-wrapper-gradient" style="${styleMap(style)}"></div>
+			</div>
+			${secondaryScroller}
+		` : html`<div class="d2l-scroll-wrapper-gradient" style="${styleMap(style)}"></div>`;
+
+		return html`
+			<d2l-scroll-wrapper class="vdiff-target" ?hide-actions="${this.hideActions}" .customScrollers="${this._customScrollers}">
+				${contents}
 			</d2l-scroll-wrapper>
 		`;
 	}
 
+	updated(changedProperties) {
+		super.updated(changedProperties);
+		if (changedProperties.has('localize')) this.scrollDistance();
+	}
+
 	focus() {
-		if (this.shadowRoot) forceFocusVisible(this.shadowRoot.querySelector('d2l-scroll-wrapper')._container);
+		if (this.shadowRoot) this.shadowRoot.querySelector('d2l-scroll-wrapper')._container.focus();
+	}
+
+	async scrollDistance() {
+		const scrollDir = document.documentElement.getAttribute('dir');
+		if (this._dir === scrollDir) return;
+		this._dir = scrollDir;
+
+		if (this.scroll !== 0) {
+			const wrapper = this.shadowRoot.querySelector('d2l-scroll-wrapper');
+			await wrapper.updateComplete;
+			requestAnimationFrame(() => wrapper.scrollDistance(this.scroll, false));
+		}
 	}
 
 }

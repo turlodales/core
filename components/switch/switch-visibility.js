@@ -8,25 +8,22 @@ import { SwitchMixin } from './switch-mixin.js';
 /**
  * A variant of the generic switch configured with special icons and default text for toggling "visibility".
  * @slot - Optional content that will be displayed within the "conditions" opener tooltip when the switch is on.
+ * @fires d2l-switch-before-change - Dispatched before on-state is updated. Can be canceled to allow the consumer to handle switching the on-state. This is useful if something needs to happen prior to the on-state being switched.
  */
 class VisibilitySwitch extends LocalizeCoreElement(SwitchMixin(LitElement)) {
 
-	static get properties() {
-		return {
-			_hasConditions: { state: true }
-		};
-	}
+	static properties = {
+		_hasConditions: { state: true }
+	};
 
-	static get styles() {
-		return [super.styles, css`
-			d2l-tooltip-help {
-				display: none;
-			}
-			d2l-tooltip-help.switch-visibility-conditions-show {
-				display: inline;
-			}
-		`];
-	}
+	static styles = [super.styles, css`
+		d2l-tooltip-help {
+			display: none;
+		}
+		d2l-tooltip-help.switch-visibility-conditions-show {
+			display: inline;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -71,7 +68,8 @@ class VisibilitySwitch extends LocalizeCoreElement(SwitchMixin(LitElement)) {
 
 		const tooltipHelpClasses = {
 			'switch-visibility-conditions-show': this.on && this._hasConditions,
-			'd2l-switch-text': true
+			'd2l-switch-text': true,
+			'vdiff-target': true
 		};
 
 		const conditions = html`
@@ -79,7 +77,8 @@ class VisibilitySwitch extends LocalizeCoreElement(SwitchMixin(LitElement)) {
 				class="${classMap(tooltipHelpClasses)}" 
 				id="conditions-help" 
 				inherit-font-style
-				text="${this.localize('components.switch.conditions')}">
+				text="${this.localize('components.switch.conditions')}"
+				@click="${this._handleTooltipClick}">
 				<slot @slotchange="${this._handleConditionsSlotChange}"></slot>
 			</d2l-tooltip-help>
 			`;
@@ -90,6 +89,10 @@ class VisibilitySwitch extends LocalizeCoreElement(SwitchMixin(LitElement)) {
 	_handleConditionsSlotChange(e) {
 		const nodes = e.target.assignedNodes({ flatten: true });
 		this._hasConditions = !!nodes[0]?.textContent?.trim();
+	}
+
+	_handleTooltipClick(e) {
+		e.stopPropagation();
 	}
 }
 

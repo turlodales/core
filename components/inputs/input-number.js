@@ -1,13 +1,15 @@
 import './input-text.js';
+import '../tooltip/tooltip.js';
 import { css, html, LitElement } from 'lit';
 import { formatNumber, getNumberDescriptor, parseNumber } from '@brightspace-ui/intl/lib/number.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { FormElementMixin } from '../form/form-element-mixin.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
-import { LabelledMixin } from '../../mixins/labelled-mixin.js';
+import { LabelledMixin } from '../../mixins/labelled/labelled-mixin.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
+import { styleMap } from 'lit/directives/style-map.js';
 
 const HINT_TYPES = {
 	NONE: 0,
@@ -73,124 +75,123 @@ function roundPrecisely(val, maxFractionDigits) {
  * @slot after - Slot beside the input on the right side. Useful for an "icon" or "button-icon".
  * @slot left - Slot within the input on the left side. Useful for an "icon" or "button-icon".
  * @slot right - Slot within the input on the right side. Useful for an "icon" or "button-icon".
+ * @slot inline-help - Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
  * @fires change - Dispatched when an alteration to the value is committed (typically after focus is lost) by the user. The `value` attribute reflects a JavaScript Number which is parsed from the formatted input value.
  */
 class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixin(LocalizeCoreElement(LitElement))))) {
 
-	static get properties() {
-		return {
-			/**
-			 * Specifies which types of values [can be autofilled](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete) by the browser.
-			 * @type {string}
-			 */
-			autocomplete: { type: String },
-			/**
-			 * ADVANCED: When set, will automatically place focus on the input
-			 * @type {boolean}
-			 */
-			autofocus: { type: Boolean },
-			/**
-			 * Disables the input
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean },
-			/**
-			 * ADVANCED: Hide the alert icon when input is invalid
-			 * @type {boolean}
-			 */
-			hideInvalidIcon: { attribute: 'hide-invalid-icon', type: Boolean, reflect: true },
-			/**
-			 * Restricts the maximum width of the input box without impacting the width of the label
-			 * @type {string}
-			 */
-			inputWidth: { attribute: 'input-width', type: String },
-			/**
-			 * Hides the label visually (moves it to the input's `aria-label` attribute)
-			 * @type {boolean}
-			 */
-			labelHidden: { type: Boolean, attribute: 'label-hidden' },
-			/**
-			 * Maximum value allowed
-			 * @type {number}
-			 */
-			max: { type: Number },
-			/**
-			 * Indicates whether the max value is exclusive
-			 * @type {boolean}
-			 */
-			maxExclusive: { type: Boolean, attribute: 'max-exclusive' },
-			/**
-			 * Maximum number of digits allowed after the decimal place. Must be between 0 and 20 and greater than or equal to `minFractionDigits`. Default is Greater of `minFractionDigits` or `3`.
-			 * @type {number}
-			 */
-			maxFractionDigits: { type: Number, attribute: 'max-fraction-digits' },
-			/**
-			 * Minimum value allowed
-			 * @type {number}
-			 */
-			min: { type: Number },
-			/**
-			 * Indicates whether the min value is exclusive
-			 * @type {boolean}
-			 */
-			minExclusive: { type: Boolean, attribute: 'min-exclusive' },
-			/**
-			 * Minimum number of digits allowed after the decimal place. Must be between 0 and 20 and less than or equal to `maxFractionDigits`. Default is `0`.
-			 * @type {number}
-			 */
-			minFractionDigits: { type: Number, attribute: 'min-fraction-digits' },
-			/**
-			 * Placeholder text
-			 * @type {string}
-			 */
-			placeholder: { type: String },
-			/**
-			 * Indicates that a value is required
-			 * @type {boolean}
-			 */
-			required: { type: Boolean },
-			/**
-			 * Text for additional screen reader and mouseover context
-			 * @type {string}
-			 */
-			title: { type: String },
-			/**
-			 * @ignore
-			 */
-			trailingZeroes: { type: Boolean, attribute: 'trailing-zeroes' },
-			/**
-			 * Unit associated with the input value, displayed next to input and announced as part of the label
-			 * @type {string}
-			 */
-			unit: { type: String },
-			/**
-			 * Value of the input
-			 * @type {number}
-			 */
-			value: { type: Number, converter: numberConverter },
-			/**
-			 * @ignore
-			 */
-			valueTrailingZeroes: { type: String, attribute: 'value-trailing-zeroes' },
-			_hintType: { type: Number },
-			_formattedValue: { type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * Specifies which types of values [can be autofilled](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete) by the browser.
+		 * @type {string}
+		 */
+		autocomplete: { type: String },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		autofocus: { type: Boolean },
+		/**
+		 * Disables the input
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean },
+		/**
+		 * ADVANCED: Hide the alert icon when input is invalid
+		 * @type {boolean}
+		 */
+		hideInvalidIcon: { attribute: 'hide-invalid-icon', type: Boolean, reflect: true },
+		/**
+		 * Restricts the maximum width of the input box without restricting the width of the label
+		 * @type {string}
+		 */
+		inputWidth: { attribute: 'input-width', type: String },
+		/**
+		 * Hides the label visually. Hidden labels are still read by screen readers so make sure to set an appropriate label.
+		 * @type {boolean}
+		 */
+		labelHidden: { type: Boolean, attribute: 'label-hidden' },
+		/**
+		 * Maximum value allowed
+		 * @type {number}
+		 */
+		max: { type: Number },
+		/**
+		 * Indicates whether the max value is exclusive
+		 * @type {boolean}
+		 */
+		maxExclusive: { type: Boolean, attribute: 'max-exclusive' },
+		/**
+		 * Maximum number of digits allowed after the decimal place. Must be between 0 and 20 and greater than or equal to `minFractionDigits`. Default is Greater of `minFractionDigits` or `3`.
+		 * @type {number}
+		 */
+		maxFractionDigits: { type: Number, attribute: 'max-fraction-digits' },
+		/**
+		 * Minimum value allowed
+		 * @type {number}
+		 */
+		min: { type: Number },
+		/**
+		 * Indicates whether the min value is exclusive
+		 * @type {boolean}
+		 */
+		minExclusive: { type: Boolean, attribute: 'min-exclusive' },
+		/**
+		 * Minimum number of digits allowed after the decimal place. Must be between 0 and 20 and less than or equal to `maxFractionDigits`. Default is `0`.
+		 * @type {number}
+		 */
+		minFractionDigits: { type: Number, attribute: 'min-fraction-digits' },
+		/**
+		 * Indicates that a value is required
+		 * @type {boolean}
+		 */
+		required: { type: Boolean },
+		/**
+		 * @ignore
+		 */
+		trailingZeroes: { type: Boolean, attribute: 'trailing-zeroes' },
+		/**
+		 * Unit associated with the input value, displayed next to input and announced as part of the label
+		 * @type {string}
+		 */
+		unit: { type: String },
+		/**
+		 * ACCESSIBILITY: Label for the unit, which is only picked up by screenreaders. Required if `unit` is used.
+		 * @type {string}
+		 */
+		unitLabel: { attribute: 'unit-label', type: String },
+		/**
+		 * Value of the input
+		 * @type {number}
+		 */
+		value: { type: Number, converter: numberConverter },
+		/**
+		 * Alignment of the value text within the input
+		 * @type {'start'|'end'}
+		 */
+		valueAlign: { attribute: 'value-align', type: String },
+		/**
+		 * @ignore
+		 */
+		valueTrailingZeroes: { type: String, attribute: 'value-trailing-zeroes' },
+		_afterSlotWidth: { state: true },
+		_hintType: { state: true },
+		_formattedValue: { state: true }
+	};
 
-	static get styles() {
-		return [ super.styles,
-			css`
-				:host {
-					display: inline-block;
-					position: var(--d2l-input-position, relative); /* overridden by sticky headers in grades */
-					width: 100%;
-				}
-				:host([hidden]) {
-					display: none;
-				}
-			`
-		];
-	}
+	static styles = [super.styles, css`
+		:host {
+			display: inline-block;
+			position: var(--d2l-input-position, relative); /* overridden by sticky headers in grades */
+			width: 100%;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		d2l-input-text:not([skeleton]) {
+			width: auto;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -201,6 +202,7 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 		this.maxExclusive = false;
 		this.minExclusive = false;
 		this.required = false;
+		this.valueAlign = 'start';
 
 		this._formattedValue = '';
 		this._hintType = HINT_TYPES.NONE;
@@ -208,6 +210,7 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 		this._trailingZeroes = false;
 		this._valueTrailingZeroes = '';
 		this._descriptor = getNumberDescriptor();
+		this._afterSlotWidth = 0;
 	}
 
 	get maxFractionDigits() {
@@ -306,6 +309,15 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 		return super.validationMessage;
 	}
 
+	/** @ignore */
+	get validity() {
+		const elem = this.shadowRoot && this.shadowRoot.querySelector('d2l-input-text');
+		if (elem && !elem.validity.valid) {
+			return elem.validity;
+		}
+		return super.validity;
+	}
+
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
 		this.addEventListener('d2l-localize-resources-change', () => {
@@ -317,6 +329,12 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 	}
 
 	render() {
+		const valueAlign = (this.valueAlign === 'end') ? 'end' : 'start';
+		const hasRelativeInputWidth = this.inputWidth.includes('%');
+		const inputWidthStyle = {
+			width : '100%',
+			maxWidth: `calc(${this.inputWidth} + ${this._afterSlotWidth}px)`
+		};
 		return html`
 			<d2l-input-text
 				autocomplete="${ifDefined(this.autocomplete)}"
@@ -324,55 +342,70 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 				?autofocus="${this.autofocus}"
 				@blur="${this._handleBlur}"
 				@change="${this._handleChange}"
+				class="vdiff-target"
 				@input="${this._handleInput}"
 				@keypress="${this._handleKeyPress}"
 				?disabled="${this.disabled}"
 				.forceInvalid="${this.invalid}"
 				?hide-invalid-icon="${this.hideInvalidIcon}"
 				id="${this._inputId}"
-				input-width="${this.inputWidth}"
+				input-width="${hasRelativeInputWidth ? 'none' : this.inputWidth}"
+				@invalid-change="${this._handleInvalidChange}"
 				label="${ifDefined(this.label)}"
 				?label-hidden="${this.labelHidden || this.labelledBy}"
 				.labelRequired="${false}"
 				name="${ifDefined(this.name)}"
-				placeholder="${ifDefined(this.placeholder)}"
 				?required="${this.required}"
 				?skeleton="${this.skeleton}"
-				title="${ifDefined(this.title)}"
+				style="${ifDefined(hasRelativeInputWidth ? styleMap(inputWidthStyle) : undefined)}"
 				unit="${ifDefined(this.unit)}"
-				.value="${this._formattedValue}">
+				unit-label="${ifDefined(this.unitLabel)}"
+				.value="${this._formattedValue}"
+				value-align="${valueAlign}">
 					<slot slot="left" name="left"></slot>
 					<slot slot="right" name="right"></slot>
-					<slot slot="after" name="after"></slot>
+					<slot slot="after" name="after" @slotchange=${this._handleAfterSlotChange}></slot>
+					<slot slot="inline-help" name="inline-help"></slot>
 			</d2l-input-text>
 			${this._getTooltip()}
 		`;
 	}
 
-	updated(changedProperties) {
+	async updated(changedProperties) {
 		super.updated(changedProperties);
 
+		let checkValidity = false;
 		changedProperties.forEach((oldVal, prop) => {
 			if (prop === 'value') {
 				this.setFormValue(this.value);
-
-				let rangeUnderflowCondition = false;
-				if (typeof(this.min) === 'number') {
-					rangeUnderflowCondition = this.minExclusive ? this.value <= this.min : this.value < this.min;
-				}
-
-				let rangeOverflowCondition = false;
-				if (typeof(this.max) === 'number') {
-					rangeOverflowCondition = this.maxExclusive ? this.value >= this.max : this.value > this.max;
-				}
-
-				this.setValidity({
-					rangeUnderflow: rangeUnderflowCondition,
-					rangeOverflow: rangeOverflowCondition
-				});
-				this.requestValidate(true);
+				checkValidity = true;
+			} else if ((prop === 'min' && oldVal !== undefined)
+				|| (prop === 'max' && oldVal !== undefined)
+				|| (prop === 'minExclusive' && oldVal !== undefined)
+				|| (prop === 'maxExclusive' && oldVal !== undefined)) {
+				checkValidity = true;
 			}
 		});
+
+		if (checkValidity) {
+			const inputTextElem = this.shadowRoot.querySelector('d2l-input-text');
+			await inputTextElem.updateComplete;
+
+			let rangeUnderflowCondition = false;
+			if (typeof(this.min) === 'number') {
+				rangeUnderflowCondition = this.minExclusive ? this.value <= this.min : this.value < this.min;
+			}
+			let rangeOverflowCondition = false;
+			if (typeof(this.max) === 'number') {
+				rangeOverflowCondition = this.maxExclusive ? this.value >= this.max : this.value > this.max;
+			}
+
+			this.setValidity({
+				rangeUnderflow: rangeUnderflowCondition,
+				rangeOverflow: rangeOverflowCondition
+			});
+			this.requestValidate(true);
+		}
 	}
 
 	async validate() {
@@ -386,8 +419,8 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 
 	_getTooltip() {
 		if (this.disabled) return null;
-		if (this.validationError && this.childErrors.size === 0) {
-			return html`<d2l-tooltip announced for="${this._inputId}" state="error" align="start">${this.validationError}</d2l-tooltip>`;
+		if (this.validationError && this.childErrors.size === 0 && !this.noValidate) {
+			return html`<d2l-tooltip announced for="${this._inputId}" state="error" align="start" class="vdiff-target">${this.validationError}</d2l-tooltip>`;
 		}
 		let lang = '';
 		if (this._hintType === HINT_TYPES.INTEGER) {
@@ -400,8 +433,15 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 			lang = 'components.input-number.hintDecimalIncorrectPeriod';
 		}
 		if (lang !== '') {
-			return html`<d2l-tooltip announced for="${this._inputId}" state="info" align="start">${this.localize(lang)}</d2l-tooltip>`;
+			return html`<d2l-tooltip announced for="${this._inputId}" state="info" align="start" class="vdiff-target">${this.localize(lang)}</d2l-tooltip>`;
 		}
+	}
+
+	async _handleAfterSlotChange(e) {
+		const nodes = e.target.assignedNodes();
+		const inputTextElem = this.shadowRoot.querySelector('d2l-input-text');
+		await inputTextElem.updateComplete;
+		this._afterSlotWidth = nodes.reduce((width, ele) => width + ele.clientWidth, 0);
 	}
 
 	_handleBlur() {
@@ -438,6 +478,7 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 		}
 
 		if (dispatchEvent) {
+			await this.requestValidate(true); // wait for validity logic to re-run
 			this.dispatchEvent(new CustomEvent(
 				'change',
 				{ bubbles: true, composed: false }
@@ -453,6 +494,10 @@ class InputNumber extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixi
 		if (e.inputType !== 'insertText') {
 			this._hintType = HINT_TYPES.NONE;
 		}
+	}
+
+	_handleInvalidChange() {
+		this.requestValidate(true);
 	}
 
 	_handleKeyPress(e) {

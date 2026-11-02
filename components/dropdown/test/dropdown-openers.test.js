@@ -2,8 +2,9 @@ import '../dropdown-button-subtle.js';
 import '../dropdown-button.js';
 import '../dropdown-context-menu.js';
 import '../dropdown-more.js';
-import { fixture, html, oneEvent } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, focusElem, hoverElem, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
+import { asyncDropdownTag } from './dropdown-fixtures.js';
+import { asyncStates } from '../../popover/popover-mixin.js';
 
 describe('d2l-dropdown-openers', () => {
 
@@ -52,6 +53,29 @@ describe('d2l-dropdown-openers', () => {
 			await oneEvent(elem, 'd2l-dropdown-opener-click');
 		});
 
+	});
+
+	describe('async', () => {
+		[
+			{ action: 'focus', openerType: 'button', cb: focusElem },
+			{ action: 'focus', openerType: 'dropdown-button', cb: focusElem },
+			{ action: 'hover', openerType: 'dropdown-button', cb: hoverElem }
+		].forEach(({ action, openerType, cb }) => {
+			it(`should start loading on "${action}" with opener type "${openerType}"`, async() => {
+				const elem = await fixture(`<${asyncDropdownTag} opener-type="${openerType}"></${asyncDropdownTag}>`);
+				const contentElem = elem.getContent();
+				expect(contentElem._asyncState).to.equal(asyncStates.unloaded);
+				await cb(elem.getOpener());
+				expect(contentElem._asyncState).to.equal(asyncStates.loading);
+			});
+		});
+
+	});
+
+	it('should not throw when hovering and content is missing', async() => {
+		const elem = await fixture(html`<d2l-dropdown><button class="d2l-dropdown-opener">Open</button></d2l-dropdown>`);
+		const opener = elem.querySelector('.d2l-dropdown-opener');
+		await hoverElem(opener);
 	});
 
 });

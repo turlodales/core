@@ -1,108 +1,103 @@
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { bodySmallStyles } from '../typography/styles.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { MeterMixin } from './meter-mixin.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
 
 /**
  * A horizontal progress bar.
  */
-class MeterLinear extends MeterMixin(RtlMixin(LitElement)) {
-	static get properties() {
-		return {
-			/**
-			 * Keeps the meter to a single line
-			 * @type {boolean}
-			 */
-			textInline: { type: Boolean, attribute: 'text-inline', reflect: true }
-		};
-	}
-	static get styles() {
-		return [bodySmallStyles, css`
-			:host {
-				display: block;
-				position: relative;
-			}
+class MeterLinear extends MeterMixin(LitElement) {
 
-			:host > div {
-				display: block;
-			}
+	static properties = {
+		/**
+		 * Keeps the meter to a single line
+		 * @type {boolean}
+		 */
+		textInline: { type: Boolean, attribute: 'text-inline', reflect: true },
+		/**
+		 * Force text to be aligned to the end of the meter
+		 * @type {boolean}
+		 */
+		textAlignEnd: { type: Boolean, attribute: 'text-align-end', reflect: true }
+	};
 
-			:host([text-inline]) > div {
-				align-items: center;
-				display: flex;
-				flex-direction: row;
-			}
+	static styles = [bodySmallStyles, css`
+		:host {
+			display: block;
+			position: relative;
+		}
 
-			:host([text-inline]) .d2l-meter-linear-full-bar {
-				margin-bottom: 0;
-				margin-left: 0;
-				margin-right: 0.45rem;
-			}
-			:host([dir="rtl"][text-inline]) .d2l-meter-linear-full-bar {
-				margin-left: 0.45rem;
-				margin-right: 0;
-			}
+		:host > div {
+			display: flex;
+			flex-direction: column;
+			gap: 0.45rem;
+		}
 
-			.d2l-meter-linear-full-bar,
-			.d2l-meter-linear-inner-bar {
-				border-radius: 0.225rem;
-				flex-grow: 1;
-				flex-shrink: 1;
-				height: 0.45rem;
-			}
+		:host([text-inline]) > div {
+			align-items: center;
+			flex-direction: row;
+		}
 
-			.d2l-meter-linear-full-bar {
-				background-color: var(--d2l-color-gypsum);
-				margin-bottom: 0.45rem;
-				position: relative;
-			}
+		.d2l-meter-linear-full-bar,
+		.d2l-meter-linear-inner-bar {
+			border-radius: 0.225rem;
+			flex-grow: 1;
+			flex-shrink: 1;
+			height: 0.45rem;
+		}
 
-			:host([foreground-light]) .d2l-meter-linear-full-bar {
-				background-color: rgba(255, 255, 255, 0.5);
-			}
+		.d2l-meter-linear-full-bar {
+			background-color: var(--d2l-color-gypsum);
+			position: relative;
+		}
 
-			.d2l-meter-linear-inner-bar {
-				background-color: var(--d2l-color-celestine);
-				left: 0;
-				max-width: 100%;
-				position: absolute;
-				top: 0;
-			}
-			:host([dir="rtl"]) .d2l-meter-linear-inner-bar {
-				right: 0;
-			}
-			:host([foreground-light]) .d2l-meter-linear-inner-bar {
-				background-color: white;
-			}
+		:host([foreground-light]) .d2l-meter-linear-full-bar {
+			background-color: rgba(255, 255, 255, 0.5);
+		}
 
-			.d2l-meter-linear-text {
-				color: var(--d2l-color-ferrite);
-				display: flex;
-				flex-direction: row;
-				line-height: 1em;
-			}
-			:host([foreground-light]) .d2l-meter-linear-text {
-				color: white;
-			}
+		.d2l-meter-linear-inner-bar {
+			background-color: var(--d2l-color-celestine);
+			inset-inline-start: 0;
+			max-width: 100%;
+			position: absolute;
+			top: 0;
+		}
+		:host([foreground-light]) .d2l-meter-linear-inner-bar {
+			background-color: white;
+		}
 
-			.d2l-meter-linear-text-space-between {
-				justify-content: space-between;
-			}
+		.d2l-meter-linear-text {
+			color: var(--d2l-color-ferrite);
+			display: flex;
+			flex-direction: row;
+			gap: 0.45rem;
+			line-height: 1em;
+			width: 100%;
+		}
+		:host([foreground-light]) .d2l-meter-linear-text {
+			color: white;
+		}
+		:host([text-inline]) .d2l-meter-linear-text {
+			width: auto;
+		}
 
-			.d2l-meter-linear-secondary {
-				align-self: flex-end;
-			}
+		.d2l-meter-linear-text-space-between {
+			justify-content: space-between;
+		}
 
-			:host([dir="rtl"]) .d2l-meter-linear-primary-ltr {
-				direction: ltr;
-			}
-		`];
-	}
+		.d2l-meter-linear-secondary {
+			align-self: flex-end;
+		}
+
+		.d2l-meter-linear-primary-ltr {
+			direction: ltr;
+		}
+	`];
 
 	constructor() {
 		super();
 		this.textInline = false;
+		this.textAlignEnd = false;
 	}
 
 	render() {
@@ -112,26 +107,30 @@ class MeterLinear extends MeterMixin(RtlMixin(LitElement)) {
 		}
 		const primary = this._primary(this.value, this.max);
 		const secondary = this._secondary(this.value, this.max, this.text);
-		const textClasses =  {
-			'd2l-meter-linear-text-space-between': !this.textInline && secondary !== this.text,
+		const primaryAria = this._primary(this.value, this.max, true);
+		const secondaryAria = this._secondary(this.value, this.max, this.text, true);
+		const textClasses = {
+			'd2l-meter-linear-text-space-between': !this.textInline && (secondary !== this.text || this.textAlignEnd),
 			'd2l-body-small': true,
 			'd2l-meter-linear-text': true
 		};
-		const primaryTextClasses =  {
+		const primaryTextClasses = {
 			'd2l-meter-linear-primary-ltr': !this.percent,
 			'd2l-meter-linear-primary': true
 		};
-		const secondaryTextElement = secondary ? html`<div class="d2l-meter-linear-secondary">${secondary}</div>` : html``;
+		const secondaryTextElement = secondary && !this.textHidden
+			? html`<div class="d2l-meter-linear-secondary">${secondary}</div>`
+			: nothing;
 
 		return html `
 			<div
 				role="img"
-				aria-label="${this._ariaLabel(primary, secondary)}">
+				aria-label="${this._ariaLabel(primaryAria, secondaryAria)}">
 				<div class="d2l-meter-linear-full-bar">
 					<div class="d2l-meter-linear-inner-bar" style="width:${percentage}%;"></div>
 				</div>
 				<div class=${classMap(textClasses)}>
-					<div class=${classMap(primaryTextClasses)}>${primary}&nbsp;</div>
+					<div class=${classMap(primaryTextClasses)}>${primary}</div>
 					${secondaryTextElement}
 				</div>
 			</div>

@@ -1,6 +1,7 @@
 import { css, unsafeCSS } from 'lit';
+import { svgToCSS } from './svg-to-css.js';
 
-const prismLocation = 'https://s.brightspace.com/lib/prismjs/1.28.0';
+const prismLocation = 'https://s.brightspace.com/lib/prismjs/1.30.0';
 //const prismLocation = '/node_modules/prismjs'; // for local debugging
 
 // If adding a language, check its Prism dependencies and modify languageDependencies below if necessary
@@ -40,7 +41,7 @@ const darkColors = Object.freeze({
 	lineNumbers: '#9ea5a9',
 	lineNumbersBackground: '#303133',
 	tokenDefault: '#cdd5dc',
-	tokenComment: '#81898d',
+	tokenComment: '#90989d',
 	tokenPunctuation: '#cdd5dc',
 	tokenNumber: '#cdd5dc',
 	tokenUrl: '#cdd5dc',
@@ -73,7 +74,7 @@ const lightColors = Object.freeze({
 	lineNumbers: '#6e7477',
 	lineNumbersBackground: '#f1f5fb',
 	tokenDefault: '#202122',
-	tokenComment: '#90989d',
+	tokenComment: '#6e7477',
 	tokenPunctuation: '#494c4e',
 	tokenNumber: '#494c4e',
 	tokenUrl: '#494c4e',
@@ -145,6 +146,11 @@ const generateColorVariables = (mode, theme) => {
 	`;
 };
 
+const transparentIcon = svgToCSS(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2">
+	<path fill="gray" d="M0 0h2v2H0z"/>
+	<path fill="white" d="M0 0h1v1H0zM1 1h1v1H1z"/>
+</svg>`);
+
 export const codeStyles = css`
 
 	${unsafeCSS(generateColorVariables(colorModes.LIGHT))}
@@ -153,7 +159,7 @@ export const codeStyles = css`
 	pre[class*="language-"].d2l-code,
 	pre[class*="language-"].d2l-code > code[class*="language-"],
 	code[class*="language-"].d2l-code {
-		font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+		font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
 		line-height: 1.5;
 		text-shadow: none;
 	}
@@ -165,10 +171,10 @@ export const codeStyles = css`
 		-moz-hyphens: none;
 		-ms-hyphens: none;
 		hyphens: none;
+		overflow-wrap: normal;
 		white-space: pre;
 		word-break: normal;
 		word-spacing: normal;
-		word-wrap: normal;
 	}
 
 	pre[class*="language-"].d2l-code {
@@ -189,7 +195,7 @@ export const codeStyles = css`
 	pre[class*="language-"].d2l-code::before {
 		color: var(--d2l-code-language);
 		content: attr(data-language);
-		font-family: 'Lato', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
+		font-family: "Lato", "Lucida Sans Unicode", "Lucida Grande", sans-serif;
 		margin: 0.1rem 0.4rem;
 		position: absolute;
 		right: 0;
@@ -301,7 +307,7 @@ export const codeStyles = css`
 		 *     <path fill="white" d="M0 0h1v1H0zM1 1h1v1H1z"/>
 		 * </svg>
 		 */
-		background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyIDIiPjxwYXRoIGZpbGw9ImdyYXkiIGQ9Ik0wIDBoMnYySDB6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0wIDBoMXYxSDB6TTEgMWgxdjFIMXoiLz48L3N2Zz4=");
+		background: ${transparentIcon};
 		/* Prevent visual glitches where one pixel from the repeating pattern could be seen */
 		background-position: center;
 		background-size: 110%;
@@ -324,27 +330,32 @@ export const codeStyles = css`
 	}
 `;
 
-const getLanguageInfo = elem => {
+const languageAliases = {
+	shell: 'bash'
+};
+
+const getLanguageInfo = (elem, allowAllLanguages) => {
 	const classes = elem.classList;
 	for (let i = 0; i < classes.length; i++) {
 		if (classes[i].startsWith('language-')) {
 			const key = classes[i].substring(9);
 			const desc = codeLanguages.get(key);
-			if (desc) return { key: key, desc: desc };
+			if (desc || allowAllLanguages) return { key: languageAliases[key] || key, desc: desc };
 		}
 	}
 	return { key: 'plain', desc: codeLanguages.get('plain') };
 };
 
 const languageDependencies = {
-	arduino: [ 'cpp' ],
-	cpp: [ 'c' ],
-	racket: [ 'scheme' ]
+	arduino: ['cpp'],
+	cpp: ['c'],
+	racket: ['scheme']
 };
 
 const languagesLoaded = {
 	clike: Promise.resolve(),
 	css: Promise.resolve(),
+	html: Promise.resolve(),
 	javascript: Promise.resolve(),
 	markup: Promise.resolve(),
 	plain: Promise.resolve()
@@ -358,7 +369,7 @@ const loadLanguage = async key => {
 	// eslint-disable-next-line no-async-promise-executor
 	languagesLoaded[key] = new Promise(async resolve => {
 		if (languageDependencies[key]) {
-			await Promise.all(languageDependencies[key].map(dependencyKey => loadLanguage(dependencyKey)));
+			await Promise.all(languageDependencies[key].map(dependencyKey => loadLanguage(dependencyKey, location)));
 		}
 
 		const script = document.createElement('script');
@@ -395,7 +406,7 @@ const loadLanguageAddons = async key => {
 	if (!languageAddons[key]) return;
 	return Promise.all(languageAddons[key].map(addon => {
 		if (addon.type === 'lang') return loadLanguage(addon.key);
-		else return loadPlugin(addon.key);
+		else return loadPlugin(addon.key, location);
 	}));
 };
 
@@ -436,12 +447,13 @@ const getCodeElement = elem => {
 	return elem.querySelector('code');
 };
 
-export async function formatCodeElement(elem) {
+// allowAllLanguages is intended only for development consumers.
+export async function formatCodeElement(elem, { allowAllLanguages = false } = {}) {
 	const code = getCodeElement(elem);
 
 	if (code.className.indexOf('language-') === -1) return;
 
-	const languageInfo = getLanguageInfo(code);
+	const languageInfo = getLanguageInfo(code, allowAllLanguages);
 	const lineNumbers = elem.classList.contains('line-numbers') || code.classList.contains('line-numbers');
 
 	await loadPrism(); // must be loaded before loading plugins or languages
@@ -451,7 +463,7 @@ export async function formatCodeElement(elem) {
 		lineNumbers ? loadPlugin('line-numbers') : null
 	]);
 
-	if (!elem.dataset.language && languageInfo.key !== 'plain') elem.dataset.language = languageInfo.desc;
+	if (!elem.dataset.language && languageInfo.desc && languageInfo.key !== 'plain') elem.dataset.language = languageInfo.desc;
 	Prism.highlightElement(code);
 }
 

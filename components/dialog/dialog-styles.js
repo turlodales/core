@@ -1,5 +1,6 @@
 import '../colors/colors.js';
 import { css } from 'lit';
+import { getFocusRingStyles } from '../../helpers/focus.js';
 
 export const dialogStyles = css`
 
@@ -22,32 +23,36 @@ export const dialogStyles = css`
 
 	.d2l-dialog-outer {
 		animation: d2l-dialog-close 200ms ease-in;
-		background-color: white;
-		border: 1px solid var(--d2l-color-mica);
+		background-color: var(--d2l-theme-background-color-base);
+		border: 1px solid var(--d2l-theme-border-color-standard);
 		border-radius: 8px;
-		box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-		box-sizing: content-box;
+		box-shadow: var(--d2l-theme-shadow-floating);
+		box-sizing: border-box;
 		position: fixed; /* also required for native to override position: absolute */
-		top: 100px;
+		top: 75px;
 	}
 
 	:host([_state="showing"]) > .d2l-dialog-outer {
 		/* must target direct child to avoid ancestor from interfering with closing child dialogs in Legacy-Edge */
-		animation: d2l-dialog-open 200ms ease-in;
+		animation: d2l-dialog-open 200ms ease-out;
 	}
 
 	@keyframes d2l-dialog-close {
-		0% { transform: translateY(0); }
-		100% { transform: translateY(-50px); }
+		0% { opacity: 1; transform: translateY(0); }
+		100% { opacity: 0; transform: translateY(-50px); }
 	}
 
 	@keyframes d2l-dialog-open {
-		0% { transform: translateY(-50px); }
-		100% { transform: translateY(0); }
+		0% { opacity: 0; transform: translateY(-50px); }
+		100% { opacity: 1; transform: translateY(0); }
+	}
+
+	.d2l-dialog-outer.d2l-dialog-outer-full-height {
+		bottom: 1.5rem;
+		top: 1.5rem;
 	}
 
 	.d2l-dialog-outer.d2l-dialog-outer-nested-showing {
-		border-color: rgba(205, 213, 220, 0.35);
 		box-shadow: none;
 	}
 
@@ -60,21 +65,27 @@ export const dialogStyles = css`
 	}
 
 	dialog.d2l-dialog-outer {
-		color: var(--d2l-color-ferrite);
+		color: var(--d2l-theme-text-color-static-standard);
 		margin-bottom: 0; /* required to override Chrome native positioning */
 		margin-top: 0; /* required to override Chrome native positioning */
+		overflow: hidden; /* override UA dialog:modal overflow: auto which causes an unexpected scrollbar from sub-pixel rounding */
 		padding: 0;
 	}
 
+	dialog.d2l-dialog-outer.d2l-dialog-outer-full-height {
+		height: auto; /* override UA dialog height: fix-content */
+	}
+
 	dialog::backdrop {
-		/* cannot use variables inside of ::backdrop : https://github.com/whatwg/fullscreen/issues/124 */
-		background-color: #f9fbff;
+		/* fallback is for old browsers (see https://caniuse.com/mdn-css_selectors_backdrop_inherit_from_originating_element) */
+		background-color: var(--d2l-theme-backdrop-background-color, #f9fbff);
 		opacity: 0;
 		transition: opacity 200ms ease-in;
 	}
 
 	:host([_state="showing"]) dialog::backdrop {
-		opacity: 0.7;
+		opacity: var(--d2l-theme-backdrop-opacity);
+		transition-timing-function: ease-out;
 	}
 
 	d2l-focus-trap {
@@ -88,10 +99,21 @@ export const dialogStyles = css`
 		height: 100%;
 	}
 
+	:host([critical]) .d2l-dialog-header {
+		border-block-start: 0.4rem solid var(--d2l-theme-status-color-error);
+		border-start-end-radius: 0.4rem;
+		border-start-start-radius: 0.4rem;
+		margin-block: -1px 0;
+		margin-inline: -1px;
+		padding: 1rem 31px 23px 31px;
+	}
+
 	.d2l-dialog-header {
 		box-sizing: border-box;
 		flex: none;
 		padding: 19px 30px 23px 30px;
+		position: relative; /* stack header overflow shadow on top of content */
+		z-index: 1; /* stack header overflow shadow on top of content */
 	}
 
 	.d2l-dialog-outer.d2l-dialog-outer-overflow-top .d2l-dialog-header {
@@ -108,20 +130,31 @@ export const dialogStyles = css`
 	}
 
 	.d2l-dialog-content {
+		--d2l-list-controls-padding: 30px;
 		box-sizing: border-box;
 		flex: 1 0 0;
 		overflow: hidden; /* scrollbar is kept hidden while we update the scroll position to avoid scrollbar flash */
 		padding: 0 30px;
 	}
+	${getFocusRingStyles('.d2l-dialog-content', { extraStyles: css`--d2l-focus-ring-offset: -2px; border-radius: 6px;` })}
+	.d2l-dialog-content > div {
+		position: relative; /* make this the positioned parent for absolute positioned elements like d2l-template-primary-secondary */
+	}
 
-	.d2l-dialog-outer-scroll .d2l-dialog-content {
+	:host([full-height]) .d2l-dialog-content > div {
+		box-sizing: border-box;
+		height: 100%;
+	}
+
+	:host(:not([no-content-scroll])) .d2l-dialog-outer-scroll .d2l-dialog-content {
 		overflow: auto;
 	}
 
 	.d2l-dialog-footer {
 		box-sizing: border-box;
 		flex: none;
-		padding: 30px 30px 12px 30px; /* 18px margin below footer children */
+		padding: 18px 30px 0 30px; /* 18px margin below footer children */
+		position: relative; /* stack footer overflow shadow on top of content */
 	}
 
 	.d2l-dialog-outer.d2l-dialog-outer-overflow-bottom .d2l-dialog-footer {
@@ -129,13 +162,8 @@ export const dialogStyles = css`
 	}
 
 	.d2l-dialog-footer ::slotted(*) {
-		margin-bottom: 18px;
-		margin-right: 18px;
-	}
-
-	:host([dir="rtl"]) .d2l-dialog-footer ::slotted(*) {
-		margin-left: 18px;
-		margin-right: 0;
+		margin-block-end: 18px;
+		margin-inline-end: 18px;
 	}
 
 	dialog.d2l-dialog-outer.d2l-dialog-fullscreen-within,
@@ -151,32 +179,32 @@ export const dialogStyles = css`
 	}
 
 	@media (max-width: 615px), (max-height: 420px) and (max-width: 900px) {
+
 		.d2l-dialog-header {
 			padding: 14px 20px 16px 20px;
 		}
 		.d2l-dialog-fullscreen-mobile .d2l-dialog-header > div > d2l-button-icon {
-			margin: -8px -13px 0 15px;
-		}
-		:host([dir="rtl"]) .d2l-dialog-fullscreen-mobile .d2l-dialog-header > div > d2l-button-icon {
-			margin-left: -13px;
-			margin-right: 15px;
+			margin-block: -8px 0;
+			margin-inline: 15px -13px;
 		}
 		.d2l-dialog-content {
+			--d2l-list-controls-padding: 20px;
 			padding: 0 20px;
 		}
 		.d2l-dialog-footer {
-			padding: 20px 20px 2px 20px;
+			padding: 18px 20px 0 20px;
 		}
 		.d2l-dialog-outer.d2l-dialog-fullscreen-mobile {
 			margin: 0 !important;
 			min-width: calc(var(--d2l-vw, 1vw) * 100);
-			top: 42px;
+			top: 5%;
 		}
 		:host(:not([in-iframe])) dialog.d2l-dialog-outer.d2l-dialog-fullscreen-mobile,
 		:host(:not([in-iframe])) div.d2l-dialog-outer.d2l-dialog-fullscreen-mobile {
-			height: calc(var(--d2l-vh, 1vh) * 100 - 42px);
-			min-height: calc(var(--d2l-vh, 1vh) * 100 - 42px);
+			height: calc(var(--d2l-vh, 1vh) * 95);
+			min-height: calc(var(--d2l-vh, 1vh) * 95);
 		}
+
 	}
 
 	@media (prefers-reduced-motion: reduce) {

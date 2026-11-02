@@ -1,6 +1,6 @@
 import '../button/button-icon.js';
 import { css, html, LitElement } from 'lit';
-import { VisibleOnAncestorMixin, visibleOnAncestorStyles } from '../../mixins/visible-on-ancestor-mixin.js';
+import { VisibleOnAncestorMixin, visibleOnAncestorStyles } from '../../mixins/visible-on-ancestor/visible-on-ancestor-mixin.js';
 import { DropdownOpenerMixin } from './dropdown-opener-mixin.js';
 import { dropdownOpenerStyles } from './dropdown-opener-styles.js';
 
@@ -10,33 +10,30 @@ import { dropdownOpenerStyles } from './dropdown-opener-styles.js';
  */
 class DropdownMore extends DropdownOpenerMixin(VisibleOnAncestorMixin(LitElement)) {
 
-	static get properties() {
-		return {
-			/**
-			 * REQUIRED: Label for the more button
-			 * @type {string}
-			 */
-			text: {
-				type: String
-			},
+	static properties = {
+		/**
+		 * REQUIRED: Label for the more button
+		 * @type {string}
+		 */
+		text: {
+			type: String
+		},
 
-			/**
-			 * Attribute for busy/rich backgrounds
-			 * @type {boolean}
-			 */
-			translucent: {
-				type: Boolean
-			},
-		};
-	}
+		/**
+		 * Attribute for busy/rich backgrounds
+		 * @type {boolean}
+		 */
+		translucent: {
+			type: Boolean
+		},
+	};
 
-	static get styles() {
-		return [dropdownOpenerStyles, visibleOnAncestorStyles, css`
-			:host {
-				display: inline-block;
-			}
-		`];
-	}
+	static styles = [dropdownOpenerStyles, visibleOnAncestorStyles, css`
+		:host {
+			display: inline-block;
+		}
+	`];
+
 	constructor() {
 		super();
 		this.translucent = false;

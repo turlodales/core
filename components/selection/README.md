@@ -12,20 +12,18 @@ The `SelectionMixin` enables the creation of custom selection control components
 
 The `SelectionMixin` defines the `selection-single` attribute that consumers can specify for single selection behaviour.
 
-<!-- docs: demo live name:d2l-demo-selection display:block -->
+<!-- docs: demo code properties name:d2l-demo-selection sandboxTitle:'Selection Mixin' display:block -->
 ```html
 <script type="module">
   import { css, html, LitElement } from 'lit';
   import { SelectionMixin } from '@brightspace-ui/core/components/selection/selection-mixin.js';
 
   class DemoSelection extends SelectionMixin(LitElement) {
-    static get styles() {
-      return css`
-        :host {
-          display: block;
-        }
-      `;
-    }
+    static styles = css`
+      :host {
+        display: block;
+      }
+    `;
     render() {
       return html`
         <slot></slot>
@@ -36,6 +34,7 @@ The `SelectionMixin` defines the `selection-single` attribute that consumers can
 </script>
 <script type="module">
   import '@brightspace-ui/core/components/selection/selection-action.js';
+  import '@brightspace-ui/core/components/selection/selection-controls.js';
   import '@brightspace-ui/core/components/selection/selection-input.js';
   import '@brightspace-ui/core/components/selection/selection-select-all.js';
   import '@brightspace-ui/core/components/selection/selection-summary.js';
@@ -50,8 +49,6 @@ The `SelectionMixin` defines the `selection-single` attribute that consumers can
   }
   li {
     list-style-type: none;
-  }
-  li, .d2l-selection-header, .d2l-selection-header-wrapper {
     align-items: center;
     display: flex;
   }
@@ -62,26 +59,13 @@ The `SelectionMixin` defines the `selection-single` attribute that consumers can
     margin-left: 10px;
     margin-right: 0;
   }
-  .d2l-selection-header-wrapper {
-    flex-wrap: wrap;
-  }
-  .d2l-selection-header {
-    flex: auto;
-  }
-  d2l-selection-summary {
-    flex: none;
-  }
 </style>
 <!-- docs: end hidden content -->
 <d2l-demo-selection>
-  <div class="d2l-selection-header-wrapper">
-    <div class="d2l-selection-header">
-      <d2l-selection-select-all></d2l-selection-select-all>
-      <d2l-selection-action text="Bookmark" icon="tier1:bookmark-hollow" requires-selection></d2l-selection-action>
-      <d2l-selection-action text="Settings" icon="tier1:gear"></d2l-selection-action>
-    </div>
-    <d2l-selection-summary></d2l-selection-summary>
-  </div>
+  <d2l-selection-controls no-sticky>
+    <d2l-selection-action text="Bookmark" icon="tier1:bookmark-hollow" requires-selection></d2l-selection-action>
+    <d2l-selection-action text="Settings" icon="tier1:gear"></d2l-selection-action>
+  </d2l-selection-controls>
   <ul>
     <li><d2l-selection-input key="geo" label="Geography" selected></d2l-selection-input>Geography</li>
     <li><d2l-selection-input key="sci" label="Science"></d2l-selection-input>Science</li>
@@ -121,7 +105,7 @@ Define a custom web component that extends the `SelectionMixin`. The selection c
 
 The `d2l-selection-action` is an optional component that provides a button for actions associated with the [selection control](#selectionmixin) (ex. bulk actions). The `requires-selection` attribute may be specified to indicate that the button should be non-interactive if nothing is selected.
 
-<!-- docs: demo live name:d2l-selection-action -->
+<!-- docs: demo code properties name:d2l-selection-action sandboxTitle:'Selection Action' -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/selection/selection-action.js';
@@ -150,7 +134,7 @@ The `d2l-selection-action` is an optional component that provides a button for a
 
 The `d2l-selection-action-dropdown` is an optional component that provides a button opener for dropdown content associated with the [selection control](#selectionmixin) (ex. bulk actions). The `requires-selection` attribute may be specified to indicate that the opener should be non-interactive if nothing is selected.
 
-<!-- docs: demo live name:d2l-selection-action-dropdown align:baseline -->
+<!-- docs: demo code properties name:d2l-selection-action-dropdown sandboxTitle:'Selection Action Dropdown' align:baseline -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-menu.js';
@@ -180,7 +164,7 @@ The `d2l-selection-action-dropdown` is an optional component that provides a but
 
 The `d2l-selection-action-menu-item` is an optional component that is a menu item for actions associated with the [selection control](#selectionmixin) (ex. bulk actions). The `requires-selection` attribute may be specified to indicate that the menu item should be non-interactive if nothing is selected. This component enables the app to define an opener that is enabled regardless of the selection state, while having a menu containing one or more menu items that `requires-selection`.
 
-<!-- docs: demo live name:d2l-selection-action-menu-item autoSize:false size:medium align:baseline -->
+<!-- docs: demo code properties name:d2l-selection-action-menu-item sandboxTitle:'Selection Action Menu Item' autoSize:false size:medium align:baseline -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-button-subtle.js';
@@ -189,12 +173,12 @@ The `d2l-selection-action-menu-item` is an optional component that is a menu ite
   import '@brightspace-ui/core/components/selection/selection-action-menu-item.js';
 </script>
 <d2l-dropdown-button-subtle text="Actions">
-	<d2l-dropdown-menu>
-		<d2l-menu label="Actions">
-			<d2l-selection-action-menu-item text="Action 1" requires-selection></d2l-selection-action-menu-item>
-			<d2l-selection-action-menu-item text="Action 2"></d2l-selection-action-menu-item>
-		</d2l-menu>
-	</d2l-dropdown-menu>
+  <d2l-dropdown-menu>
+    <d2l-menu label="Actions">
+      <d2l-selection-action-menu-item text="Action 1" requires-selection></d2l-selection-action-menu-item>
+      <d2l-selection-action-menu-item text="Action 2"></d2l-selection-action-menu-item>
+    </d2l-menu>
+  </d2l-dropdown-menu>
 </d2l-dropdown-button-subtle>
 ```
 
@@ -222,7 +206,7 @@ If `d2l-selection-input` is placed within a selection control that specifies `se
 
 Note: `d2l-list-item` already provides a selection input for selectable list items.
 
-<!-- docs: demo live name:d2l-selection-input display:block -->
+<!-- docs: demo code properties name:d2l-selection-input sandboxTitle:'Selection Input' display:block -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/selection/selection-input.js';
@@ -260,6 +244,8 @@ Note: `d2l-list-item` already provides a selection input for selectable list ite
 | `key` | String, required | Key to identify the selectable. |
 | `label` | String | Accessible hidden label for the input. |
 | `labelled-by` | String | Id reference to the accessible label for the input. **Note:** if specified, it must reference an element in the same DOM context. |
+| `disabled` | Boolean | Disables the input element(checkbox/radio btn). |
+| `disabled-tooltip` | String | Tooltip text when disabled. |
 | `selected` | Boolean | State of the input. |
 
 ### Events
@@ -279,7 +265,7 @@ The `d2l-selection-select-all` is an optional component that provides a checkbox
 
 The `d2l-selection-select-all` component may be placed inside the selection control, or in the same DOM scope with the `selection-for` attribute set to the id of that component. In the example below, setting `selection-for` to `other-list` demonstrates the ability to use `d2l-selection-select-all` from outside of the selection control component.
 
-<!-- docs: demo live name:d2l-selection-select-all display:block -->
+<!-- docs: demo code properties name:d2l-selection-select-all sandboxTitle:'Selection Select All' display:block -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/selection/selection-action.js';
@@ -322,7 +308,7 @@ The `d2l-selection-select-all` component may be placed inside the selection cont
       margin-right: 15px;
     }
     #other-list {
-      margin-left: 0;   
+      margin-left: 0;
     }
   }
 </style>
@@ -364,9 +350,10 @@ The `d2l-selection-summary` is an optional component that shows a simple count o
 
 The `d2l-selection-summary` component may be placed inside the selection control, or in the same DOM scope with the `selection-for` attribute set to the id of that component. In the example below, setting `selection-for` to `other-list` demonstrates the ability to use `d2l-selection-summary` from outside of the selection control component.
 
-<!-- docs: demo live name:d2l-selection-summary display:block -->
+<!-- docs: demo code properties name:d2l-selection-summary sandboxTitle:'Selection Summary' display:block -->
 ```html
 <script type="module">
+  import '@brightspace-ui/core/components/selection/selection-action.js';
   import '@brightspace-ui/core/components/selection/selection-input.js';
   import '@brightspace-ui/core/components/selection/selection-summary.js';
   import '@brightspace-ui/core/components/selection/demo/demo-selection.js';
@@ -440,4 +427,65 @@ The `d2l-selection-summary` component may be placed inside the selection control
 |---|---|---|
 | `no-selection-text` | String | Text to display if no items are selected. By default, the "0 selected" message is displayed. |
 | `selection-for` | String | Id of the corresponding `SelectionMixin` component, if not placed within it. |
+<!-- docs: end hidden content -->
+
+## Selection Controls [d2l-selection-controls]
+
+The `d2l-selection-controls` provides a standardized wrapper to display selection information and actions. It includes a select-all checkbox, summary, a slot for `d2l-selection-action`s, and overflow-group behaviour.
+
+When using lists, use the list-specific `d2l-list-controls` instead, which extends this component's behaviour.
+
+<!-- docs: demo code properties name:d2l-selection-controls sandboxTitle:'Selection Controls' display:block autoSize:false size:small -->
+```html
+<script type="module">
+  import '@brightspace-ui/core/components/selection/selection-action.js';
+  import '@brightspace-ui/core/components/selection/selection-controls.js';
+  import '@brightspace-ui/core/components/selection/selection-input.js';
+  import '@brightspace-ui/core/components/selection/demo/demo-selection.js';
+</script>
+<!-- docs: start hidden content -->
+<style>
+  #demo-element {
+    margin-bottom: 250px;
+    margin-top: 0;
+  }
+  ul {
+    padding: 0;
+  }
+  li {
+    list-style-type: none;
+    align-items: center;
+    display: flex;
+  }
+  d2l-selection-input {
+    margin-right: 10px;
+  }
+  [dir="rtl"] d2l-selection-input {
+    margin-left: 10px;
+    margin-right: 0;
+  }
+</style>
+<!-- docs: end hidden content -->
+<d2l-demo-selection>
+  <d2l-selection-controls>
+    <d2l-selection-action text="Bookmark" icon="tier1:bookmark-hollow" requires-selection></d2l-selection-action>
+    <d2l-selection-action text="Settings" icon="tier1:gear"></d2l-selection-action>
+  </d2l-selection-controls>
+  <ul>
+    <li><d2l-selection-input key="geo" label="Geography" selected></d2l-selection-input>Geography</li>
+    <li><d2l-selection-input key="sci" label="Science"></d2l-selection-input>Science</li>
+    <li><d2l-selection-input key="mth" label="Math"></d2l-selection-input>Math</li>
+  </ul>
+</d2l-demo-selection>
+```
+
+<!-- docs: start hidden content -->
+### Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `no-selection` | Boolean | Whether to render select-all and selection summary |
+| `no-selection-text` | String | Text to display if no items are selected (overrides pageable counts) |
+| `no-sticky` | Boolean | Disables sticky positioning for the controls |
+| `select-all-pages-allowed` | Boolean | Whether all pages can be selected |
 <!-- docs: end hidden content -->

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta charset="UTF-8">
+		<link rel="stylesheet" href="../../demo/styles.css" type="text/css">
+		<script type="module">
+			import '../../demo/demo-page.js';
+
+			import '../progress.js';
+		</script>
+	</head>
+	<body unresolved>
+		<d2l-demo-page page-title="d2l-progress">
+
+			<h2>Basic</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-progress label="Progress" value="1" max="3"></d2l-progress>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Sizes</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-progress size="small" label="Small" value="8" max="10"></d2l-progress>
+					<d2l-progress size="medium" label="Medium(default)" value="8" max="10"></d2l-progress>
+					<d2l-progress size="large" label="Large" value="8" max="10"></d2l-progress>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Complete</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-progress label="Progress" value="10" max="10"></d2l-progress>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Label Hidden</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-progress label="Progress" label-hidden value="50"></d2l-progress>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Value Hidden</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-progress label="Progress" value-hidden value="50"></d2l-progress>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Both Hidden</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-progress label="Progress" value-hidden label-hidden value="50"></d2l-progress>
+				</template>
+			</d2l-demo-snippet>
+
+
+			<h2>Animation</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<button id="start">Start Animation</button><button id="reset">Reset</button>
+					<d2l-progress label="Waiting..." announce-label></d2l-progress>
+					<script data-demo-hide>
+						(demo => {
+							const startButton = demo.querySelector('#start');
+							const resetButton = demo.querySelector('#reset');
+							const progress = demo.querySelector('d2l-progress');
+							let to = null;
+							startButton.addEventListener('click', () => {
+								let i = 0;
+								const step = () => {
+									console.log(i);
+
+									if (i === 4) progress.label = 'Complete';
+									else if (i >= 2) progress.label = 'Validating...';
+									else progress.label = 'Uploading...';
+									progress.value = i * 25;
+									i++;
+									if (i < 5) to = setTimeout(step, 1000);
+								};
+								step();
+							});
+							resetButton.addEventListener('click', () => {
+								clearTimeout(to);
+								progress.value = undefined;
+								progress.label = 'Waiting...';
+							});
+						})(document.currentScript.parentNode);
+					</script>
+				</template>
+			</d2l-demo-snippet>
+		</d2l-demo-page>
+	</body>
+</html>

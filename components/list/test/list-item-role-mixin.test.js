@@ -1,5 +1,5 @@
 import '../list.js';
-import { defineCE, expect, fixture } from '@open-wc/testing';
+import { defineCE, expect, fixture } from '@brightspace-ui/testing';
 import { ListItemRoleMixin } from '../list-item-role-mixin.js';
 import { LitElement } from 'lit';
 
@@ -16,7 +16,7 @@ describe('ListItemRoleMixin', () => {
 
 	it('changes role to rowgroup when list parent has grid enabled', async() => {
 		const el = await fixture(`<d2l-list grid><${tag}></${tag}></d2l-list>`);
-		expect(el.querySelector(tag).role).to.equal('rowgroup');
+		expect(el.querySelector(tag).role).to.equal('row');
 	});
 
 	it('changes role to listitem when list parent has grid disabled', async() => {

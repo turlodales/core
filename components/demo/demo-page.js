@@ -1,11 +1,14 @@
+import './demo-page-settings.js';
 import './demo-snippet.js';
 import './code-view.js';
 import '../colors/colors.js';
 import '../typography/typography.js';
 import { css, html, LitElement } from 'lit';
-import { heading2Styles } from '../typography/styles.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 document.body.classList.add('d2l-typography');
+
+window.isD2LDemoPage = true;
 
 (async() => {
 	const fontsPromise = document.fonts ? document.fonts.ready : Promise.resolve();
@@ -18,35 +21,40 @@ document.body.classList.add('d2l-typography');
 
 class DemoPage extends LitElement {
 
-	static get properties() {
-		return {
-			pageTitle: { type: String, attribute: 'page-title' }
-		};
-	}
+	static properties = {
+		pageTitle: { type: String, attribute: 'page-title' },
+		_noScroll: { state: true }
+	};
 
-	static get styles() {
-		return [ heading2Styles, css`
-			:host {
-				background-color: var(--d2l-color-sylvite);
-				display: block;
-				padding: 30px;
-			}
-			.d2l-heading-2 {
-				margin-top: 0;
-			}
-			.d2l-demo-page-content > ::slotted(h2),
-			.d2l-demo-page-content > ::slotted(h3) {
-				font-size: 0.8rem;
-				font-weight: 700;
-				line-height: 1.2rem;
-				margin: 1.5rem 0 1.5rem 0;
-			}
-			.d2l-demo-page-content > ::slotted(d2l-code-view),
-			.d2l-demo-page-content > ::slotted(d2l-demo-snippet) {
-				margin-bottom: 36px;
-			}
-		`];
-	}
+	static styles = [css`
+		:host {
+			background-color: var(--d2l-theme-background-color-sunken);
+			display: block;
+			padding: 30px;
+		}
+		main.no-scroll {
+			height: 0;
+			overflow: hidden;
+			padding: 0;
+		}
+		header {
+			margin-bottom: 1.5rem;
+			max-width: 900px;
+		}
+		.d2l-demo-page-content > ::slotted(h2),
+		.d2l-demo-page-content > ::slotted(h3) {
+			color: var(--d2l-theme-text-color-static-standard);
+			font-size: 0.8rem;
+			font-weight: 700;
+			line-height: 1.2rem;
+			margin: 1.5rem 0 1.5rem 0;
+		}
+
+		.d2l-demo-page-content > ::slotted(d2l-code-view),
+		.d2l-demo-page-content > ::slotted(d2l-demo-snippet) {
+			margin-bottom: 36px;
+		}
+	`];
 
 	connectedCallback() {
 		super.connectedCallback();
@@ -56,12 +64,30 @@ class DemoPage extends LitElement {
 	}
 
 	render() {
+		const classes = {
+			'no-scroll': this._noScroll
+		};
+
 		return html`
-			<main>
-				<h1 class="d2l-heading-2">${this.pageTitle}</h1>
-				<div class="d2l-demo-page-content"><slot></slot></div>
+			<header>
+				<d2l-demo-page-settings panel-title="${this.pageTitle}"></d2l-demo-page-settings>
+			</header>
+			<main class="${classMap(classes)}">
+				<div class="d2l-demo-page-content" @d2l-demo-snippet-fullscreen-toggle="${this.#handleFullscreenToggle}"><slot></slot></div>
 			</main>
 		`;
+	}
+
+	async #handleFullscreenToggle() {
+		if (this._noScroll) {
+			this._noScroll = false;
+			await this.updateComplete;
+			document.documentElement.scrollTop = this._previousScrollTop;
+		}
+		else {
+			this._previousScrollTop = document.documentElement.scrollTop;
+			this._noScroll = true;
+		}
 	}
 
 }

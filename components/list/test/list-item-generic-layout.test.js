@@ -2,9 +2,8 @@ import '../list.js';
 import '../list-item.js';
 import '../../button/button-icon.js';
 
-import { aTimeout, expect, fixture, html, oneEvent } from '@open-wc/testing';
+import { aTimeout, expect, fixture, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
 import { getComposedActiveElement } from '../../../helpers/focus.js';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
 import sinon from 'sinon';
 
 const normalFixture = html`
@@ -44,57 +43,61 @@ const nonGridFixture = html`
 const longFixture = html`
 	<d2l-list grid>
 		<d2l-list-item label="Test Label" selectable href="http://d2l.com" key="item1">
-			<div class="d2l-list-item-text d2l-body-compact">Identify categories of physical activities</div>
-			<div class="d2l-list-item-text-secondary d2l-body-small">Specific Expectation A1.2</div>
+			<div>Some content</div>
 			<div slot="actions">
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable1" text="My Button" icon="tier1:more"></d2l-button-icon>
 			</div>
 		</d2l-list-item>
 		<d2l-list-item label="Test Label" selectable href="http://d2l.com" key="item2">
-			<div class="d2l-list-item-text d2l-body-compact">Apply a decision-making process to assess risks and make safe decisions in a variety of situations</div>
-			<div class="d2l-list-item-text-secondary d2l-body-small">Specific Expectation B2.1</div>
+			<div>Some content</div>
 			<div slot="actions">
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable1" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable2" text="My Button" icon="tier1:more"></d2l-button-icon>
 			</div>
 		</d2l-list-item>
 		<d2l-list-item label="Test Label" selectable href="http://d2l.com" key="item3">
-			<div class="d2l-list-item-text d2l-body-compact">Retain objects of various shapes and sizes in different ways, while moving around others and equipment</div>
-			<div class="d2l-list-item-text-secondary d2l-body-small">Specific Expectation B2.2</div>
+			<div>Some content</div>
 			<div slot="actions">
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable1" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable2" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<div>
+					<d2l-button-icon id="focusable3" text="My Button" icon="tier1:more"></d2l-button-icon>
+					<d2l-button-icon id="focusable4" text="My Button" icon="tier1:more"></d2l-button-icon>
+					</div>
+				<d2l-button-icon id="focusable5" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable6" text="My Button" icon="tier1:more"></d2l-button-icon>
 			</div>
 		</d2l-list-item>
 		<d2l-list-item label="Test Label" selectable key="item4">
-			<div class="d2l-list-item-text d2l-body-compact">Identify categories of physical activities</div>
-			<div class="d2l-list-item-text-secondary d2l-body-small">Specific Expectation A1.2</div>
+			<div>Some content</div>
 			<div slot="actions">
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
-				<d2l-button-icon text="My Button" icon="tier1:preview"></d2l-button-icon>
-				<d2l-button-icon text="My Button" icon="tier1:preview"></d2l-button-icon>
-				<d2l-button-icon text="My Button" icon="tier1:preview"></d2l-button-icon>
+				<d2l-button-icon id="focusable1" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable2" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<div>
+					<d2l-button-icon id="focusable3" text="My Button" icon="tier1:more"></d2l-button-icon>
+					<d2l-button-icon id="focusable4" text="My Button" icon="tier1:more"></d2l-button-icon>
+				</div>
+				<d2l-button-icon id="focusable5" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable6" text="My Button" icon="tier1:more"></d2l-button-icon>
 			</div>
 		</d2l-list-item>
 		<d2l-list-item label="Test Label" selectable href="http://d2l.com" key="item5">
-			<div class="d2l-list-item-text d2l-body-compact">Apply a decision-making process to assess risks and make safe decisions in a variety of situations</div>
-			<div class="d2l-list-item-text-secondary d2l-body-small">Specific Expectation B2.1</div>
+			<div>Some content</div>
 			<div slot="actions">
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable1" text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable2" text="My Button" icon="tier1:more"></d2l-button-icon>
 			</div>
 		</d2l-list-item>
 		<d2l-list-item label="Test Label" selectable key="item6">
-			<div class="d2l-list-item-text d2l-body-compact">Retain objects of various shapes and sizes in different ways, while moving around others and equipment</div>
-			<div class="d2l-list-item-text-secondary d2l-body-small">Specific Expectation B2.2</div>
+			<div>Some content</div>
 			<div slot="actions">
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable1" text="My Button" icon="tier1:more"></d2l-button-icon>
 			</div>
 		</d2l-list-item>
 		<d2l-list-item label="Test Label" selectable key="item7">
-			<div class="d2l-list-item-text d2l-body-compact">Retain objects of various shapes and sizes in different ways, while moving around others and equipment</div>
-			<div class="d2l-list-item-text-secondary d2l-body-small">Specific Expectation B2.2</div>
+			<div>Some content</div>
 			<div slot="actions">
-				<d2l-button-icon text="My Button" icon="tier1:more"></d2l-button-icon>
+				<d2l-button-icon id="focusable1" text="My Button" icon="tier1:more"></d2l-button-icon>
 			</div>
 		</d2l-list-item>
 	</d2l-list>
@@ -135,9 +138,6 @@ describe('d2l-list-item-generic-layout', () => {
 	describe('grid enabling', () => {
 		it('enables grid on list-item-generic-layout elements', async() => {
 			const el = await fixture(normalFixture);
-			await el.updateComplete;
-			const items = el.getItems();
-			await Promise.all(items.map(item => item.updateComplete));
 			el.getItems().forEach(item => {
 				expect(item.shadowRoot.querySelector('d2l-list-item-generic-layout').gridActive).to.be.true;
 			});
@@ -145,9 +145,6 @@ describe('d2l-list-item-generic-layout', () => {
 
 		it('disables grid on list-item-generic-layout elements', async() => {
 			const el = await fixture(nonGridFixture);
-			await el.updateComplete;
-			const items = el.getItems();
-			await Promise.all(items.map(item => item.updateComplete));
 			el.getItems().forEach(item => {
 				expect(item.shadowRoot.querySelector('d2l-list-item-generic-layout').gridActive).to.be.undefined;
 			});
@@ -158,307 +155,599 @@ describe('d2l-list-item-generic-layout', () => {
 
 		let el, layout;
 
-		beforeEach(async() => {
-			el = await fixture(longFixture);
-			const items = el.getItems();
-			await Promise.all(items.map(item => item.updateComplete));
-		});
-
-		const tests = [
-			{
-				key: { name: 'ArrowRight', code: keyCodes.RIGHT },
-				desc: 'focuses the next item in the next area',
-				itemKey: 'item1',
-				initial: () => layout.querySelector('d2l-selection-input'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => layout.querySelector('[slot="content-action"] a')
-			},
-			{
-				key: { name: 'ArrowRight', code: keyCodes.RIGHT },
-				desc: 'focuses the next item within the action area',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(1)'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(2)')
-			},
-			{
-				key: { name: 'ArrowRight', code: keyCodes.RIGHT },
-				desc: 'focuses wraps to first item',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(4)'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			},
-			{
-				key: { name: 'ArrowLeft', code: keyCodes.LEFT },
-				desc: 'focuses the previous item in the previous area',
-				itemKey: 'item1',
-				initial: () => layout.querySelector('[slot="content-action"] a'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			},
-			{
-				key: { name: 'ArrowLeft', code: keyCodes.LEFT },
-				desc: 'focuses the previous item within the action area',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(2)'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(1)')
-			},
-			{
-				key: { name: 'ArrowLeft', code: keyCodes.LEFT },
-				desc: 'focuses wraps to last item',
-				itemKey: 'item4',
-				initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(4)')
-			},
-			{
-				key: { name: 'ArrowUp', code: keyCodes.UP },
-				desc: 'focuses the item in the same cell of the above row',
-				itemKey: 'item2',
-				initial: () => layout.querySelector('[slot="content-action"] a'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
-				expected: () => el.querySelector('[key="item1"]')
-					.shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
-			},
-			{
-				key: { name: 'ArrowUp', code: keyCodes.UP },
-				desc: 'focuses item in same position of same cell of above row',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(2)'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(el.querySelector('[key="item3"] d2l-button-icon:nth-child(2)'), 'focusin'),
-				expected: () => el.querySelector('[key="item3"] d2l-button-icon:nth-child(2)')
-			},
-			{
-				key: { name: 'ArrowUp', code: keyCodes.UP },
-				desc: 'focuses last item in same cell of above row if position not available',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(4)'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(el.querySelector('[key="item3"] d2l-button-icon:last-child'), 'focusin'),
-				expected: () => el.querySelector('[key="item3"] d2l-button-icon:last-child')
-			},
-			{
-				key: { name: 'ArrowDown', code: keyCodes.DOWN },
-				desc: 'focuses item in same cell of below row',
-				itemKey: 'item1',
-				initial: () => layout.querySelector('[slot="content-action"] a'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
-				expected: () => el.querySelector('[key="item2"]')
-					.shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
-			},
-			{
-				key: { name: 'ArrowDown', code: keyCodes.DOWN },
-				desc: 'focuses item in same position of same cell of below row',
-				itemKey: 'item3',
-				initial: () => el.querySelector('[key="item3"] d2l-button-icon:nth-child(2)'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(el.querySelector('[key="item4"] d2l-button-icon:nth-child(2)'), 'focusin'),
-				expected: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(2)')
-			},
-			{
-				key: { name: 'ArrowDown', code: keyCodes.DOWN },
-				desc: 'focuses last item in same cell of below row if position not available',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(4)'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(el.querySelector('[key="item5"] d2l-button-icon:last-child'), 'focusin'),
-				expected: () => el.querySelector('[key="item5"] d2l-button-icon:last-child')
-			},
-			{
-				key: { name: 'Home', code: keyCodes.HOME },
-				desc: 'focuses first item in current row',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(2)'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			},
-			{
-				key: { name: 'Home+CTRL', code: keyCodes.HOME, ctrl: true },
-				desc: 'focuses first item of first row',
-				itemKey: 'item4',
-				initial: () => el.querySelector('[key="item4"] d2l-button-icon:nth-child(2)'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
-				expected: () => el.querySelector('[key="item1"]')
-					.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			},
-			{
-				key: { name: 'End', code: keyCodes.END },
-				desc: 'focuses last item in current row',
-				itemKey: 'item4',
-				initial: () => layout.querySelector('d2l-selection-input'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(layout, 'focusin'),
-				expected: () => el.querySelector('[key="item4"] d2l-button-icon:last-child')
-			},
-			{
-				key: { name: 'End+CTRL', code: keyCodes.END, ctrl: true },
-				desc: 'focuses last item of last row',
-				itemKey: 'item4',
-				initial: () => layout.querySelector('d2l-selection-input'),
-				activeElement: () => document.activeElement,
-				event: () => oneEvent(el.querySelector('[key="item7"] d2l-button-icon:last-child'), 'focusin'),
-				expected: () => el.querySelector('[key="item7"] d2l-button-icon:last-child')
-			},
-			{
-				key: { name: 'PageUp', code: keyCodes.PAGEUP },
-				desc: 'focuses item in same cell five rows up',
-				itemKey: 'item7',
-				initial: () => layout.querySelector('d2l-selection-input'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
-				expected: () => el.querySelector('[key="item2"]')
-					.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			},
-			{
-				key: { name: 'PageUp', code: keyCodes.PAGEUP },
-				desc: 'focuses item in same cell of first row if fewer than five rows above',
-				itemKey: 'item4',
-				initial: () => layout.querySelector('d2l-selection-input'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
-				expected: () => el.querySelector('[key="item1"]')
-					.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			},
-			{
-				key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
-				desc: 'focuses item in same cell five rows down',
-				itemKey: 'item1',
-				initial: () => layout.querySelector('d2l-selection-input'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(el.querySelector('[key="item6"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
-				expected: () => el.querySelector('[key="item6"]')
-					.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			},
-			{
-				key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
-				desc: 'focuses item in same cell of last row if fewer than five rows below',
-				itemKey: 'item4',
-				initial: () => layout.querySelector('d2l-selection-input'),
-				activeElement: getComposedActiveElement,
-				event: () => oneEvent(el.querySelector('[key="item7"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
-				expected: () => el.querySelector('[key="item7"]')
-					.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
-			}
-		];
-
-		for (const test of tests) {
-			it(`${test.desc} when ${test.key.name} pressed`, async() => {
-				layout = el.querySelector(`[key="${test.itemKey}"]`)
-					.shadowRoot.querySelector('d2l-list-item-generic-layout');
-				await new Promise(resolve => {
-					// wait a frame for d2l-selection-input to fully initialize
-					requestAnimationFrame(resolve);
-				});
-				test.initial().focus();
-				let event = null;
-				setTimeout(() => event = dispatchKeyEvent(layout, test.key));
-				await test.event();
-				expect(test.activeElement()).to.equal(test.expected());
-				expect(event.preventDefault).to.have.been.calledOnce;
-			});
-		}
-
-		it('does not preventDefault when Tab is pressed', async() => {
-			el = el.querySelector('[key="item4"]');
-			layout = el.shadowRoot.querySelector('d2l-list-item-generic-layout');
+		const runFocusTest = async(el, test) => {
+			layout = el.querySelector(`[key="${test.itemKey}"]`).shadowRoot.querySelector('d2l-list-item-generic-layout');
 			await new Promise(resolve => {
 				// wait a frame for d2l-selection-input to fully initialize
 				requestAnimationFrame(resolve);
 			});
-			layout.querySelector('d2l-selection-input').focus();
-			setTimeout(() => dispatchKeyEvent(layout, { code: keyCodes.TAB }));
-			const event = await oneEvent(layout, 'keydown');
-			expect(event.preventDefault).to.not.have.been.called;
-		});
+			test.initial().focus();
+			let event = null;
+			setTimeout(() => event = dispatchKeyEvent(layout, test.key));
+			await test.event();
+			expect(test.activeElement()).to.equal(test.expected());
+			expect(event.preventDefault).to.have.been.calledOnce;
+		};
 
-		describe('preventing focus move for end of content', () => {
+		describe('non-nested', () => {
+
+			beforeEach(async() => {
+				el = await fixture(longFixture);
+			});
+
 			const tests = [
 				{
-					key: { name: 'ArrowUp', code: keyCodes.UP },
-					desc: 'does not move focus when first row already focused',
+					key: { name: 'ArrowRight', code: keyCodes.RIGHT },
+					desc: 'focuses the next item in the next area',
 					itemKey: 'item1',
+					initial: () => layout.querySelector('d2l-selection-input'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => layout.querySelector('[slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowRight', code: keyCodes.RIGHT },
+					desc: 'focuses the next item within the action area',
+					itemKey: 'item4',
+					initial: () => el.querySelector('[key="item4"] #focusable1'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => el.querySelector('[key="item4"] #focusable2')
+				},
+				{
+					key: { name: 'ArrowRight', code: keyCodes.RIGHT },
+					desc: 'focuses wraps to first item',
+					itemKey: 'item4',
+					initial: () => el.querySelector('[key="item4"] #focusable6'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
+				},
+				{
+					key: { name: 'ArrowLeft', code: keyCodes.LEFT },
+					desc: 'focuses the previous item in the previous area',
+					itemKey: 'item1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
+				},
+				{
+					key: { name: 'ArrowLeft', code: keyCodes.LEFT },
+					desc: 'focuses the previous item within the action area',
+					itemKey: 'item4',
+					initial: () => el.querySelector('[key="item4"] #focusable2'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => el.querySelector('[key="item4"] #focusable1')
+				},
+				{
+					key: { name: 'ArrowLeft', code: keyCodes.LEFT },
+					desc: 'focuses wraps to last item',
+					itemKey: 'item4',
 					initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
-					activeElement: getComposedActiveElement
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => el.querySelector('[key="item4"] #focusable6')
+				},
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses the item in the same cell of the above row',
+					itemKey: 'item2',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item1"]')
+						.shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses item in same position of same cell of above row',
+					itemKey: 'item4',
+					initial: () => el.querySelector('[key="item4"] #focusable4'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(el.querySelector('[key="item3"] #focusable4'), 'focusin'),
+					expected: () => el.querySelector('[key="item3"] #focusable4')
+				},
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses last item in same cell of above row if position not available',
+					itemKey: 'item3',
+					initial: () => el.querySelector('[key="item3"] #focusable4'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(el.querySelector('[key="item2"] #focusable2'), 'focusin'),
+					expected: () => el.querySelector('[key="item2"] #focusable2')
 				},
 				{
 					key: { name: 'ArrowDown', code: keyCodes.DOWN },
-					desc: 'does not move focus when last row already focused',
-					itemKey: 'item7',
-					initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
-					activeElement: getComposedActiveElement
+					desc: 'focuses item in same cell of below row',
+					itemKey: 'item1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item2"]')
+						.shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowDown', code: keyCodes.DOWN },
+					desc: 'focuses item in same position of same cell of below row',
+					itemKey: 'item3',
+					initial: () => el.querySelector('[key="item3"] #focusable4'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(el.querySelector('[key="item4"] #focusable4'), 'focusin'),
+					expected: () => el.querySelector('[key="item4"] #focusable4')
+				},
+				{
+					key: { name: 'ArrowDown', code: keyCodes.DOWN },
+					desc: 'focuses last item in same cell of below row if position not available',
+					itemKey: 'item4',
+					initial: () => el.querySelector('[key="item4"] #focusable4'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(el.querySelector('[key="item5"] #focusable2'), 'focusin'),
+					expected: () => el.querySelector('[key="item5"] #focusable2')
 				},
 				{
 					key: { name: 'Home', code: keyCodes.HOME },
-					desc: 'does not move focus when first area in row already focused',
-					itemKey: 'item3',
-					initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
-					activeElement: getComposedActiveElement
+					desc: 'focuses first item in current row',
+					itemKey: 'item4',
+					initial: () => el.querySelector('[key="item4"] #focusable2'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
 				},
 				{
 					key: { name: 'Home+CTRL', code: keyCodes.HOME, ctrl: true },
-					desc: 'does not move focus when first area in first row already focused',
-					itemKey: 'item1',
-					initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
-					activeElement: getComposedActiveElement
+					desc: 'focuses first item of first row',
+					itemKey: 'item4',
+					initial: () => el.querySelector('[key="item4"] #focusable2'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
+					expected: () => el.querySelector('[key="item1"]')
+						.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
 				},
 				{
 					key: { name: 'End', code: keyCodes.END },
-					desc: 'does not move focus when last area in row already focused',
+					desc: 'focuses last item in current row',
 					itemKey: 'item4',
-					initial: () => el.querySelector('[key="item4"] d2l-button-icon:last-child'),
-					activeElement: () => document.activeElement
+					initial: () => layout.querySelector('d2l-selection-input'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(layout, 'focusin'),
+					expected: () => el.querySelector('[key="item4"] #focusable6')
 				},
 				{
 					key: { name: 'End+CTRL', code: keyCodes.END, ctrl: true },
-					desc: 'does not move focus when last area in last row already focused',
-					itemKey: 'item7',
-					initial: () => el.querySelector('[key="item7"] d2l-button-icon:last-child'),
-					activeElement: () => document.activeElement
+					desc: 'focuses last item of last row',
+					itemKey: 'item4',
+					initial: () => layout.querySelector('d2l-selection-input'),
+					activeElement: () => document.activeElement,
+					event: () => oneEvent(el.querySelector('[key="item7"] #focusable1'), 'focusin'),
+					expected: () => el.querySelector('[key="item7"] #focusable1')
 				},
 				{
 					key: { name: 'PageUp', code: keyCodes.PAGEUP },
-					desc: 'does not move focus when first row already focused',
-					itemKey: 'item1',
-					initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
-					activeElement: getComposedActiveElement
+					desc: 'focuses item in same cell five rows up',
+					itemKey: 'item7',
+					initial: () => layout.querySelector('d2l-selection-input'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
+					expected: () => el.querySelector('[key="item2"]')
+						.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
+				},
+				{
+					key: { name: 'PageUp', code: keyCodes.PAGEUP },
+					desc: 'focuses item in same cell of first row if fewer than five rows above',
+					itemKey: 'item4',
+					initial: () => layout.querySelector('d2l-selection-input'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
+					expected: () => el.querySelector('[key="item1"]')
+						.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
 				},
 				{
 					key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
-					desc: 'does not move focus when last row already focused',
-					itemKey: 'item7',
-					initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
-					activeElement: getComposedActiveElement
+					desc: 'focuses item in same cell five rows down',
+					itemKey: 'item1',
+					initial: () => layout.querySelector('d2l-selection-input'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item6"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
+					expected: () => el.querySelector('[key="item6"]')
+						.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
 				},
+				{
+					key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
+					desc: 'focuses item in same cell of last row if fewer than five rows below',
+					itemKey: 'item4',
+					initial: () => layout.querySelector('d2l-selection-input'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item7"]').shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'), 'focusin'),
+					expected: () => el.querySelector('[key="item7"]')
+						.shadowRoot.querySelector('d2l-list-item-generic-layout d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox')
+				}
 			];
 
 			for (const test of tests) {
 				it(`${test.desc} when ${test.key.name} pressed`, async() => {
-					layout = el.querySelector(`[key="${test.itemKey}"]`)
-						.shadowRoot.querySelector('d2l-list-item-generic-layout');
-					await new Promise(resolve => {
-						// wait a frame for d2l-selection-input to fully initialize
-						requestAnimationFrame(resolve);
-					});
-					test.initial().focus();
-					setTimeout(() => dispatchKeyEvent(layout, test.key));
-					await aTimeout(1);
-					expect(test.activeElement()).to.equal(test.initial());
+					await runFocusTest(el, test);
 				});
 			}
+
+			it('does not preventDefault when Tab is pressed', async() => {
+				el = el.querySelector('[key="item4"]');
+				layout = el.shadowRoot.querySelector('d2l-list-item-generic-layout');
+				await new Promise(resolve => {
+					// wait a frame for d2l-selection-input to fully initialize
+					requestAnimationFrame(resolve);
+				});
+				layout.querySelector('d2l-selection-input').focus();
+				setTimeout(() => dispatchKeyEvent(layout, { code: keyCodes.TAB }));
+				const event = await oneEvent(layout, 'keydown');
+				expect(event.preventDefault).to.not.have.been.called;
+			});
+
+			describe('preventing focus move for end of content', () => {
+				const tests = [
+					{
+						key: { name: 'ArrowUp', code: keyCodes.UP },
+						desc: 'does not move focus when first row already focused',
+						itemKey: 'item1',
+						initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
+						activeElement: getComposedActiveElement
+					},
+					{
+						key: { name: 'ArrowDown', code: keyCodes.DOWN },
+						desc: 'does not move focus when last row already focused',
+						itemKey: 'item7',
+						initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
+						activeElement: getComposedActiveElement
+					},
+					{
+						key: { name: 'Home', code: keyCodes.HOME },
+						desc: 'does not move focus when first area in row already focused',
+						itemKey: 'item3',
+						initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
+						activeElement: getComposedActiveElement
+					},
+					{
+						key: { name: 'Home+CTRL', code: keyCodes.HOME, ctrl: true },
+						desc: 'does not move focus when first area in first row already focused',
+						itemKey: 'item1',
+						initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
+						activeElement: getComposedActiveElement
+					},
+					{
+						key: { name: 'End', code: keyCodes.END },
+						desc: 'does not move focus when last area in row already focused',
+						itemKey: 'item4',
+						initial: () => el.querySelector('[key="item4"] #focusable6'),
+						activeElement: () => document.activeElement
+					},
+					{
+						key: { name: 'End+CTRL', code: keyCodes.END, ctrl: true },
+						desc: 'does not move focus when last area in last row already focused',
+						itemKey: 'item7',
+						initial: () => el.querySelector('[key="item7"] #focusable1'),
+						activeElement: () => document.activeElement
+					},
+					{
+						key: { name: 'PageUp', code: keyCodes.PAGEUP },
+						desc: 'does not move focus when first row already focused',
+						itemKey: 'item1',
+						initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
+						activeElement: getComposedActiveElement
+					},
+					{
+						key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
+						desc: 'does not move focus when last row already focused',
+						itemKey: 'item7',
+						initial: () => layout.querySelector('d2l-selection-input').shadowRoot.querySelector('d2l-input-checkbox').shadowRoot.querySelector('input.d2l-input-checkbox'),
+						activeElement: getComposedActiveElement
+					},
+				];
+
+				for (const test of tests) {
+					it(`${test.desc} when ${test.key.name} pressed`, async() => {
+						layout = el.querySelector(`[key="${test.itemKey}"]`)
+							.shadowRoot.querySelector('d2l-list-item-generic-layout');
+						await new Promise(resolve => {
+							// wait a frame for d2l-selection-input to fully initialize
+							requestAnimationFrame(resolve);
+						});
+						test.initial().focus();
+						setTimeout(() => dispatchKeyEvent(layout, test.key));
+						await aTimeout(1);
+						expect(test.activeElement()).to.equal(test.initial());
+					});
+				}
+			});
+
 		});
+
+		describe('nested', () => {
+
+			const nestedFixture = html`
+				<d2l-list grid>
+					<d2l-list-item label="Test Label" href="http://d2l.com" key="item1">
+						<div class="d2l-list-item-text d2l-body-compact">Root item 1.</div>
+						<d2l-list grid slot="nested">
+							<d2l-list-item label="Test Label" href="http://d2l.com" key="item1a">
+								<div class="d2l-list-item-text d2l-body-compact">Nested item 1a.</div>
+							</d2l-list-item>
+						</d2l-list>
+					</d2l-list-item>
+					<d2l-list-item label="Test Label" href="http://d2l.com" key="item2">
+						<div class="d2l-list-item-text d2l-body-compact">Root item 2.</div>
+						<d2l-list grid slot="nested"></d2l-list>
+					</d2l-list-item>
+					<d2l-list-item label="Test Label" href="http://d2l.com" key="item3">
+						<div class="d2l-list-item-text d2l-body-compact">Root item 3.</div>
+					</d2l-list-item>
+					<d2l-list-item label="Test Label" href="http://d2l.com" key="item4">
+						<div class="d2l-list-item-text d2l-body-compact">Root item 4.</div>
+					</d2l-list-item>
+					<d2l-list-item label="Test Label" href="http://d2l.com" key="item5">
+						<div class="d2l-list-item-text d2l-body-compact">Root item 5.</div>
+					</d2l-list-item>
+					<d2l-list-item label="Test Label" href="http://d2l.com" key="item6">
+						<div class="d2l-list-item-text d2l-body-compact">Root item 6.</div>
+					</d2l-list-item>
+					<d2l-list-item label="Test Label" href="http://d2l.com" key="item7">
+						<div class="d2l-list-item-text d2l-body-compact">Root item 7.</div>
+					</d2l-list-item>
+				</d2l-list>
+			`;
+
+			beforeEach(async() => {
+				el = await fixture(nestedFixture);
+			});
+
+			const tests = [
+				// ArrowUp tests
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses the same cell of the parent item',
+					itemKey: 'item1a',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses the same cell of the last item in the previous item\'s nested list',
+					itemKey: 'item2',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1a"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item1a"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses the same cell of the previous item if it contains an empty nested list',
+					itemKey: 'item3',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+
+				// ArrowDown tests
+				{
+					key: { name: 'ArrowDown', code: keyCodes.DOWN },
+					desc: 'focuses the same cell of the child item',
+					itemKey: 'item1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1a"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item1a"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowDown', code: keyCodes.DOWN },
+					desc: 'focuses the same cell of the item after the nested list',
+					itemKey: 'item1a',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+
+				// PageUp tests
+				{
+					key: { name: 'PageUp', code: keyCodes.PAGEUP },
+					desc: 'focuses the first root item when pressing from third item',
+					itemKey: 'item3',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'PageUp', code: keyCodes.PAGEUP },
+					desc: 'focuses test nested item when pressing from 5 items away',
+					itemKey: 'item6',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item1a"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item1a"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+
+				// PageDown tests
+				{
+					key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
+					desc: 'focuses the last root item when pressing from third last item',
+					itemKey: 'item5',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item7"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item7"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
+					desc: 'focuses the fifth item when pressing from first item',
+					itemKey: 'item1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="item5"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="item5"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				}
+			];
+
+			for (const test of tests) {
+				it(`${test.desc} when ${test.key.name} pressed`, async() => {
+					await runFocusTest(el, test);
+				});
+			}
+
+		});
+
+		describe('nested expandable', () => {
+
+			const expandableNestedFixture = html`
+				<d2l-list grid>
+					<d2l-list-item label="Expandable Root 1" key="root1" expandable href="http://d2l.com">
+						<div class="d2l-list-item-text d2l-body-compact">Expandable Root 1</div>
+						<d2l-list grid slot="nested">
+							<d2l-list-item label="Nested 1-1" key="nested1-1" expandable href="http://d2l.com">
+								<div class="d2l-list-item-text d2l-body-compact">Nested 1-1</div>
+								<d2l-list grid slot="nested">
+									<d2l-list-item label="Deep Nested 1-1-1" key="deep1-1-1" href="http://d2l.com">
+										<div class="d2l-list-item-text d2l-body-compact">Deep Nested 1-1-1</div>
+									</d2l-list-item>
+									<d2l-list-item label="Deep Nested 1-1-2" key="deep1-1-2" href="http://d2l.com">
+										<div class="d2l-list-item-text d2l-body-compact">Deep Nested 1-1-2</div>
+									</d2l-list-item>
+								</d2l-list>
+							</d2l-list-item>
+							<d2l-list-item label="Nested 1-2" key="nested1-2" href="http://d2l.com">
+								<div class="d2l-list-item-text d2l-body-compact">Nested 1-2</div>
+							</d2l-list-item>
+						</d2l-list>
+					</d2l-list-item>
+					<d2l-list-item label="Expandable Root 2" key="root2" expandable expanded href="http://d2l.com">
+						<div class="d2l-list-item-text d2l-body-compact">Expandable Root 2</div>
+						<d2l-list grid slot="nested">
+							<d2l-list-item label="Nested 2-1" key="nested2-1" href="http://d2l.com">
+								<div class="d2l-list-item-text d2l-body-compact">Nested 2-1</div>
+							</d2l-list-item>
+						</d2l-list>
+					</d2l-list-item>
+					<d2l-list-item label="Root 3" key="root3" href="http://d2l.com">
+						<div class="d2l-list-item-text d2l-body-compact">Root 3</div>
+					</d2l-list-item>
+				</d2l-list>
+			`;
+
+			beforeEach(async() => {
+				el = await fixture(expandableNestedFixture);
+			});
+
+			const tests = [
+				// ArrowUp tests
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses the same cell of nested in expandable expanded',
+					itemKey: 'root3',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="nested2-1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="nested2-1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses the parent in expandable expanded',
+					itemKey: 'nested2-1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowUp', code: keyCodes.UP },
+					desc: 'focuses the same cell of the previous item when not expanded',
+					itemKey: 'root2',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+
+				// ArrowDown tests
+				{
+					key: { name: 'ArrowDown', code: keyCodes.DOWN },
+					desc: 'focuses the first nested item when moving down from expandable expanded',
+					itemKey: 'root2',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="nested2-1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="nested2-1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowDown', code: keyCodes.DOWN },
+					desc: 'focuses the next root item after nested',
+					itemKey: 'nested2-1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root3"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root3"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'ArrowDown', code: keyCodes.DOWN },
+					desc: 'focuses the next root item when not expanded',
+					itemKey: 'root1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root2"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+
+				// PageUp tests
+				{
+					key: { name: 'PageUp', code: keyCodes.PAGEUP },
+					desc: 'focuses the first root item when pressing PageUp from root3',
+					itemKey: 'root3',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'PageUp', code: keyCodes.PAGEUP },
+					desc: 'focuses the first root item when pressing PageUp from nested2-1',
+					itemKey: 'nested2-1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root1"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+
+				// PageDown tests
+				{
+					key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
+					desc: 'focuses the last root item when pressing PageDown from root1',
+					itemKey: 'root1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root3"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root3"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				},
+				{
+					key: { name: 'PageDown', code: keyCodes.PAGEDOWN },
+					desc: 'focuses the last root item when pressing PageDown from nested2-1',
+					itemKey: 'nested2-1',
+					initial: () => layout.querySelector('[slot="content-action"] a'),
+					activeElement: getComposedActiveElement,
+					event: () => oneEvent(el.querySelector('[key="root3"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a'), 'focusin'),
+					expected: () => el.querySelector('[key="root3"]').shadowRoot.querySelector('d2l-list-item-generic-layout [slot="content-action"] a')
+				}
+			];
+
+			for (const test of tests) {
+				it(`${test.desc} when ${test.key.name} pressed`, async() => {
+					await runFocusTest(el, test);
+				});
+			}
+
+		});
+
 	});
 
 });

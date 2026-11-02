@@ -1,59 +1,49 @@
 import './breadcrumb.js';
 import { css, html, LitElement } from 'lit';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { overflowEllipsisDeclarations } from '../../helpers/overflow.js';
 
 /**
  * Help users understand where they are within the application, and provide useful clues about how the space is organized. They also provide a convenient navigation mechanism.
  * @slot - Breadcrumb items
  */
-class Breadcrumbs extends LocalizeCoreElement(RtlMixin(LitElement)) {
-	static get properties() {
-		return {
-			/**
-			 * Renders in compact mode, displaying only the last item
-			 * @type {boolean}
-			 */
-			compact: { type: Boolean, reflect: true }
-		};
-	}
+class Breadcrumbs extends LocalizeCoreElement(LitElement) {
 
-	static get styles() {
-		return css`
-			:host {
-				display: block;
-				font-size: 0.7rem;
-				line-height: 1.05rem;
-				overflow: hidden;
-				position: relative;
-				white-space: nowrap;
-			}
-			:host([hidden]) {
-				display: none;
-			}
+	static properties = {
+		/**
+		 * Renders in compact mode, displaying only the last item
+		 * @type {boolean}
+		 */
+		compact: { type: Boolean, reflect: true }
+	};
 
-			:host::after {
-				background: linear-gradient(to right, rgba(255, 255, 255, 0), rgb(251, 252, 252));
-				bottom: 0;
-				content: '';
-				pointer-events: none;
-				position: absolute;
-				right: 0;
-				top: 0;
-				width: 10px;
-			}
-			:host([dir="rtl"])::after {
-				background: linear-gradient(to left, rgba(255, 255, 255, 0), rgb(251, 252, 252));
-				left: 0;
-				right: auto;
-			}
-
-			:host([compact]) ::slotted(d2l-breadcrumb:not(:last-of-type)),
-			:host([compact]) ::slotted(d2l-breadcrumb-current-page) {
-				display: none;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			clip-path: rect(-1em 100% calc(100% + 1em) -1em);
+			display: block;
+			font-size: 0.7rem;
+			line-height: 1.05rem;
+			${overflowEllipsisDeclarations}
+			overflow-y: clip;
+			position: relative;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		:host::after {
+			background: linear-gradient(to var(--d2l-inline-end, right), rgba(255, 255, 255, 0), rgb(251, 252, 252));
+			content: "";
+			inset-block: 0;
+			inset-inline-end: 0;
+			pointer-events: none;
+			position: absolute;
+			width: 10px;
+		}
+		:host([compact]) ::slotted(d2l-breadcrumb:not(:last-of-type)),
+		:host([compact]) ::slotted(d2l-breadcrumb-current-page) {
+			display: none;
+		}
+	`;
 
 	constructor() {
 		super();

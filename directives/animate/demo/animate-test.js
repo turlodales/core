@@ -7,24 +7,20 @@ import { hide, show } from '../animate.js';
 
 export class AnimateTest extends LitElement {
 
-	static get properties() {
-		return {
-			_listVisibility: { type: Boolean, reflect: false },
-			_renderCount: { type: Number, reflect: false }
-		};
-	}
+	static properties = {
+		_listVisibility: { type: Boolean, reflect: false },
+		_renderCount: { type: Number, reflect: false }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				display: block;
-			}
-			d2l-list {
-				margin-bottom: 0.9rem;
-				max-width: 400px;
-			}
-		`;
-	}
+	static styles = css`
+		:host {
+			display: block;
+		}
+		d2l-list {
+			margin-bottom: 0.9rem;
+			max-width: 400px;
+		}
+	`;
 
 	constructor() {
 		super();
@@ -63,7 +59,7 @@ export class AnimateTest extends LitElement {
 				</d2l-list-item>` : null;
 		});
 		return html`
-			<d2l-input-checkbox .checked="${this._listVisibility}" @change="${this._handleToggleList}">Show items</d2l-input-checkbox>
+			<d2l-input-checkbox .checked="${this._listVisibility}" @change="${this._handleToggleList}" label="Show items"></d2l-input-checkbox>
 			<d2l-list .animate="${animateAction}">${items}</d2l-list>
 			<d2l-button @click="${this._handleAddItem}" ?disabled="${!this._listVisibility}">Add Item</d2l-button>
 			<d2l-button @click="${this._handleReRender}">Re-render (${this._renderCount})</d2l-button>

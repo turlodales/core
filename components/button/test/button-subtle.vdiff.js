@@ -1,0 +1,138 @@
+import '../button-subtle.js';
+import '../../icons/icon-custom.js';
+import { clickElem, expect, fixture, focusElem, hoverElem, html, oneEvent } from '@brightspace-ui/testing';
+
+const defaultCustomIconTemplate = html`
+	<d2l-button-subtle text="Subtle Button">
+		<d2l-icon-custom slot="icon">
+			<svg xmlns="http://www.w3.org/2000/svg" mirror-in-rtl="true">
+				<path fill="#494c4e" d="M18 12v5a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-5a1 1 0 0 1 2 0v4h14v-4a1 1 0 0 1 2 0z"/>
+				<path fill="#494c4e" d="M13.85 3.15l-2.99-3A.507.507 0 0 0 10.5 0H5.4A1.417 1.417 0 0 0 4 1.43v11.14A1.417 1.417 0 0 0 5.4 14h7.2a1.417 1.417 0 0 0 1.4-1.43V3.5a.47.47 0 0 0-.15-.35zM7 2h1a1 1 0 0 1 0 2H7a1 1 0 0 1 0-2zm4 10H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2zm0-4H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2z"/>
+			</svg>
+		</d2l-icon-custom>
+	</d2l-button-subtle>
+`;
+
+const defaultCustomIconSlotContentTemplate = html`
+<d2l-button-subtle text="Subtle Button">
+	<d2l-icon-custom slot="icon">
+		<svg xmlns="http://www.w3.org/2000/svg" mirror-in-rtl="true">
+			<path fill="#494c4e" d="M18 12v5a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-5a1 1 0 0 1 2 0v4h14v-4a1 1 0 0 1 2 0z"/>
+			<path fill="#494c4e" d="M13.85 3.15l-2.99-3A.507.507 0 0 0 10.5 0H5.4A1.417 1.417 0 0 0 4 1.43v11.14A1.417 1.417 0 0 0 5.4 14h7.2a1.417 1.417 0 0 0 1.4-1.43V3.5a.47.47 0 0 0-.15-.35zM7 2h1a1 1 0 0 1 0 2H7a1 1 0 0 1 0-2zm4 10H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2zm0-4H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2z"/>
+		</svg>
+	</d2l-icon-custom>
+	Slot Content
+</d2l-button-subtle>
+`;
+
+const slimCustomIconTemplate = html`
+	<d2l-button-subtle text="Subtle Button" slim>
+		<d2l-icon-custom slot="icon">
+			<svg xmlns="http://www.w3.org/2000/svg" mirror-in-rtl="true">
+				<path fill="#494c4e" d="M18 12v5a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-5a1 1 0 0 1 2 0v4h14v-4a1 1 0 0 1 2 0z"/>
+				<path fill="#494c4e" d="M13.85 3.15l-2.99-3A.507.507 0 0 0 10.5 0H5.4A1.417 1.417 0 0 0 4 1.43v11.14A1.417 1.417 0 0 0 5.4 14h7.2a1.417 1.417 0 0 0 1.4-1.43V3.5a.47.47 0 0 0-.15-.35zM7 2h1a1 1 0 0 1 0 2H7a1 1 0 0 1 0-2zm4 10H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2zm0-4H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2z"/>
+			</svg>
+		</d2l-icon-custom>
+	</d2l-button-subtle>
+`;
+
+const slimCustomIconSlotContentTemplate = html`
+	<d2l-button-subtle text="Subtle Button" slim>
+		<d2l-icon-custom slot="icon">
+			<svg xmlns="http://www.w3.org/2000/svg" mirror-in-rtl="true">
+				<path fill="#494c4e" d="M18 12v5a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1v-5a1 1 0 0 1 2 0v4h14v-4a1 1 0 0 1 2 0z"/>
+				<path fill="#494c4e" d="M13.85 3.15l-2.99-3A.507.507 0 0 0 10.5 0H5.4A1.417 1.417 0 0 0 4 1.43v11.14A1.417 1.417 0 0 0 5.4 14h7.2a1.417 1.417 0 0 0 1.4-1.43V3.5a.47.47 0 0 0-.15-.35zM7 2h1a1 1 0 0 1 0 2H7a1 1 0 0 1 0-2zm4 10H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2zm0-4H7a1 1 0 0 1 0-2h4a1 1 0 0 1 0 2z"/>
+			</svg>
+		</d2l-icon-custom>
+		Slot Content
+	</d2l-button-subtle>
+`;
+
+describe('button-subtle', () => {
+	[
+		{ category: 'default-normal', allColorModes: true, template: html`<d2l-button-subtle text="Subtle Button"></d2l-button-subtle>` },
+		{ category: 'default-icon', allColorModes: true, template: html`<d2l-button-subtle icon="tier1:bookmark-hollow" text="Subtle Button"></d2l-button-subtle>` },
+		{ category: 'default-icon-right', template: html`<d2l-button-subtle icon="tier1:chevron-down" text="Subtle Button" icon-right></d2l-button-subtle>` },
+		{ category: 'default-slot-content', allColorModes: true, template: html`<d2l-button-subtle icon="tier1:chevron-down" text="Subtle Button">Slot content</d2l-button-subtle>` },
+		{ category: 'default-custom-icon', allColorModes: true, template: defaultCustomIconTemplate },
+		{ category: 'default-custom-icon-slot-content', template: defaultCustomIconSlotContentTemplate },
+		{ category: 'slim-normal', template: html`<d2l-button-subtle slim text="Subtle Button"></d2l-button-subtle>` },
+		{ category: 'slim-icon', template: html`<d2l-button-subtle slim icon="tier1:bookmark-hollow" text="Subtle Button"></d2l-button-subtle>` },
+		{ category: 'slim-icon-right', template: html`<d2l-button-subtle slim icon="tier1:chevron-down" text="Subtle Button" icon-right></d2l-button-subtle>` },
+		{ category: 'slim-slot-content', template: html`<d2l-button-subtle slim icon="tier1:chevron-down" text="Subtle Button">Slot content</d2l-button-subtle>` },
+		{ category: 'slim-custom-icon', template: slimCustomIconTemplate },
+		{ category: 'slim-custom-icon-slot-content', template: slimCustomIconSlotContentTemplate }
+	].forEach(({ category, allColorModes, template }) => {
+
+		describe(category, () => {
+
+			[
+				{ name: 'normal', allColorModes },
+				{ name: 'rtl', rtl: true },
+				{ name: 'hover', action: hoverElem, allColorModes },
+				{ name: 'focus', action: focusElem, allColorModes },
+				{ name: 'click', action: clickElem },
+				{ name: 'active', action: elem => elem.setAttribute('active', '') },
+				{ name: 'active-disabled', action: elem => { elem.setAttribute('active', ''); elem.disabled = true; } },
+				{ name: 'disabled', action: elem => elem.disabled = true, allColorModes },
+			].forEach(({ action, allColorModes, name, rtl }) => {
+				it(name, async() => {
+					const elem = await fixture(template, { rtl });
+					if (action) await action(elem);
+					await expect(elem).to.be.golden({ allColorModes });
+				});
+			});
+		});
+
+	});
+
+	describe('disabled-tooltip', () => {
+
+		it('disabled', async() => {
+			const elem = await fixture(html`<d2l-button-subtle text="Subtle Button" disabled disabled-tooltip="This action is not available"></d2l-button-subtle>`);
+			await expect(elem).to.be.golden();
+		});
+
+		it('disabled hover', async() => {
+			const elem = await fixture(html`<d2l-button-subtle text="Subtle Button" disabled disabled-tooltip="This action is not available"></d2l-button-subtle>`);
+			const tooltip = elem.shadowRoot.querySelector('d2l-tooltip');
+			hoverElem(elem);
+			await oneEvent(tooltip, 'd2l-tooltip-show');
+			await expect(elem).to.be.golden();
+		});
+
+		it('not disabled', async() => {
+			const elem = await fixture(html`<d2l-button-subtle text="Subtle Button" disabled-tooltip="This action is not available"></d2l-button-subtle>`);
+			await expect(elem).to.be.golden();
+		});
+
+		it('not disabled hover', async() => {
+			const elem = await fixture(html`<d2l-button-subtle text="Subtle Button" disabled-tooltip="This action is not available"></d2l-button-subtle>`);
+			await hoverElem(elem);
+			await expect(elem).to.be.golden();
+		});
+	});
+
+	describe('h-align', () => {
+		['text', 'text-end'].forEach(hAlign => {
+			it(hAlign, async() => {
+				const textAlign = hAlign === 'text' ? 'start' : 'end';
+				const elem = await fixture(html`
+					<div style="border: 1px dashed #999999; text-align: ${textAlign};">
+						<d2l-button-subtle icon="tier1:gear" text="Button Edge Aligned (default)"></d2l-button-subtle>
+						<div>Lorem ipsum dolor sit amet, consectetur adipiscing elit</div>
+						<d2l-button-subtle icon="tier1:gear" text="Button Content Aligned" h-align="${hAlign}"></d2l-button-subtle>
+						<br>
+						<d2l-button-subtle slim icon="tier1:gear" text="Slim Button Content Aligned" h-align="${hAlign}"></d2l-button-subtle>
+						<br>
+						<d2l-button-subtle icon="tier1:chevron-down" text="Subtle Button" icon-right h-align="${hAlign}"></d2l-button-subtle>
+						<br>
+						<d2l-button-subtle slim icon="tier1:chevron-down" text="Slim Subtle Button" icon-right h-align="${hAlign}"></d2l-button-subtle>
+					</div>
+				`);
+				await expect(elem).to.be.golden();
+			});
+		});
+
+	});
+});

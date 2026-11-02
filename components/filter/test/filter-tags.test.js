@@ -2,8 +2,7 @@ import '../filter.js';
 import '../filter-dimension-set.js';
 import '../filter-dimension-set-value.js';
 import '../filter-tags.js';
-import { expect, fixture, html, oneEvent, waitUntil } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, html, oneEvent, runConstructor, waitUntil } from '@brightspace-ui/testing';
 import { spy } from 'sinon';
 
 const basic = html`
@@ -23,7 +22,7 @@ const basic = html`
 				<d2l-filter-dimension-set-value text="Value 2 - 3" key="3"></d2l-filter-dimension-set-value>
 			</d2l-filter-dimension-set>
 		</d2l-filter>
-		<d2l-filter-tags filter-ids="filter" label="The applied filters"></d2l-filter-tags>
+		<d2l-filter-tags filter-ids="filter"></d2l-filter-tags>
 	</div>`;
 
 const twoFilters = html`
@@ -41,7 +40,7 @@ const twoFilters = html`
 				<d2l-filter-dimension-set-value selected text="Value" key="1"></d2l-filter-dimension-set-value>
 			</d2l-filter-dimension-set>
 		</d2l-filter>
-		<d2l-filter-tags filter-ids="filter-1 filter-2" label="The applied filters"></d2l-filter-tags>
+		<d2l-filter-tags filter-ids="filter-1 filter-2"></d2l-filter-tags>
 	</div>`;
 
 describe('d2l-filter-tags', () => {
@@ -57,8 +56,6 @@ describe('d2l-filter-tags', () => {
 			const elem = await fixture(basic);
 			filter = elem.querySelector('d2l-filter');
 			filterTags = elem.querySelector('d2l-filter-tags');
-			await filter.updateComplete;
-			await filterTags.updateComplete;
 			await waitUntil(() => filterTags._allActiveFilters.get('filter').length === 3, 'Active filters were not set');
 
 			tagList = filterTags.shadowRoot.querySelector('d2l-tag-list');
@@ -70,7 +67,6 @@ describe('d2l-filter-tags', () => {
 		});
 		it('attributes are set correctly', () => {
 			expect(filterTags.filterIds).to.equal('filter');
-			expect(filterTags.label).to.equal('The applied filters');
 		});
 		it('instantiates with the selected filters added as tag-list items', async() => {
 			const items = filterTags.shadowRoot.querySelectorAll('d2l-tag-list-item');
@@ -165,8 +161,6 @@ describe('d2l-filter-tags', () => {
 			const elem = await fixture(twoFilters);
 			filter1 = elem.querySelector('#filter-1');
 			filterTags = elem.querySelector('d2l-filter-tags');
-			await filter1.updateComplete;
-			await filterTags.updateComplete;
 			const activeMap = filterTags._allActiveFilters;
 			await waitUntil(() => activeMap.get('filter-1').length === 1 && activeMap.get('filter-2').length === 1, 'Active filters were not set');
 

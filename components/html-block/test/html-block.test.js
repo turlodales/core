@@ -1,7 +1,7 @@
 import '../html-block.js';
-import { expect, fixture, html, oneEvent } from '@open-wc/testing';
-import { provideInstance } from '../../../mixins/provider-mixin.js';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
+import { provideInstance } from '../../../mixins/provider/provider-mixin.js';
+import { unsafeStatic } from 'lit/static-html.js';
 
 class TestRenderer {
 	async render(elem) {
@@ -98,28 +98,26 @@ provideInstance(document, 'html-block-renderer-loader', {
 
 describe('d2l-html-block', () => {
 
+	const getHtml = (firstAttrName, secondAttrName) => {
+		return `<span ${firstAttrName}="1">first</span><span ${secondAttrName || firstAttrName}="2">second</span>`;
+	};
+
 	const emptyReplacementFixture = html`
 		<d2l-html-block></d2l-html-block>
 	`;
 	const replacementFixture = html`
-		<d2l-html-block>
-			<span data-replace-id="1">first</span><span data-replace-id="2">second</span>
-		</d2l-html-block>
+		<d2l-html-block html="${getHtml('data-replace-id')}"></d2l-html-block>
 	`;
 	const asyncReplacementFixture = html`
-		<d2l-html-block>
-			<span data-async-replace-id="1">first</span><span data-async-replace-id="2">second</span>
-		</d2l-html-block>
+		<d2l-html-block html="${getHtml('data-async-replace-id')}"></d2l-html-block>
 	`;
 	const noDeferredRenderingReplacementFixture = html`
 		<d2l-html-block no-deferred-rendering>
-			<div><span data-replace-id="1">first</span><span data-no-inline-replace-id="2">second</span></div>
+			<div>${unsafeStatic(getHtml('data-replace-id', 'data-no-inline-replace-id'))}</div>
 		</d2l-html-block>
 	`;
 	const multipleRendererReplacementsFixture = html`
-		<d2l-html-block>
-			<span data-replace-id="1">first</span><span data-secondary-replace-id="2">second</span>
-		</d2l-html-block>
+		<d2l-html-block html="${getHtml('data-replace-id', 'data-secondary-replace-id')}"></d2l-html-block>
 	`;
 
 	it('should construct', () => {
@@ -130,8 +128,11 @@ describe('d2l-html-block', () => {
 		const htmlBlock = await fixture(emptyReplacementFixture);
 		// Wait a frame for rendering to finish, since we temporarily add elements to the DOM
 		requestAnimationFrame(() => {
-			expect(htmlBlock.shadowRoot.querySelector('.d2l-html-block-rendered').innerHTML)
-				.to.equal('');
+			const renderContainer = htmlBlock.shadowRoot.querySelector('.d2l-html-block-rendered');
+
+			// This will contain Lit's default template marker, but there should be no non-whitespace text and no element nodes.
+			expect(renderContainer.innerText.trim()).to.equal('');
+			expect(renderContainer.children).to.be.empty;
 		});
 	});
 
@@ -146,7 +147,7 @@ describe('d2l-html-block', () => {
 
 	it('should do async replacements', async() => {
 		const replacementComplete = oneEvent(document, 'd2l-test-replacement-complete');
-		const htmlBlock = await fixture(asyncReplacementFixture);
+		const htmlBlock = await fixture(asyncReplacementFixture, { awaitLoadingComplete: false });
 		await replacementComplete;
 		const spans = htmlBlock.shadowRoot.querySelectorAll('span');
 		expect(spans[0].innerHTML).to.equal('1: async value');

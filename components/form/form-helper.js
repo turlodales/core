@@ -1,6 +1,4 @@
 
-import { cssEscape } from '../../helpers/dom.js';
-
 const formElements = {
 	button: true,
 	fieldset: true,
@@ -15,23 +13,34 @@ export const isElement = (node) => node && node.nodeType === Node.ELEMENT_NODE;
 
 export const isCustomElement = (node) => isElement(node) && node.nodeName.indexOf('-') !== -1;
 
-export const isCustomFormElement = (node) => isCustomElement(node) && !!node.formAssociated;
+export const isCustomFormElement = (node) => isCustomElement(node) && Boolean(node.formAssociated);
+
+export const isCustomFormElementContainer = (node) => isCustomElement(node) && Boolean(node.isCustomFormElementContainer);
 
 export const isNativeFormElement = (node) => {
 	if (!isElement(node)) {
 		return false;
 	}
 	const nodeName = node.nodeName.toLowerCase();
-	return !!formElements[nodeName];
+	return Boolean(formElements[nodeName]);
 };
 
-const _findFormElementsHelper = (ele, eles, isFormElementPredicate, visitChildrenPredicate) => {
-	if (isNativeFormElement(ele) || isCustomFormElement(ele) || isFormElementPredicate(ele)) {
-		eles.push(ele);
+const getElementChildren = (elem) => {
+	if (isCustomFormElementContainer(elem)) {
+		return elem.shadowRoot.children;
 	}
-	if (visitChildrenPredicate(ele)) {
-		for (const child of ele.children) {
-			_findFormElementsHelper(child, eles, isFormElementPredicate, visitChildrenPredicate);
+
+	return elem.tagName === 'SLOT' && ['primary', 'secondary'].includes(elem.name) ? elem.assignedNodes() : elem.children;
+};
+
+const _findFormElementsHelper = (elem, elems, isFormElementPredicate, visitChildrenPredicate) => {
+	if (isNativeFormElement(elem) || isCustomFormElement(elem) || isFormElementPredicate(elem)) {
+		elems.push(elem);
+	}
+	if (visitChildrenPredicate(elem)) {
+		const children = getElementChildren(elem);
+		for (const child of children) {
+			_findFormElementsHelper(child, elems, isFormElementPredicate, visitChildrenPredicate);
 		}
 	}
 };
@@ -56,7 +65,7 @@ const _tryGetLabelElement = ele => {
 	}
 	if (ele.id) {
 		const rootNode = ele.getRootNode();
-		return rootNode.querySelector(`label[for="${cssEscape(ele.id)}"]`);
+		return rootNode.querySelector(`label[for="${CSS.escape(ele.id)}"]`);
 	}
 	return null;
 };
@@ -149,6 +158,11 @@ const _hasFormData = (node, submitter) => {
 			return false;
 		}
 		if (type === 'reset') {
+			return false;
+		}
+	}
+	if (tagName === 'd2l-input-checkbox') {
+		if (!node.checked) {
 			return false;
 		}
 	}

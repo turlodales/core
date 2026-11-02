@@ -4,19 +4,23 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta charset="UTF-8">
 		<link rel="stylesheet" href="../../demo/styles.css" type="text/css">
-		<script>
-			//window.D2L = { DialogMixin: { preferNative: false } };
-		</script>
 		<script type="module">
 			import '../../demo/demo-page.js';
 			import '../../button/button.js';
 			import '../../dropdown/dropdown-button-subtle.js';
 			import '../../dropdown/dropdown-content.js';
+			import '../../dropdown/dropdown.js';
+			import '../../dropdown/dropdown-menu.js';
 			import '../../filter/filter.js';
 			import '../../filter/filter-dimension-set.js';
 			import '../../filter/filter-dimension-set-value.js';
+			import '../../inputs/input-checkbox.js';
+			import '../../list/demo/demo-list.js';
+			import '../../menu/menu.js';
+			import '../../menu/menu-item.js';
 			import '../dialog.js';
 			import './dialog-async-content.js';
+			import './dialog-async-content-until.js';
 			import './dialog-container.js';
 		</script>
 		<style>
@@ -36,6 +40,7 @@
 					<d2l-dialog id="dialog" title-text="Dialog Title">
 						<div>
 							<p>Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker</p>
+							<d2l-demo-list></d2l-demo-list>
 							<p>Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.</p>
 							<p>Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
 							<d2l-dropdown-button-subtle text="More">
@@ -73,6 +78,36 @@
 						});
 						document.querySelector('#dialog').addEventListener('d2l-dialog-close', (e) => {
 							console.log('dialog close', e.detail.action);
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Dialog with complex opener</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-dropdown>
+						<button class="d2l-dropdown-opener">Open it!</button>
+						<d2l-dropdown-menu id="dropdown">
+							<d2l-menu label="Astronomy">
+								<d2l-menu-item id="complex-opener" text="Open dialog"></d2l-menu-item>
+								<d2l-menu-item text="Item 2"></d2l-menu-item>
+								<d2l-menu-item text="Item 3"></d2l-menu-item>
+								<d2l-menu-item text="Item 4"></d2l-menu-item>
+							</d2l-menu>
+						</d2l-dropdown-menu>
+					</d2l-dropdown>
+					<d2l-dialog id="complex-opener-dialog" title-text="Dialog Title">
+						<div>
+							Hello
+						</div>
+						<d2l-button slot="footer" primary data-dialog-action="ok">Click Me!</d2l-button>
+						<d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+					</d2l-dialog>
+					<script>
+						document.querySelector('#complex-opener').addEventListener('d2l-menu-item-select', () => {
+							document.querySelector('#complex-opener-dialog').opened = true;
 						});
 					</script>
 				</template>
@@ -131,6 +166,28 @@
 				</template>
 			</d2l-demo-snippet>
 
+			<h2>Dialog (async using until)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-button id="openAsyncUntil">Show Dialog</d2l-button>
+					<d2l-dialog id="dialogAsyncUntil" title-text="Dialog Title">
+						<d2l-dialog-demo-async-content-until></d2l-dialog-demo-async-content-until>
+						<d2l-button slot="footer" primary data-dialog-action="ok">Click Me!</d2l-button>
+						<d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+					</d2l-dialog>
+					<script>
+						document.querySelector('#openAsyncUntil').addEventListener('click', () => {
+							document.querySelector('#dialogAsyncUntil').opened = true;
+							document.querySelector('d2l-dialog-demo-async-content-until').href = 'some-href';
+						});
+						document.querySelector('#dialogAsyncUntil').addEventListener('d2l-dialog-close', (e) => {
+							console.log('dialog action:', e.detail.action);
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
 			<h2>Dialog (intercept closing)</h2>
 
 			<d2l-demo-snippet>
@@ -178,6 +235,157 @@
 								e.detail.closeDialog();
 							}
 						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Dialog (critical)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-button id="openCritical">Show Dialog</d2l-button>
+					<d2l-dialog id="dialogCritical" title-text="Dialog Title" critical>
+						<div>
+							<p>Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker</p>
+							<p>Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.</p>
+							<p>Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
+						</div>
+						<d2l-button slot="footer" primary data-dialog-action="ok">Click Me!</d2l-button>
+						<d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+					</d2l-dialog>
+					<script>
+						document.querySelector('#openCritical').addEventListener('click', () => {
+							document.querySelector('#dialogCritical').opened = true;
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Dialog (native)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-button id="openNative">Show Dialog</d2l-button>
+					<d2l-dialog id="dialogNative" title-text="Dialog Title">
+						<div>
+							<p>Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker</p>
+							<p>Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.</p>
+							<p>Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
+						</div>
+						<d2l-button slot="footer" primary data-dialog-action="ok">Click Me!</d2l-button>
+						<d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+					</d2l-dialog>
+					<script>
+						document.querySelector('#dialogNative')._useNative = true;
+						document.querySelector('#openNative').addEventListener('click', () => {
+							document.querySelector('#dialogNative').opened = true;
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Dialog (full-height with iframe)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-button id="openFullHeight">Show Dialog</d2l-button>
+					<d2l-dialog id="dialogFullHeight" full-height title-text="Dialog Title">
+						<iframe id="iframeFullHeight" style="box-sizing: border-box; display: block; height: 100%; width: 100%;"></iframe>
+						<d2l-button slot="footer" primary data-dialog-action="ok">Click Me!</d2l-button><d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+					</d2l-dialog>
+					<script>
+						document.querySelector('#iframeFullHeight').src = window.location.href.substring(0, window.location.href.indexOf('/components'));
+						document.querySelector('#openFullHeight').addEventListener('click', () => {
+							document.querySelector('#dialogFullHeight').opened = true;
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Dialog (overflowing content)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-button id="openScrollFocus">Show Dialog</d2l-button>
+					<d2l-dialog title-text="My Dialog" id="dialogScrollFocus">
+						<p>Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker</p>
+						<p>Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.</p>
+						<p>Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
+						<p>Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker</p>
+						<p>Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.</p>
+						<p>Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
+						<p>Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker</p>
+						<p>Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.</p>
+						<p>Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
+						<d2l-button slot="footer" primary data-dialog-action="ok">Click Me!</d2l-button>
+						<d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+					</d2l-dialog>
+					<script>
+						document.querySelector('#openScrollFocus').addEventListener('click', () => {
+							document.querySelector('#dialogScrollFocus').opened = true;
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Dialog (no content scrolling)</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-button id="openNoScrollDialog">Show Dialog</d2l-button>
+					<d2l-dialog id="noScrollDialog" title-text="Dialog Title">
+						<d2l-input-checkbox id="noScroll" label="Show extra paragraphs"></d2l-input-checkbox>
+						<div>
+							<p>Deadlights jack lad schooner scallywag dance the hempen jig carouser broadside cable strike colors. Bring a spring upon her cable holystone blow the man down spanker</p>
+							<p id="p2" style="display: none;">Shiver me timbers to go on account lookout wherry doubloon chase. Belay yo-ho-ho keelhaul squiffy black spot yardarm spyglass sheet transom heave to.</p>
+							<p id="p3" style="display: none;">Trysail Sail ho Corsair red ensign hulk smartly boom jib rum gangway. Case shot Shiver me timbers gangplank crack Jennys tea cup ballast Blimey lee snow crow's nest rutters. Fluke jib scourge of the seven seas boatswain schooner gaff booty Jack Tar transom spirits.</p>
+						</div>
+						<d2l-button slot="footer" primary data-dialog-action="ok">Click Me!</d2l-button>
+						<d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+					</d2l-dialog>
+					<script>
+						document.querySelector('#noScroll').addEventListener('change', async(e) => {
+							const dialog = document.querySelector('#noScrollDialog');
+							dialog.noContentScroll = true;
+							const display = e.target.checked ? 'block' : 'none';
+							dialog.querySelector('#p2').style.display = display;
+							dialog.querySelector('#p3').style.display = display;
+							await dialog.resize();
+							dialog.noContentScroll = false;
+						});
+						document.querySelector('#openNoScrollDialog').addEventListener('click', () => {
+							document.querySelector('#noScrollDialog').opened = true;
+						});
+					</script>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Simple dialog with longer loading content</h2>
+
+			<d2l-demo-snippet>
+				<template>
+					<d2l-button>Show Dialog</d2l-button>
+					<d2l-dialog title-text="Fullscreen Title">
+					</d2l-dialog>
+					<d2l-dropdown style="display: none; padding: 30px;">
+						<button class="d2l-dropdown-opener">Open!</button>
+						<d2l-dropdown-content>
+							<a href=" " style="display: block;">A Link</a>
+							Some content... Click me!
+						</d2l-dropdown-content>
+					</d2l-dropdown>
+
+					<script>
+						(demo => {
+							demo.querySelector('d2l-button').addEventListener('click', () => {
+								demo.querySelector('d2l-dialog').opened = true;
+								setTimeout(() => {
+									demo.querySelector('d2l-dropdown').style.display = 'block';
+									demo.querySelector('d2l-dialog').appendChild(demo.querySelector('d2l-dropdown'));
+									demo.querySelector('d2l-dialog').resize();
+								}, 1000);
+							});
+						})(document.currentScript.parentNode);
 					</script>
 				</template>
 			</d2l-demo-snippet>

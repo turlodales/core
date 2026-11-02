@@ -1,6 +1,6 @@
 import '../tooltip.js';
-import { aTimeout, expect, fixture, html, oneEvent, triggerBlurFor, triggerFocusFor } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { aTimeout, defineCE, expect, fixture, focusElem, html, oneEvent, runConstructor, sendKeys } from '@brightspace-ui/testing';
+import { LitElement } from 'lit';
 
 const basicFixture = html`
 	<div>
@@ -88,12 +88,42 @@ describe('d2l-tooltip', () => {
 		});
 	});
 
-	describe('explict target', () => {
+	describe('explicit target', () => {
 
-		it('should find target using for attribute', async() => {
+		it('should find target using for attribute', () => {
 			const expectedTarget = tooltipFixture.querySelector('#explicit-target');
-			expect(tooltip._target).to.equal(expectedTarget);
+			expect(tooltip._getTarget()).to.equal(expectedTarget);
 		});
+
+		it('should update target if current target is removed', async() => {
+			const expectedTarget = tooltipFixture.querySelector('#explicit-target');
+			expectedTarget.remove();
+			await aTimeout(1);
+			expect(tooltip._getTarget()).to.be.null;
+		});
+
+		it('should update target if current target id changes', async() => {
+			const expectedTarget = tooltipFixture.querySelector('#explicit-target');
+			expectedTarget.id = '';
+			await aTimeout(1);
+			expect(tooltip._getTarget()).to.be.null;
+		});
+
+		it('should not error if target is not found while announced', async() => {
+			const elem = await fixture(html`<d2l-tooltip for="unknown" announced>Tooltip</d2l-tooltip>`);
+
+			let unhandledRejectionReason;
+			const handleUnhandledRejection = event => unhandledRejectionReason = event.reason;
+			window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+			elem.show();
+			await oneEvent(elem, 'd2l-tooltip-show');
+			await aTimeout(100);
+			expect(unhandledRejectionReason).to.be.undefined;
+
+			window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+		});
+
 	});
 
 	describe('implicit target', () => {
@@ -105,14 +135,14 @@ describe('d2l-tooltip', () => {
 
 		it('should find parent target', async() => {
 			const expectedTarget = tooltipFixture.querySelector('#implicit-target');
-			expect(tooltip._target).to.equal(expectedTarget);
+			expect(tooltip._getTarget()).to.equal(expectedTarget);
 		});
 	});
 
 	describe('show-hide', () => {
 
 		it('should show when target is focused', async() => {
-			await triggerFocusFor(tooltipFixture.querySelector('#explicit-target'));
+			await focusElem(tooltipFixture.querySelector('#explicit-target'));
 			await oneEvent(tooltipFixture, 'd2l-tooltip-show');
 			expect(tooltip.showing).to.be.true;
 		});
@@ -125,10 +155,10 @@ describe('d2l-tooltip', () => {
 
 		it('should hide from blur when target is focused', async() => {
 			const target = tooltipFixture.querySelector('#explicit-target');
-			await triggerFocusFor(target);
+			await focusElem(target);
 			await oneEvent(tooltipFixture, 'd2l-tooltip-show');
 
-			setTimeout(() => triggerBlurFor(target));
+			setTimeout(() => target.blur());
 			await oneEvent(tooltipFixture, 'd2l-tooltip-hide');
 			expect(tooltip.showing).to.be.false;
 		});
@@ -148,7 +178,7 @@ describe('d2l-tooltip', () => {
 			const target = tooltipFixture.querySelector('#explicit-target');
 			target.dispatchEvent(new Event('mouseenter'));
 			await oneEvent(tooltipFixture, 'd2l-tooltip-show');
-			await triggerFocusFor(target);
+			await focusElem(target);
 
 			target.dispatchEvent(new Event('mouseleave'));
 			await aTimeout(100);
@@ -160,9 +190,9 @@ describe('d2l-tooltip', () => {
 			const target = tooltipFixture.querySelector('#explicit-target');
 			target.dispatchEvent(new Event('mouseenter'));
 			await oneEvent(tooltipFixture, 'd2l-tooltip-show');
-			await triggerFocusFor(target);
+			await focusElem(target);
 
-			await triggerBlurFor(target);
+			target.blur();
 			await aTimeout(100);
 			expect(tooltip.showing).to.be.true;
 		});
@@ -176,7 +206,7 @@ describe('d2l-tooltip', () => {
 				const target = tooltipFixture.querySelector('#explicit-target');
 				setTimeout(() => {
 					if (testCase.focus) {
-						triggerFocusFor(target);
+						focusElem(target);
 					}
 					if (testCase.hover) {
 						target.dispatchEvent(new Event('mouseenter'));
@@ -185,11 +215,7 @@ describe('d2l-tooltip', () => {
 				await oneEvent(tooltipFixture, 'd2l-tooltip-show');
 				await aTimeout();
 
-				const eventObj = document.createEvent('Events');
-				eventObj.initEvent('keydown', true, true);
-				eventObj.keyCode = 27;
-
-				setTimeout(() => document.dispatchEvent(eventObj));
+				setTimeout(() => sendKeys('press', 'Escape'));
 				await oneEvent(tooltipFixture, 'd2l-tooltip-hide');
 				expect(tooltip.showing).to.be.false;
 			});
@@ -198,7 +224,7 @@ describe('d2l-tooltip', () => {
 		it('should show if added to a target that already has focus', async() => {
 
 			const target = tooltipFixture.querySelector('#explicit-target');
-			await triggerFocusFor(target);
+			await focusElem(target);
 
 			const dynamicTooltip = document.createElement('d2l-tooltip');
 			dynamicTooltip.for = target.id;
@@ -207,6 +233,58 @@ describe('d2l-tooltip', () => {
 			await oneEvent(tooltipFixture, 'd2l-tooltip-show');
 			expect(dynamicTooltip.showing).to.be.true;
 		});
+
+		it('should show if added to a target with a nested element that already has focus', async() => {
+
+			const targetTag = defineCE(class extends LitElement {
+				render() {return html`<button>nested target</button>`; }
+			});
+			const elem = await fixture(`<div><${targetTag} id="target"></${targetTag}></div>`);
+			const target = elem.querySelector(targetTag);
+
+			await focusElem(target.shadowRoot.querySelector('button'));
+
+			const tooltip = document.createElement('d2l-tooltip');
+			tooltip.announced = true;
+			elem.appendChild(tooltip);
+
+			await oneEvent(elem, 'd2l-tooltip-show');
+			expect(tooltip.showing).to.be.true;
+
+		});
+
+		it('should not show if added to a disabled target that already has focus', async() => {
+
+			const target = tooltipFixture.querySelector('#explicit-target');
+			target.disabled = true;
+			await focusElem(target);
+
+			const dynamicTooltip = document.createElement('d2l-tooltip');
+			dynamicTooltip.for = target.id;
+			tooltipFixture.appendChild(dynamicTooltip);
+
+			await aTimeout(100);
+			expect(dynamicTooltip.showing).to.be.false;
+		});
+
+		it('should show after the tooltip is disconnected and reconnected', async() => {
+			const target = tooltipFixture.querySelector('#explicit-target');
+			const parentElement = target.parentElement;
+
+			// remove the tooltip from the dom
+			tooltip.remove();
+			expect(parentElement.querySelector('d2l-tooltip')).to.not.exist;
+
+			// re-add the tooltip to the dom
+			parentElement.appendChild(tooltip);
+			expect(parentElement.querySelector('d2l-tooltip')).to.exist;
+
+			// show the tooltip
+			await focusElem(target);
+			await aTimeout(100);
+			expect(tooltip.showing).to.be.true;
+		});
+
 	});
 
 	describe('delay', () => {
@@ -245,6 +323,38 @@ describe('d2l-tooltip', () => {
 			await oneEvent(tooltipFixture, 'd2l-tooltip-show');
 			expect(tooltip.showing).to.be.true;
 		});
+
+		it('should show second tooltip without delay after hovering over first tooltip for greater than delay', async() => {
+			const doubleTooltipFixture = html`
+				<div>
+					<button id="explicit-target1">Hover me for tips</button>
+					<d2l-tooltip for="explicit-target1" for-type="descriptor">If I got a problem then a problem's got a problem.</d2l-tooltip>
+					<button id="explicit-target2">Hover me for tips</button>
+					<d2l-tooltip for="explicit-target2" for-type="descriptor">There might be another problem.</d2l-tooltip>
+				</div>
+			`;
+
+			const testFixture = await fixture(doubleTooltipFixture);
+
+			const target1 = testFixture.querySelector('#explicit-target1');
+			const target2 = testFixture.querySelector('#explicit-target2');
+
+			const tooltips = testFixture.querySelectorAll('d2l-tooltip');
+			const tooltip1 = tooltips[0];
+			const tooltip2 = tooltips[1];
+
+			// display tooltip 1 then leave
+			target1.dispatchEvent(new Event('mouseenter'));
+			await oneEvent(testFixture, 'd2l-tooltip-show');
+			expect(tooltip1.showing).to.be.true;
+			target1.dispatchEvent(new Event('mouseleave'));
+
+			// don't wait delay, enter target2, tooltip 2 should show without having to wait for delay
+			target2.dispatchEvent(new Event('mouseenter'));
+			await aTimeout(tooltip.delay / 2);
+			expect(tooltip2.showing).to.be.true;
+		});
+
 	});
 
 	describe('force-show', () => {
@@ -258,12 +368,9 @@ describe('d2l-tooltip', () => {
 			expect(tooltip.showing).to.be.true;
 		});
 
-		it('should not hide when ESC key is pressed ', async() => {
+		it('should not hide when ESC key is pressed', async() => {
 
-			const eventObj = document.createEvent('Events');
-			eventObj.initEvent('keydown', true, true);
-			eventObj.keyCode = 27;
-			document.dispatchEvent(eventObj);
+			await sendKeys('press', 'Escape');
 			await aTimeout(100);
 
 			expect(tooltip.showing).to.be.true;
@@ -282,11 +389,12 @@ describe('d2l-tooltip', () => {
 			const target = tooltipFixture.querySelector('#explicit-target');
 			target.dispatchEvent(new Event('mouseenter'));
 			await oneEvent(tooltipFixture, 'd2l-tooltip-show');
-			await triggerFocusFor(target);
+			await focusElem(target);
 
 			setTimeout(() => target.dispatchEvent(new Event('mouseleave')));
 			await oneEvent(tooltipFixture, 'd2l-tooltip-hide');
 			expect(tooltip.showing).to.be.false;
 		});
 	});
+
 });

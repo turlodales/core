@@ -4,8 +4,7 @@ import '../../menu/menu.js';
 import '../../menu/menu-item.js';
 import '../../menu/menu-item-link.js';
 import '../../menu/menu-item-radio.js';
-import { expect, fixture, html, oneEvent } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
 
 const itemFixture = html`
 	<div>
@@ -62,7 +61,6 @@ describe('d2l-dropdown-menu', () => {
 			it(testCase.name, async() => {
 				const dropdown = await fixture(testCase.fixture);
 				const content = dropdown.querySelector('#dropdown');
-				await content.updateComplete;
 				content.setAttribute('opened', true);
 				await oneEvent(content, 'd2l-dropdown-open');
 				setTimeout(() => dropdown.querySelector('#first-item').click());

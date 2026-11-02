@@ -1,6 +1,8 @@
-import { defineCE, expect, fixture, oneEvent } from '@open-wc/testing';
+import '../list.js';
+import { aTimeout, defineCE, expect, fixture, nextFrame, oneEvent } from '@brightspace-ui/testing';
 import { dropLocation, ListItemDragDropMixin, NewPositionEventDetails } from '../list-item-drag-drop-mixin.js';
 import { html, LitElement } from 'lit';
+import { mockFlag, resetFlag } from '../../../helpers/flags.js';
 import { ListItemMixin } from '../list-item-mixin.js';
 
 const tag = defineCE(
@@ -17,11 +19,27 @@ const tag = defineCE(
 	}
 );
 
+function touchEvent(type, target, x = 0, y = 0) {
+	const event = new Event(type, { bubbles: true, cancelable: true });
+	event.changedTouches = [{ clientX: x, clientY: y }];
+	target.dispatchEvent(event);
+	return event;
+};
+
 describe('ListItemDragDropMixin', () => {
 	it('Sets draggable to false when no key is given', async() => {
 		const element = await fixture(`<${tag} draggable></${tag}>`);
-		await element.updateComplete;
 		expect(element.draggable).to.be.false;
+	});
+
+	it('Sets _dropNestedOnly and keyboardDragDisabled to true when drop-nested-only is set', async() => {
+		const element = await fixture(`<d2l-list drop-nested-only>
+			<${tag} key="1" draggable></${tag}>
+		</d2l-list>`);
+		const listItem = element.querySelector(tag);
+
+		expect(listItem._dropNestedOnly).to.be.true;
+		expect(listItem.keyboardDragDisabled).to.be.true;
 	});
 
 	describe('Track placement as item is being moved', () => {
@@ -60,51 +78,171 @@ describe('ListItemDragDropMixin', () => {
 			expect(dropGrid).not.be.null;
 		});
 
-		[{
-			description: 'shows top marker when entering from top',
-			dropTargetNumber: 0,
-			marker: 'top'
-		},
-		{
-			description: 'shows bottom marker when entering top half from top',
-			dropTargetNumber: 1,
-			marker: 'bottom'
-		},
-		{
-			description: 'shows bottom marker when entering bottom half from top',
-			dropTargetNumber: 2,
-			marker: 'bottom'
-		},
-		{
-			description: 'shows bottom marker when entering bottom from top',
-			dropTargetNumber: 3,
-			marker: 'bottom'
-		},
-		{
-			description: 'shows top marker when entering bottom half from bottom',
-			dropTargetNumber: 2,
-			marker: 'top'
-		},
-		{
-			description: 'shows top marker when entering top half from bottom',
-			dropTargetNumber: 1,
-			marker: 'top'
-		}].forEach((test) => {
-			it(test.description, async() => {
-				setDropGrid();
-				const dropTarget = dropGrid.querySelectorAll('div')[test.dropTargetNumber];
-				dispatchDragEvent(dropTarget, 'dragenter');
-				await oneEvent(dropTarget, 'dragenter');
-				await element.updateComplete;
-				const markers = {
-					'top' : element.shadowRoot.querySelector('#top-placement-marker'),
-					'bottom': element.shadowRoot.querySelector('#bottom-placement-marker')
-				};
-				expect(markers[test.marker]).to.exist;
-				expect(markers[test.marker === 'top' ? 'bottom' : 'top']).to.be.null;
+		[
+			{ dropNestedOnly: false, dropNested: false },
+			{ dropNestedOnly: false, dropNested: true },
+			{ dropNestedOnly: true, dropNested: false },
+			{ dropNestedOnly: true, dropNested: true },
+		].forEach(({ dropNestedOnly, dropNested }) => {
+			[{
+				description: 'shows top marker when entering from top',
+				dropTargetNumber: 0,
+				marker: 'top'
+			},
+			{
+				description: 'shows bottom marker when entering top half from top',
+				dropTargetNumber: 1,
+				marker: 'bottom'
+			},
+			{
+				description: 'shows bottom marker when entering bottom half from top',
+				dropTargetNumber: 2,
+				marker: 'bottom'
+			},
+			{
+				description: 'shows bottom marker when entering bottom from top',
+				dropTargetNumber: 3,
+				marker: 'bottom'
+			},
+			{
+				description: 'shows top marker when entering bottom half from bottom',
+				dropTargetNumber: 2,
+				marker: 'top'
+			},
+			{
+				description: 'shows top marker when entering top half from bottom',
+				dropTargetNumber: 1,
+				marker: 'top'
+			}].forEach((test) => {
+				it(`${test.description}${dropNestedOnly ? '(drop-nested-only)' : ''}${dropNested ? '(drop-nested)' : ''}`, async() => {
+					element._dropNestedOnly = dropNestedOnly;
+					element.dropNested = dropNested;
+					await element.updateComplete;
+
+					setDropGrid();
+					const dropTarget = dropGrid.querySelectorAll('div')[test.dropTargetNumber];
+					dispatchDragEvent(dropTarget, 'dragenter');
+					await oneEvent(dropTarget, 'dragenter');
+					await element.updateComplete;
+					const markers = {
+						'top' : element.shadowRoot.querySelector('#top-placement-marker'),
+						'bottom': element.shadowRoot.querySelector('#bottom-placement-marker')
+					};
+					if (dropNestedOnly || (dropNested && (test.dropTargetNumber === 1 || test.dropTargetNumber === 2))) expect(markers[test.marker]).to.be.null;
+					else expect(markers[test.marker]).to.exist;
+					expect(markers[test.marker === 'top' ? 'bottom' : 'top']).to.be.null;
+				});
 			});
 		});
 
+	});
+
+	describe('Mobile drag and drop behavior', () => {
+		// Leave these tests when cleaning 'GAUD-10642-improved-mobile-drag-and-drop',
+		// just take them out from this inner describe
+		describe('GAUD-10642-improved-mobile-drag-and-drop is true', () => {
+			let scrollingContainer;
+
+			beforeEach(async() => {
+				scrollingContainer = await fixture(`
+					<div style="overflow: auto; height: 200px;">
+						<d2l-list>
+							<${tag} key="1" draggable style="height: 250px;"></${tag}>
+							<${tag} key="2" draggable style="height: 250px;"></${tag}>
+						</d2l-list>
+					</div>
+				`);
+			});
+
+			afterEach(() => scrollingContainer = undefined);
+
+			it('touchstart: sets the inline touch-action to none on parent scrolling container', async() => {
+				const item = scrollingContainer.querySelector(`${tag}[key="1"]`);
+				const dragArea = item.shadowRoot.querySelector('.d2l-list-item-drag-area');
+
+				touchEvent('touchstart', dragArea, 0, 0);
+				await aTimeout(500); // exceed touchHoldDuration
+
+				expect(scrollingContainer.style.touchAction).to.equal('none');
+			});
+
+			it('touchend: reverts the inline touch-action on parent scrolling container', async() => {
+				const [item1] = scrollingContainer.querySelectorAll(`${tag}`);
+				const dragArea = item1.shadowRoot.querySelector('.d2l-list-item-drag-area');
+
+				const item1Rect = item1.getBoundingClientRect();
+				touchEvent('touchstart', dragArea, item1Rect.x + item1Rect.width / 2, item1Rect.y + item1Rect.height / 2);
+				await aTimeout(500); // exceed touchHoldDuration
+
+				touchEvent('touchend', dragArea, item1Rect.x + item1Rect.width / 2, item1Rect.y + item1Rect.height / 2);
+
+				expect(scrollingContainer.style.touchAction).to.equal('');
+			});
+
+			it('touchmove: triggers dragover event', async() => {
+				let dragging = false;
+				scrollingContainer = await fixture(`
+					<div style="overflow: auto; height: 600px;">
+						<d2l-list>
+							<${tag} label="Item 1" key="1" draggable style="height: 250px;">Item 1</${tag}>
+							<${tag} label="Item 2" key="2" draggable style="height: 250px;">Item 2</${tag}>
+						</d2l-list>
+					</div>
+				`);
+
+				const [item1, item2] = scrollingContainer.querySelectorAll(`${tag}`);
+				const dragArea = item1.shadowRoot.querySelector('.d2l-list-item-drag-area');
+
+				touchEvent('touchstart', dragArea);
+				await aTimeout(500); // exceed touchHoldDuration
+				const item2Rect = item2.getBoundingClientRect();
+				touchEvent('touchmove', dragArea, item2Rect.x + item2Rect.width / 2, item2Rect.y + item2Rect.height / 2);
+
+				await nextFrame(); // extra render needed to ensure drop target is rendered after dragenter event
+
+				const dropArea = item2.shadowRoot.querySelector('.d2l-list-item-drag-drop-grid');
+				dropArea.addEventListener('dragover', () => dragging = true);
+				const dropAreaRect = dropArea.getBoundingClientRect();
+				touchEvent('touchmove', dragArea, dropAreaRect.x + dropAreaRect.width / 2, dropAreaRect.y + dropAreaRect.height / 2);
+
+				expect(dragging).to.be.true;
+			});
+
+			it('touchcancel: resets the scrollable conainer when touch event is cancelled', async() => {
+				const item = scrollingContainer.querySelector(`${tag}[key="1"]`);
+				const dragArea = item.shadowRoot.querySelector('.d2l-list-item-drag-area');
+
+				touchEvent('touchstart', dragArea);
+				await aTimeout(500); // exceed touchHoldDuration
+				touchEvent('touchcancel', dragArea);
+
+				expect(scrollingContainer.style.touchAction).to.equal('');
+			});
+		});
+
+		// remove this test when cleaning 'GAUD-10642-improved-mobile-drag-and-drop'
+		describe('GAUD-10642-improved-mobile-drag-and-drop is false', () => {
+			beforeEach(() => mockFlag('GAUD-10642-improved-mobile-drag-and-drop', false));
+			afterEach(() => resetFlag('GAUD-10642-improved-mobile-drag-and-drop'));
+
+			it('touchstart: sets the inline touch-action to none on parent scrolling container', async() => {
+				const scrollingContainer = await fixture(`
+					<div style="overflow: auto; height: 200px;">
+						<d2l-list>
+							<${tag} key="1" draggable style="height: 250px;"></${tag}>
+							<${tag} key="2" draggable style="height: 250px;"></${tag}>
+						</d2l-list>
+					</div>
+				`);
+				const item = scrollingContainer.querySelector(`${tag}[key="1"]`);
+				const dragArea = item.shadowRoot.querySelector('.d2l-list-item-drag-area');
+
+				touchEvent('touchstart', dragArea, 0, 0);
+				await new Promise(r => setTimeout(r, 500)); // exceed touchHoldDuration
+
+				expect(scrollingContainer.style.touchAction).to.equal('');
+			});
+		});
 	});
 });
 

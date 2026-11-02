@@ -1,7 +1,8 @@
 import '../filter-dimension-set.js';
 import '../filter-dimension-set-value.js';
-import { expect, fixture, html, oneEvent } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import '../filter-dimension-set-date-time-range-value.js';
+import '../filter-dimension-set-empty-state.js';
+import { expect, fixture, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
 import { spy } from 'sinon';
 
 const dimensionfixture = html`
@@ -32,6 +33,59 @@ describe('d2l-filter-dimension-set', () => {
 			expect(values[1].key).to.equal('2');
 			expect(values[2].key).to.equal('newValue');
 		});
+
+		it('handles search-empty-state slot change', async() => {
+			const elem = await fixture(dimensionfixture);
+			const eventSpy = spy(elem, 'dispatchEvent');
+
+			const emptyState = document.createElement('d2l-filter-dimension-set-empty-state');
+			emptyState.actionHref = 'https://d2l.com';
+			emptyState.actionText = 'Click me';
+			emptyState.description = 'Description';
+			emptyState.slot = 'search-empty-state';
+			setTimeout(() => elem.appendChild(emptyState));
+
+			const e = await oneEvent(elem, 'd2l-filter-dimension-data-change');
+
+			expect(e.detail.dimensionKey).to.equal('dim');
+			expect(e.detail.changes.size).to.equal(1);
+			expect(e.detail.changes.get('searchEmptyState').actionHref).to.equal('https://d2l.com');
+			expect(e.detail.changes.get('searchEmptyState').actionText).to.equal('Click me');
+			expect(e.detail.changes.get('searchEmptyState').description).to.equal('Description');
+			expect(eventSpy).to.be.calledOnce;
+		});
+
+		it('handles slot change with minWidth set', async() => {
+			const elem = await fixture(dimensionfixture);
+
+			const minWidthDimension = document.createElement('d2l-filter-dimension-set-date-time-range-value');
+			minWidthDimension.slot = '';
+			setTimeout(() => elem.appendChild(minWidthDimension));
+			await oneEvent(elem, 'd2l-filter-dimension-data-change');
+
+			expect(elem.minWidth).to.equal(410);
+		});
+
+		it('handles set-empty-state slot change', async() => {
+			const elem = await fixture(dimensionfixture);
+			const eventSpy = spy(elem, 'dispatchEvent');
+
+			const emptyState = document.createElement('d2l-filter-dimension-set-empty-state');
+			emptyState.actionHref = 'https://d2l.com';
+			emptyState.actionText = 'Click me';
+			emptyState.description = 'Description';
+			emptyState.slot = 'set-empty-state';
+			setTimeout(() => elem.appendChild(emptyState));
+
+			const e = await oneEvent(elem, 'd2l-filter-dimension-data-change');
+
+			expect(e.detail.dimensionKey).to.equal('dim');
+			expect(e.detail.changes.size).to.equal(1);
+			expect(e.detail.changes.get('setEmptyState').actionHref).to.equal('https://d2l.com');
+			expect(e.detail.changes.get('setEmptyState').actionText).to.equal('Click me');
+			expect(e.detail.changes.get('setEmptyState').description).to.equal('Description');
+			expect(eventSpy).to.be.calledOnce;
+		});
 	});
 
 	describe('data change', () => {
@@ -40,13 +94,17 @@ describe('d2l-filter-dimension-set', () => {
 			const eventSpy = spy(elem, 'dispatchEvent');
 			elem.text = 'Test';
 			elem.loading = true;
+			elem.searchType = 'manual'; // hasMore won't be set without manual search
+			elem.hasMore = true;
 
 			const e = await oneEvent(elem, 'd2l-filter-dimension-data-change');
 			expect(e.detail.dimensionKey).to.equal('dim');
 			expect(e.detail.valueKey).to.be.undefined;
-			expect(e.detail.changes.size).to.equal(2);
+			expect(e.detail.changes.size).to.equal(4);
 			expect(e.detail.changes.get('text')).to.equal('Test');
 			expect(e.detail.changes.get('loading')).to.equal(true);
+			expect(e.detail.changes.get('hasMore')).to.equal(true);
+			expect(e.detail.changes.get('selectedFirst')).to.equal(true); // updating hasMore updates selectedFirst
 			expect(eventSpy).to.be.calledOnce;
 		});
 

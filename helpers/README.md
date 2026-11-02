@@ -86,18 +86,30 @@ elemIdListRemoves(node, attrName, value);
 findComposedAncestor(node, predicate);
 
 // gets the composed children (including shadow children & distributed children)
-getComposedChildren(element);
+// includes optional predicate for filtering child elements
+getComposedChildren(element, predicate = () => true);
+
+//gets the composed next ancestor sibling by walking the composed ancestors
+// includes optional predicate for filtering elements
+getComposedNextAncestorElementSibling(node, { predicate });
+
+// gets the composed next element sibling considing how children are distributed into slots
+// includes optional predicate for filtering elements
+getComposedNextElementSibling(node, { predicate });
 
 // gets the composed parent (including shadow host & insertion points)
 getComposedParent(node);
 
-// returns the next composed sibling at least one dom level up
-// includes a predicate which will return the node when predicate(node) is true
-getNextAncestorSibling(node, predicate = () => true);
+//gets the composed previous ancestor sibling by walking the composed ancestors
+// includes optional predicate for filtering elements
+getComposedPreviousAncestorElementSibling(node, { predicate });
 
-// returns the previous composed sibling at least one dom level up
-// includes a predicate which will return the node when predicate(node) is true
-getPreviousAncestorSibling(node, predicate = () => true);
+// gets the composed previous element sibling considing how children are distributed into slots
+// includes optional predicate for filtering elements
+getComposedPreviousElementSibling(node, { predicate });
+
+// returns the first visible ancestor of the given node
+getFirstVisibleAncestor(node)
 
 // browser consistent implementation of HTMLElement.offsetParent
 getOffsetParent(node);
@@ -106,11 +118,28 @@ getOffsetParent(node);
 isComposedAncestor(ancestorNode, node);
 
 // returns true/false whether the element is visible regardless of positioning
-isVisible(node);
+isVisible(node, { checkAncestors: true });
 
 // similar to document.querySelector or element.querySelector,
 // except it queries not just the light DOM but also shadow DOM
 querySelectorComposed(node, selector)
+```
+
+## Flags
+
+Helper functions to get and mock flag values.
+
+```js
+import { ... } from '@brightspace-ui/core/helpers/flags.js';
+
+// returns the flag's mocked, configured, or default value
+getFlag(key, defaultValue);
+
+// for demos & tests, sets a mocked value for a flag, to be returned by getFlag
+mockFlag(key, value);
+
+// for demos & tests, removes the mocked value for a flag, so that getFlag returns the configured or default value
+resetFlag(key);
 ```
 
 ## Focus
@@ -120,14 +149,24 @@ Focus helper functions to easily select focusable DOM nodes
 ```js
 import { ... } from '@brightspace-ui/core/helpers/focus.js';
 
-// focuses on an element and forces a visible focus ring
-forceFocusVisible(node);
-
 // gets the active element, including shadow DOM active elements
 getComposedActiveElement()
 
 // gets the first focusable descendant given a node, including those within the shadow DOM
-getFirstFocusableDescendant(node, includeHidden, predicate, includeTabbablesOnly)
+getFirstFocusableDescendant(node, includeHidden, predicate, includeTabbablesOnly, checkNodeVisibility = true)
+
+// gets the first focusable relative given a node, checking first itself, its children, and lastly, recursively its parent
+getFirstFocusableRelative(node, { includeHidden, predicate, includeTabbablesOnly, checkNodeVisibility: true })
+
+// gets the focusable elements within the specified element
+getFocusableDescendants(node, { deep: false, disabled: false, hidden: false, predicate: elem => false, tabbablesOnly: true })
+
+// gets the focus pseudo-class to used in selectors (focus-visible if supported, or focus)
+// Usage:
+//	css`
+//		some-element:${unsafeCSS(getFocusPseudoClass())} { ... }
+//	`
+getFocusPseudoClass()
 
 // gets the last focusable descendant given a node, including those within the shadow DOM
 getLastFocusableDescendant(node, includeHidden)
@@ -144,9 +183,8 @@ getPreviousFocusableAncestor(node, includeHidden, includeTabbablesOnly)
 // returns true/false whether the element is focusable
 isFocusable(node, includeHidden, includeTabbablesOnly, includeDisabled)
 
-// returns true and focuses on node or its nearest focusable ancestor;
-// or false if node and its ancestors are not focusable
-tryApplyFocus(node)
+// returns true/false whether the :focus-visible is supported
+isFocusVisibleSupported()
 ```
 
 ## Gesture - Swipe
@@ -171,15 +209,56 @@ element.addEventListener('d2l-gesture-swipe', (e) => {
 });
 ```
 
-## queueMicrotask
+## offsetParent-legacy
 
-A polyfill for [queueMicrotask](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/queueMicrotask). For more information on microtasks, read [this article from Mozilla](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide).
+A ponyfill for [offsetParent](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent) for "legacy" `offsetParent` behaviour, which will include any ancestor shadow DOMs when searching for the closest positioned ancestor. The native browser behaviour was changed in 2022 to not leak nodes within a shadow tree.
+
+To use the ponyfill, import `getLegacyOffsetParent` (and/or `getLegacyOffsetTop`, `getLegacyOffsetLeft`):
 
 ```js
-import '@brightspace-ui/core/helpers/queueMicrotask.js';
-queueMicrotask(() => {
-    // do some work
-});
+import { getLegacyOffsetParent } from '@brightspace-ui/core/helpers/offsetParent-legacy.js';
+
+// Replace `element.offsetParent` with:
+const offsetParent = getLegacyOffsetParent(element);
+```
+
+## Plugins
+
+Plugin helpers provide a way for modules to implement and register objects that can be plugged into other project's modules without requiring the plugin consumer to import those modules or objects directly. A higher order module (ex. in BSI) is responsible for importing the plugin registrations.
+
+The plugin implementor uses the `registerPlugin` helper method to make its implementation available to interested consumers. The implementor provides a key for the set of plugins in which to register and the plugin implementation.
+
+Optionally, an object to specify a `key` for the plugin and/or the `sort` value may be provided. The `key` is useful if consumers intend to request a specific plugin, while the `sort` is useful in cases where the order of plugins is important to consumers. If `sort` is not specified for at least one plugin, they will be provided to consumers in registration order.
+
+**Important!** plugin registrations should defer loading their dependencies using dynamic imports. They should **not** be synchronously imported in the registration module.
+
+```js
+import { registerPlugin } from '@brightspace-ui/core/helpers/plugins.js';
+
+// Provide plugin set key, plugin
+registerPlugin('foo-plugins', { prop1: 'some value' });
+registerPlugin('foo-plugins', { prop1: 'other value' });
+
+// Optionally provide key and/or sort value
+registerPlugin('foo-plugins', { prop1: 'some value' }, { key: 'key-1', sort: 1 });
+registerPlugin('foo-plugins', { prop1: 'other value' }, { key: 'key-2', sort: 2 });
+
+// Defer loading dependencies until needed
+registerPlugin('foo-plugins', { getRenderer: async () => {
+    return (await import('./some-module.js')).renderer
+}});
+```
+
+The plugin consumer uses the `getPlugins` helper method to get references to the registered plugins by providing a key for the set of plugins. If the consumer knows the key of the plugin it needs, it can request the plugin by using `tryGetPluginByKey` and specifying the plugin set key and plugin key.
+
+```js
+import { getPlugins, tryGetPluginByKey } from '@brightspace-ui/core/helpers/plugins.js';
+
+// Call getPlugins to get plugins
+const plugins = getPlugins('foo-plugins');
+
+// Call tryGetPluginByKey to get a specific plugin by key
+const plugin = tryGetPluginByKey('foo-plugins', 'key-1');
 ```
 
 ## requestIdleCallback
@@ -194,6 +273,20 @@ import '@brightspace-ui/core/helpers/requestIdleCallback.js';
 requestIdleCallback((deadline) => {
     // do some work
 }, { timeout: 1000 });
+```
+
+## Trusted Types
+
+The Trusted Types module provides a polyfill for the browser's TrustedTypes API along with Trusted Type policies. These policies provide a `createHTML` method for creating TrustedHTML objects that can be passed to injection sinks like `innerHTML`.
+
+```js
+import { markdownHtmlPolicy, safeHtmlPolicy } from '@brightspace-ui/core/helpers/trusted-types.js';
+
+// filters HTML string and returns TrustedHTML
+const result = safeHtmlPolicy.createHTML(html);
+
+// filters HTML string for Markdown supported elements and returns TrustedHTML
+const result = markdownHtmlPolicy.createHTML(html);
 ```
 
 ## UniqueId

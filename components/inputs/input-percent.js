@@ -1,90 +1,73 @@
 import './input-number.js';
 import { css, html, LitElement } from 'lit';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { FormElementMixin } from '../form/form-element-mixin.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
-import { LabelledMixin } from '../../mixins/labelled-mixin.js';
+import { LabelledMixin } from '../../mixins/labelled/labelled-mixin.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
 
 /**
  * This component wraps the "<d2l-input-number>" tag and is intended for inputting percent values.
  * @slot after - Slot beside the input on the right side. Useful for an "icon" or "button-icon".
+ * @slot inline-help - Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
  * @fires change - Dispatched when an alteration to the value is committed (typically after focus is lost) by the user. The `value` attribute reflects a JavaScript Number which is parsed from the formatted input value.
  */
-class InputPercent extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixin(LocalizeCoreElement(RtlMixin(LitElement)))))) {
+class InputPercent extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMixin(LocalizeCoreElement(LitElement))))) {
 
-	static get properties() {
-		return {
-			/**
-			 * When set, will automatically place focus on the input
-			 * @type {boolean}
-			 */
-			autofocus: { type: Boolean },
-			/**
-			 * Disables the input
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean },
-			/**
-			 * Restricts the maximum width of the input box without impacting the width of the label.
-			 * @type {string}
-			 */
-			inputWidth: { attribute: 'input-width', type: String },
-			/**
-			 * Hides the label visually (moves it to the input's "aria-label" attribute)
-			 * @type {boolean}
-			 */
-			labelHidden: { type: Boolean, attribute: 'label-hidden' },
-			/**
-			 * Maximum number of decimal values to show (rounds value up or down).
-			 * @type {number}
-			 */
-			maxFractionDigits: { type: Number, attribute: 'max-fraction-digits' },
-			/**
-			 * Minimum number of decimal values to show.
-			 * @type {number}
-			 */
-			minFractionDigits: { type: Number, attribute: 'min-fraction-digits' },
-			/**
-			 * Placeholder text
-			 * @type {string}
-			 */
-			placeholder: { type: String },
-			/**
-			 * Indicates that a value is required
-			 * @type {boolean}
-			 */
-			required: { type: Boolean },
-			/**
-			 * Text for additional screenreader and mouseover context
-			 * @type {string}
-			 */
-			title: { type: String },
-			/**
-			 * Value of the input
-			 * @type {number}
-			 */
-			value: { type: Number }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		autofocus: { type: Boolean },
+		/**
+		 * Disables the input
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean },
+		/**
+		 * Restricts the maximum width of the input box without restricting the width of the label.
+		 * @type {string}
+		 */
+		inputWidth: { attribute: 'input-width', type: String },
+		/**
+		 * Hides the label visually. Hidden labels are still read by screen readers so make sure to set an appropriate label.
+		 * @type {boolean}
+		 */
+		labelHidden: { type: Boolean, attribute: 'label-hidden' },
+		/**
+		 * Maximum number of decimal values to show (rounds value up or down).
+		 * @type {number}
+		 */
+		maxFractionDigits: { type: Number, attribute: 'max-fraction-digits' },
+		/**
+		 * Minimum number of decimal values to show.
+		 * @type {number}
+		 */
+		minFractionDigits: { type: Number, attribute: 'min-fraction-digits' },
+		/**
+		 * Indicates that a value is required
+		 * @type {boolean}
+		 */
+		required: { type: Boolean },
+		/**
+		 * Value of the input
+		 * @type {number}
+		 */
+		value: { type: Number }
+	};
 
-	static get styles() {
-		return [ super.styles,
-			css`
-				:host {
-					--d2l-input-text-align: end;
-					display: inline-block;
-					position: relative;
-					width: 100%;
-				}
-				:host([hidden]) {
-					display: none;
-				}
-			`
-		];
-	}
+	static styles = [super.styles, css`
+		:host {
+			display: inline-block;
+			position: relative;
+			width: 100%;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -111,8 +94,8 @@ class InputPercent extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMix
 		return html`
 			<d2l-input-number
 				?autofocus="${this.autofocus}"
-				@blur="${this._handleBlur}"
 				@change="${this._handleChange}"
+				class="vdiff-target"
 				?disabled="${this.disabled}"
 				.forceInvalid="${this.invalid}"
 				input-width="${ifDefined(this.inputWidth)}"
@@ -125,13 +108,13 @@ class InputPercent extends FocusMixin(LabelledMixin(SkeletonMixin(FormElementMix
 				min-fraction-digits="${ifDefined(this.minFractionDigits)}"
 				name="${ifDefined(this.name)}"
 				?noValidate="${this.noValidate}"
-				placeholder="${ifDefined(this.placeholder)}"
 				?required="${this.required}"
 				?skeleton="${this.skeleton}"
-				title="${ifDefined(this.title)}"
 				unit="%"
-				value="${ifDefined(this.value)}">
+				value="${ifDefined(this.value)}"
+				value-align="end">
 					<slot slot="after" name="after"></slot>
+					<slot slot="inline-help" name="inline-help"></slot>
 			</d2l-input-number>
 		`;
 	}

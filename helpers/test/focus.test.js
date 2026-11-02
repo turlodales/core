@@ -1,13 +1,14 @@
-import { defineCE, expect, fixture, html } from '@open-wc/testing';
+import { defineCE, expect, fixture, html } from '@brightspace-ui/testing';
 import {
 	getComposedActiveElement,
 	getFirstFocusableDescendant,
+	getFirstFocusableRelative,
+	getFocusableDescendants,
 	getLastFocusableDescendant,
 	getNextFocusable,
 	getPreviousFocusable,
 	getPreviousFocusableAncestor,
-	isFocusable,
-	tryApplyFocus
+	isFocusable
 } from '../focus.js';
 import { LitElement } from 'lit';
 
@@ -74,23 +75,6 @@ const focusableFixture = html`
 		</div>
 	</div>
 `;
-const focusableAncestorFixture = html`
-	<a>
-		<div>
-			<button disabled></button>
-		</div>
-	</a>
-`;
-const parentSiblingFocusableAncestorFixture = html`
-	<div>
-		<div>
-			<iframe></iframe>
-			<div>
-				<button disabled></button>
-			</div>
-		</div>
-	</div>
-`;
 const focusableNotTabbableFixture = html`
 	<div>
 		<div id="not-focusable" class="same-class"></div>
@@ -114,6 +98,53 @@ describe('focus', () => {
 			const expected = elem.getShadow1();
 			expected.focus();
 			expect(getComposedActiveElement()).to.equal(expected);
+		});
+
+	});
+
+	describe('getFocusables', () => {
+
+		const focusablesFixture = html`
+			<div>
+				<span></span>
+				<button id="1a"></button>
+				<button id="1b"></button>
+				<button id="1c" disabled></button>
+				<button id="1d" hidden></button>
+				<span id="1e" tabindex="-1"></span>
+				<div id="1f">
+					<button id="2a"></button>
+				</div>
+				<div>
+					<button id="2a"></button>
+				</div>
+				<svg><a xlink:href="javascript:void(0);"></a></svg>
+			</div>
+		`;
+
+		[
+			{ name: 'returns focusables by default', options: undefined, expected: ['1a', '1b'] },
+			{ name: 'returns only immediate focusables using deep: false', options: { deep: false }, expected: ['1a', '1b'] },
+			{ name: 'returns immediate and deep focusables using deep: true', options: { deep: true }, expected: ['1a', '1b', '2a', '2a'] },
+			{ name: 'returns only enabled focusables using disabled: false', options: { disabled: false }, expected: ['1a', '1b'] },
+			{ name: 'returns enabled and disabled focusables using disabled: true', options: { disabled: true }, expected: ['1a', '1b', '1c'] },
+			{ name: 'returns only visible focusables using hidden: false', options: { hidden: false }, expected: ['1a', '1b'] },
+			{ name: 'returns visible and hidden focusables using hidden: true', options: { hidden: true }, expected: ['1a', '1b', '1d'] },
+			{ name: 'returns only tabbable focusables using tabbablesOnly: true', options: { tabbablesOnly: true }, expected: ['1a', '1b'] },
+			{ name: 'returns non-tabblable and tabbable focusables using tabbablesOnly: false', options: { tabbablesOnly: false }, expected: ['1a', '1b', '1e'] },
+			{ name: 'returns immediate focusables that meet predicate condition', options: { predicate: elem => elem.id === '1a' }, expected: ['1a'] },
+			{ name: 'returns deep focusables that meet predicate condition', options: { deep: true, predicate: elem => elem.id === '1f' || elem.id === '2a' }, expected: ['2a'] }
+		].forEach(info => {
+
+			it(info.name, async() => {
+				const elem = await fixture(focusablesFixture);
+				const focusables = getFocusableDescendants(elem, info.options);
+				expect(focusables.length).to.equal(info.expected.length);
+				info.expected.forEach((id, i) => {
+					expect(focusables[i].id).to.equal(id);
+				});
+			});
+
 		});
 
 	});
@@ -154,6 +185,20 @@ describe('focus', () => {
 			const elem = await fixture(focusableNotTabbableFixture);
 			expect(getFirstFocusableDescendant(elem, false, undefined, false))
 				.to.equal(elem.querySelector('#focusable'));
+		});
+
+		it('returns null if elem is hidden', async() => {
+			const elem = await fixture(simpleFixture);
+			elem.style.display = 'none';
+			expect(getFirstFocusableDescendant(elem))
+				.to.be.null;
+		});
+
+		it('returns focusable child if elem is hidden and hidden elements included', async() => {
+			const elem = await fixture(simpleFixture);
+			elem.style.display = 'none';
+			expect(getFirstFocusableDescendant(elem, true))
+				.to.equal(elem.querySelector('#light1'));
 		});
 
 	});
@@ -199,6 +244,28 @@ describe('focus', () => {
 				.to.equal(elem.querySelector('#focusable'));
 		});
 
+	});
+
+	describe('getFocusableRelative', () => {
+		it('returns itself if focusable', async() => {
+			const elem = (await fixture(wcFixture)).getShadow1();
+			expect(getFirstFocusableRelative(elem))
+				.to.equal(elem);
+		});
+
+		it('returns focusable child in shadow-dom', async() => {
+			const elem = await fixture(wcFixture);
+			expect(getFirstFocusableRelative(elem))
+				.to.equal(elem.getShadow1());
+		});
+		it('returns parent focus alternative if hidden', async() => {
+			const elem = await fixture(mixedFixture);
+			const wc = elem.querySelector('#wc1');
+			wc.style.display = 'none';
+
+			expect(getFirstFocusableRelative(wc))
+				.to.equal(elem.querySelector('#light1'));
+		});
 	});
 
 	describe('getLastFocusableDescendant', () => {
@@ -393,34 +460,6 @@ describe('focus', () => {
 			expect(isFocusable(commentNode)).to.be.false;
 		});
 
-	});
-
-	describe('tryApplyFocus', () => {
-
-		it('returns true on single focusable element', async() => {
-			const elem = await fixture(focusableFixture);
-			expect(tryApplyFocus(elem.querySelector('button'))).to.be.true;
-		});
-
-		it('returns false on non-existent element', async() => {
-			const elem = await fixture(focusableFixture);
-			expect(tryApplyFocus(elem.querySelector('#nonExistentDiv'))).to.be.false;
-		});
-
-		it('returns true on element with focusable parent', async() => {
-			const elem = await fixture(focusableAncestorFixture);
-			expect(tryApplyFocus(elem.querySelector('div'))).to.be.true;
-		});
-
-		it('returns true on element with focusable grandparent', async() => {
-			const elem = await fixture(focusableAncestorFixture);
-			expect(tryApplyFocus(elem.querySelector('button'))).to.be.true;
-		});
-
-		it('returns true on element with focusable sibling of parent', async() => {
-			const elem = await fixture(parentSiblingFocusableAncestorFixture);
-			expect(tryApplyFocus(elem.querySelector('button'))).to.be.true;
-		});
 	});
 
 });

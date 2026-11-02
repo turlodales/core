@@ -12,13 +12,7 @@ For example, this causes a text input to be skeletized:
 <d2l-input-text label="Name" skeleton></d2l-input-text>
 ```
 
-In a typical scenario, many skeleton-aware components would have their `skeleton` attributes bound to a single property on the host component, making it easy to toggle them all together:
-
-```html
-<d2l-input-text label="Name" ?skeleton="${this.skeleton}"></d2l-text-input>
-<d2l-input-date label="Due Date" ?skeleton="${this.skeleton}"></d2l-input-date>
-<my-element ?skeleton="${this.skeleton}"></my-element>
-```
+A parent component could contain several skeleton-aware components. In this case, the parent would extend [`SkeletonGroupMixin`](#skeleton-groups), which would automatically handle the skeleton state of its contents.
 
 ## Skeletizing Custom Elements with SkeletonMixin
 
@@ -29,9 +23,7 @@ import { SkeletonMixin } from '@brightspace-ui/core/components/skeleton/skeleton
 
 class MyElement extends SkeletonMixin(LitElement) {
 
-  static get styles() {
-    return [ super.styles, ... ];
-  }
+  static styles = [ super.styles, ... ];
 
 }
 ```
@@ -69,9 +61,7 @@ import { selectStyles } from '@brightspace-ui/core/components/inputs/input-selec
 import { SkeletonMixin } from '@brightspace-ui/core/skeleton/skeleton-mixin.js';
 
 class MyElement extends SkeletonMixin(LitElement) {
-  static get styles() {
-    return [super.styles, selectStyles];
-  }
+  static styles = [super.styles, selectStyles];
   render() {
     return html`
       <div class="d2l-skeletize">
@@ -95,7 +85,7 @@ render() {
     <div class="d2l-skeletize-container">
       <div class="d2l-skeletize">This text will skeletize</div>
       <span>This text will hide</span>
-      <d2l-input-checkbox ?skeleton="{this.skeleton}">This input will skeletize</d2l-input-checkbox>
+      <d2l-input-checkbox ?skeleton="{this.skeleton}" label="This input will skeletize"></d2l-input-checkbox>
     </div>
   `;
 }
@@ -132,6 +122,23 @@ For example:
 ```
 
 When skeletized, this heading will take up `45%` of the available width.
+
+## Skeleton groups
+Skeleton groups can be used to ensure a collection of components all appear at the same time. This can be used to prevent individual components from popping in before everything has loaded.
+
+```js
+import { SkeletonGroupMixin } from '@brightspace-ui/core/skeleton/skeleton-group-mixin.js';
+
+class MyElement extends SkeletonGroupMixin(LitElement) {
+
+  render() {
+    return html`
+      // Anything that can be skeletonized.
+      // All components will remain in skeleton state until they have all loaded
+    `;
+  }
+}
+```
 
 ## Future Enhancements
 

@@ -1,9 +1,12 @@
 import '../filter.js';
 import '../filter-dimension-set.js';
+import '../filter-dimension-set-empty-state.js';
+import '../filter-dimension-set-date-text-value.js';
+import '../filter-dimension-set-date-time-range-value.js';
 import '../filter-dimension-set-value.js';
-import { expect, fixture, html, oneEvent } from '@open-wc/testing';
-import { spy, stub } from 'sinon';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, html, nextFrame, oneEvent, runConstructor, waitUntil } from '@brightspace-ui/testing';
+import { spy, stub, useFakeTimers } from 'sinon';
+import { getDocumentLocaleSettings } from '@brightspace-ui/intl/lib/common.js';
 
 const singleSetDimensionFixture = html`
 	<d2l-filter>
@@ -12,11 +15,54 @@ const singleSetDimensionFixture = html`
 			<d2l-filter-dimension-set-value key="2" text="Value 2"></d2l-filter-dimension-set-value>
 		</d2l-filter-dimension-set>
 	</d2l-filter>`;
+const singleSetDimensionDateFixture = html`
+	<d2l-filter>
+		<d2l-filter-dimension-set key="dim" text="Dim">
+			<d2l-filter-dimension-set-date-text-value key="1" selected range="today"></d2l-filter-dimension-set-date-text-value>
+			<d2l-filter-dimension-set-date-text-value key="2" range="7days"></d2l-filter-dimension-set-date-text-value>
+		</d2l-filter-dimension-set>
+	</d2l-filter>`;
+const singleSetDimensionDateTimeRangeFixture = html`
+	<d2l-filter>
+		<d2l-filter-dimension-set key="dim" text="Dim">
+			<d2l-filter-dimension-set-date-time-range-value key="1" selected></d2l-filter-dimension-set-date-time-range-value>
+			<d2l-filter-dimension-set-date-text-value key="2" range="7days"></d2l-filter-dimension-set-date-text-value>
+		</d2l-filter-dimension-set>
+	</d2l-filter>`;
+const singleSetDimensionDateTimeRangeDateFixture = html`
+<d2l-filter>
+	<d2l-filter-dimension-set key="dim" text="Dim">
+		<d2l-filter-dimension-set-date-time-range-value key="1" selected type="date"></d2l-filter-dimension-set-date-time-range-value>
+		<d2l-filter-dimension-set-date-text-value key="2" range="7days"></d2l-filter-dimension-set-date-text-value>
+	</d2l-filter-dimension-set>
+</d2l-filter>`;
 const singleSetDimensionSingleSelectionFixture = html`
 	<d2l-filter>
 		<d2l-filter-dimension-set key="dim" text="Dim" selection-single>
 			<d2l-filter-dimension-set-value key="1" text="Value 1" selected></d2l-filter-dimension-set-value>
 			<d2l-filter-dimension-set-value key="2" text="Value 2"></d2l-filter-dimension-set-value>
+		</d2l-filter-dimension-set>
+	</d2l-filter>`;
+const singleSetLinkSearchEmptyStateDimensionFixture = html`
+	<d2l-filter>
+		<d2l-filter-dimension-set key="dim" text="Dim" select-all>
+			<d2l-filter-dimension-set-value key="1" text="Value 1" selected></d2l-filter-dimension-set-value>
+			<d2l-filter-dimension-set-value key="2" text="Value 2"></d2l-filter-dimension-set-value>
+			<d2l-filter-dimension-set-empty-state slot="search-empty-state" description="Test description" action-text="Click me" action-href="https://d2l.com"></d2l-filter-dimension-set-empty-state>
+		</d2l-filter-dimension-set>
+	</d2l-filter>`;
+const singleSetSearchEmptyStateDimensionFixture = html`
+<d2l-filter>
+	<d2l-filter-dimension-set key="dim" text="Dim" select-all>
+		<d2l-filter-dimension-set-value key="1" text="Value 1" selected></d2l-filter-dimension-set-value>
+		<d2l-filter-dimension-set-value key="2" text="Value 2"></d2l-filter-dimension-set-value>
+		<d2l-filter-dimension-set-empty-state slot="search-empty-state" description="Test description" action-text="Click me"></d2l-filter-dimension-set-empty-state>
+	</d2l-filter-dimension-set>
+</d2l-filter>`;
+const singleSetSetEmptyStateDimensionFixture = html`
+	<d2l-filter>
+		<d2l-filter-dimension-set key="dim" text="Dim" select-all>
+			<d2l-filter-dimension-set-empty-state slot="set-empty-state" description="Test description" action-text="Click me"></d2l-filter-dimension-set-empty-state>
 		</d2l-filter-dimension-set>
 	</d2l-filter>`;
 const multiDimensionFixture = html`
@@ -30,6 +76,19 @@ const multiDimensionFixture = html`
 		<d2l-filter-dimension-set selection-single key="3" text="Dim 3" value-only-active-filter-text>
 			<d2l-filter-dimension-set-value key="1" text="Value 1"></d2l-filter-dimension-set-value>
 			<d2l-filter-dimension-set-value key="2" text="Value 2" selected></d2l-filter-dimension-set-value>
+		</d2l-filter-dimension-set>
+	</d2l-filter>`;
+const headerTextFixture = html`
+	<d2l-filter>
+		<d2l-filter-dimension-set header-text="Test Header" key="dim" text="Dim" select-all>
+			<d2l-filter-dimension-set-value key="1" text="Value 1" selected></d2l-filter-dimension-set-value>
+		</d2l-filter-dimension-set>
+	</d2l-filter>`;
+const selectedFirstFixture = html`
+	<d2l-filter>
+		<d2l-filter-dimension-set key="dim" text="Dim" select-all selected-first>
+			<d2l-filter-dimension-set-value key="1" text="Value 1" selected></d2l-filter-dimension-set-value>
+			<d2l-filter-dimension-set-value key="2" text="Value 2"></d2l-filter-dimension-set-value>
 		</d2l-filter-dimension-set>
 	</d2l-filter>`;
 
@@ -55,10 +114,126 @@ describe('d2l-filter', () => {
 		});
 	});
 
+	describe('header-text', () => {
+		it('should set label on dimension set list when header-text is defined', async() => {
+			const elem = await fixture(headerTextFixture);
+			const list = elem.shadowRoot.querySelector('d2l-list');
+			expect(list.getAttribute('label')).to.equal('Test Header');
+		});
+
+		it('should not set label on dimension set list when header-text is defined while searching', async() => {
+			const elem = await fixture(headerTextFixture);
+			const list = elem.shadowRoot.querySelector('d2l-list');
+
+			elem._handleSearch({ detail: { value: 'V' } });
+			elem.requestUpdate();
+			await elem.updateComplete;
+
+			expect(list.hasAttribute('label')).to.be.false;
+		});
+
+		it('should not set label on dimension set list when header-text is not defined', async() => {
+			const elem = await fixture(singleSetDimensionFixture);
+			const list = elem.shadowRoot.querySelector('d2l-list');
+			expect(list.hasAttribute('label')).to.be.false;
+		});
+	});
+
+	describe('selected-first', () => {
+		it('should not update shouldBubble after dimension is opened', async() => {
+			const elem = await fixture(selectedFirstFixture);
+			const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
+
+			elem.opened = true;
+			await oneEvent(dropdown, 'd2l-dropdown-open');
+			const value1 = elem._dimensions[0].values.find(value => value.key === '1');
+			const value2 = elem._dimensions[0].values.find(value => value.key === '2');
+			expect(value1.shouldBubble).to.be.true;
+			expect(value2.shouldBubble).to.be.false;
+
+			const listItem2 = elem.shadowRoot.querySelector('d2l-list-item[key="2"]');
+			setTimeout(() => listItem2.setSelected(true));
+			await oneEvent(elem, 'd2l-filter-change');
+
+			expect(value1.shouldBubble).to.be.true;
+			expect(value2.shouldBubble).to.be.false;
+		});
+
+		it('should update shouldBubble when dimension is re-opened in multi-dimension', async() => {
+			const elem = await fixture(html`
+				<d2l-filter id="multi">
+					<d2l-filter-dimension-set key="1" text="Dim 1" selected-first>
+						<d2l-filter-dimension-set-value key="1" text="Value 1" selected></d2l-filter-dimension-set-value>
+						<d2l-filter-dimension-set-value key="2" text="Value 2"></d2l-filter-dimension-set-value>
+					</d2l-filter-dimension-set>
+					<d2l-filter-dimension-set key="2" text="Dim 2" >
+						<d2l-filter-dimension-set-value key="1" text="Value 1"></d2l-filter-dimension-set-value>
+					</d2l-filter-dimension-set>
+				</d2l-filter>
+			`);
+			const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
+			const menu = elem.shadowRoot.querySelector('d2l-menu');
+			const dimensions = elem.shadowRoot.querySelectorAll('d2l-menu-item');
+
+			elem.opened = true;
+			await oneEvent(dropdown, 'd2l-dropdown-open');
+
+			setTimeout(() => dimensions[0].click());
+			await oneEvent(elem, 'd2l-filter-dimension-first-open');
+
+			const listItem2 = elem.shadowRoot.querySelector('d2l-list-item[key="2"]');
+			setTimeout(() => listItem2.setSelected(true));
+			await oneEvent(elem, 'd2l-filter-change');
+			const value1 = elem._dimensions[0].values.find(value => value.key === '1');
+			const value2 = elem._dimensions[0].values.find(value => value.key === '2');
+			expect(value1.shouldBubble).to.be.true;
+			expect(value2.shouldBubble).to.be.false;
+
+			setTimeout(() => dimensions[1].click());
+			await oneEvent(menu, 'd2l-hierarchical-view-show-complete');
+			setTimeout(() => dimensions[0].click());
+			await oneEvent(menu, 'd2l-hierarchical-view-show-complete');
+
+			await waitUntil(() => value2.shouldBubble, 'shouldBubble recalculated', { timeout: 3000 });
+			expect(value1.shouldBubble).to.be.true;
+			expect(value2.shouldBubble).to.be.true;
+		});
+
+		it('should update shouldBubble when dimension is searched', async() => {
+			const elem = await fixture(selectedFirstFixture);
+			const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
+
+			elem.opened = true;
+			await oneEvent(dropdown, 'd2l-dropdown-open');
+			const value1 = elem._dimensions[0].values.find(value => value.key === '1');
+			const value2 = elem._dimensions[0].values.find(value => value.key === '2');
+
+			const listItem2 = elem.shadowRoot.querySelector('d2l-list-item[key="2"]');
+			setTimeout(() => listItem2.setSelected(true));
+			await oneEvent(elem, 'd2l-filter-change');
+			expect(value1.shouldBubble).to.be.true;
+			expect(value2.shouldBubble).to.be.false;
+
+			elem._handleSearch({ detail: { value: 'V' } });
+			elem.requestUpdate();
+			await elem.updateComplete;
+			expect(value1.shouldBubble).to.be.true;
+			expect(value2.shouldBubble).to.be.true;
+		});
+	});
+
 	describe('info messages', () => {
 		it('set dimension - empty state', async() => {
 			const elem = await fixture('<d2l-filter><d2l-filter-dimension-set key="dim"></d2l-filter-dimension-set></d2l-filter>');
-			expect(elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message').textContent).to.include('No available filters');
+			expect(elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message').description).to.include('No available filters');
+		});
+
+		it('set dimension - custom empty state', async() => {
+			const elem = await fixture(singleSetSetEmptyStateDimensionFixture);
+			const emptyState = elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message');
+			const emptyStateAction = emptyState.querySelector('d2l-state-action-button');
+			expect(emptyState.description).to.equal('Test description');
+			expect(emptyStateAction.text).to.equal('Click me');
 		});
 
 		it('set dimension - no search results', async() => {
@@ -67,9 +242,25 @@ describe('d2l-filter', () => {
 			elem.requestUpdate();
 			await elem.updateComplete;
 
-			const infoMessage = elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message');
-			expect(infoMessage.textContent).to.include('No search results');
-			expect(infoMessage.classList.contains('d2l-offscreen')).to.be.false;
+			const container = elem.shadowRoot.querySelector('.d2l-empty-state-container');
+			const emptyState = elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message');
+			expect(emptyState.description).to.equal('No search results');
+			expect(container.classList.contains('d2l-offscreen')).to.be.false;
+		});
+
+		it('set dimension - custom no search results', async() => {
+			const elem = await fixture(singleSetLinkSearchEmptyStateDimensionFixture);
+			elem._handleSearch({ detail: { value: 'no results' } });
+			elem.requestUpdate();
+			await elem.updateComplete;
+
+			const container = elem.shadowRoot.querySelector('.d2l-empty-state-container');
+			const emptyState = elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message');
+			const emptyStateAction = emptyState.querySelector('d2l-state-action-link');
+			expect(emptyState.description).to.equal('Test description');
+			expect(emptyStateAction.text).to.equal('Click me');
+			expect(emptyStateAction.href).to.equal('https://d2l.com');
+			expect(container.classList.contains('d2l-offscreen')).to.be.false;
 		});
 
 		it('set dimension - search results (offscreen)', async() => {
@@ -78,16 +269,45 @@ describe('d2l-filter', () => {
 			elem.requestUpdate();
 			await elem.updateComplete;
 
+			const container = elem.shadowRoot.querySelector('.d2l-empty-state-container');
 			const infoMessage = elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message');
-			expect(infoMessage.textContent).to.include('1 search result');
-			expect(infoMessage.classList.contains('d2l-offscreen')).to.be.true;
+			expect(infoMessage.description).to.include('1 search result');
+			expect(container.classList.contains('d2l-offscreen')).to.be.true;
 
 			elem._handleSearch({ detail: { value: 'value' } });
 			elem.requestUpdate();
 			await elem.updateComplete;
 
-			expect(infoMessage.textContent).to.include('2 search results');
-			expect(infoMessage.classList.contains('d2l-offscreen')).to.be.true;
+			expect(infoMessage.description).to.include('2 search results');
+			expect(container.classList.contains('d2l-offscreen')).to.be.true;
+		});
+	});
+
+	describe('introductory-text', () => {
+		it('sets introductory text on a single dimension', async() => {
+			const elem = await fixture('<d2l-filter><d2l-filter-dimension-set introductory-text="Intro" key="dim"></d2l-filter-dimension-set></d2l-filter>');
+			expect(elem._dimensions[0].introductoryText).to.equal('Intro');
+			const introText = elem.shadowRoot.querySelector('.d2l-filter-dimension-intro-text');
+			expect(introText.classList.contains('multi-dimension')).to.be.false;
+			expect(introText.textContent).to.equal('Intro');
+		});
+
+		it('sets introductory text on a dimension in a multi-dimensional filter', async() => {
+			const elem = await fixture('<d2l-filter><d2l-filter-dimension-set introductory-text="Intro" key="dim"></d2l-filter-dimension-set><d2l-filter-dimension-set introductory-text="intro" key="dim"></d2l-filter-dimension-set></d2l-filter>');
+			const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
+			const menu = elem.shadowRoot.querySelector('d2l-menu');
+			const dimension = elem.shadowRoot.querySelector('d2l-menu-item');
+
+			elem.opened = true;
+			await oneEvent(dropdown, 'd2l-dropdown-open');
+
+			setTimeout(() => dimension.click());
+			await oneEvent(menu, 'd2l-hierarchical-view-show-complete');
+
+			expect(elem._dimensions[0].introductoryText).to.equal('Intro');
+			const introText = elem.shadowRoot.querySelector('.d2l-filter-dimension-intro-text');
+			expect(introText.classList.contains('multi-dimension')).to.be.true;
+			expect(introText.textContent).to.equal('Intro');
 		});
 	});
 
@@ -112,14 +332,13 @@ describe('d2l-filter', () => {
 			expect(changeEvent.selected).to.be.false;
 		});
 
-		it('clear all - clears all dimensions and searches', async() => {
+		it('clear all - clears all dimensions and searches with the automatic search-type', async() => {
 			const elem = await fixture(`<d2l-filter>
-				<d2l-filter-dimension-set key="1" text="Dim 1" search-type="manual"><d2l-filter-dimension-set-value key="test" text="test" selected></d2l-filter-dimension-set-value></d2l-filter-dimension-set>
+				<d2l-filter-dimension-set key="1" text="Dim 1"><d2l-filter-dimension-set-value key="test" text="test" selected></d2l-filter-dimension-set-value></d2l-filter-dimension-set>
 				<d2l-filter-dimension-set key="2" text="Dim 2" selection-single><d2l-filter-dimension-set-value key="test" text="test" selected></d2l-filter-dimension-set-value></d2l-filter-dimension-set>
 			</d2l-filter>`);
 			elem._dimensions[0].searchValue = 'searched';
 			elem._dimensions[1].searchValue = 'searched';
-			elem._dimensions[1].searchKeysToDisplay = ['none'];
 
 			elem._performDimensionSearch(elem._dimensions[0]);
 			elem._performDimensionSearch(elem._dimensions[1]);
@@ -155,7 +374,7 @@ describe('d2l-filter', () => {
 			expect(elem._changeEventsToDispatch.size).to.equal(1);
 			const changeEventDim = elem._changeEventsToDispatch.get('3');
 			expect(changeEventDim.dimensionKey).to.equal('3');
-			expect(changeEventDim.cleared).to.be.false;
+			expect(changeEventDim.cleared).to.be.true;
 			expect(changeEventDim.changes.size).to.equal(1);
 			const changeEvent = changeEventDim.changes.get('2');
 			expect(changeEvent.valueKey).to.equal('2');
@@ -209,10 +428,27 @@ describe('d2l-filter', () => {
 			setTimeout(() => elem._handleSearch({ detail: { value: 'whatever' } }));
 			const e = await oneEvent(elem, 'd2l-filter-dimension-search');
 
-			e.detail.searchCompleteCallback(['test']);
+			e.detail.searchCompleteCallback({ keysToDisplay: ['test'] });
 			await new Promise(resolve => { requestAnimationFrame(resolve); });
 			expect(elem._dimensions[0].values[0].hidden).to.be.false;
 			expect(elem._dimensions[0].values[1].hidden).to.be.true;
+		});
+
+		it('set dimension - manual search will display all keys when set in the callback', async() => {
+			const elem = await fixture(`<d2l-filter><d2l-filter-dimension-set key="dim" text="dim" search-type="manual">
+				<d2l-filter-dimension-set-value key="test" text="test"></d2l-filter-dimension-set-value>
+				<d2l-filter-dimension-set-value key="test2" text="test2"></d2l-filter-dimension-set-value>
+			</d2l-filter-dimension-set></d2l-filter>`);
+			expect(elem._dimensions[0].values[0].hidden).to.be.undefined;
+			expect(elem._dimensions[0].values[1].hidden).to.be.undefined;
+
+			setTimeout(() => elem._handleSearch({ detail: { value: 'whatever' } }));
+			const e = await oneEvent(elem, 'd2l-filter-dimension-search');
+
+			e.detail.searchCompleteCallback({ displayAllKeys: true });
+			await new Promise(resolve => { requestAnimationFrame(resolve); });
+			expect(elem._dimensions[0].values[0].hidden).to.be.false;
+			expect(elem._dimensions[0].values[1].hidden).to.be.false;
 		});
 
 		[
@@ -236,6 +472,14 @@ describe('d2l-filter', () => {
 	});
 
 	describe('events', () => {
+		function search(elem, value) {
+			const search = elem.shadowRoot.querySelector('d2l-input-search');
+			search.value = value;
+			setTimeout(() => search.search());
+			return oneEvent(elem, 'd2l-filter-dimension-search');
+
+		}
+
 		describe('d2l-filter-change', () => {
 			it('single set dimension fires change events', async() => {
 				const elem = await fixture(singleSetDimensionFixture);
@@ -268,6 +512,234 @@ describe('d2l-filter', () => {
 				expect(elem._dimensions[0].values[1].selected).to.be.false;
 			});
 
+			it('single set date dimension fires change events', async() => {
+				const documentLocaleSettings = getDocumentLocaleSettings();
+				documentLocaleSettings.timezone.identifier = 'America/Toronto';
+				const newToday = new Date('2018-02-12T20:00:00Z');
+				const clock = useFakeTimers({ now: newToday.getTime(), toFake: ['Date'] });
+
+				const elem = await fixture(singleSetDimensionDateFixture);
+				const selectedElem = elem.querySelector('d2l-filter-dimension-set-date-text-value[selected]'); // today
+				expect(selectedElem.startValue).to.equal('2018-02-12T05:00:00.000Z');
+				expect(selectedElem.endValue).to.equal('2018-02-13T04:59:59.000Z');
+				const value = elem.shadowRoot.querySelector('d2l-list-item[key="2"]');
+				expect(elem._dimensions[0].values[1].selected).to.be.false;
+
+				clock.tick(10000);
+
+				setTimeout(() => value.setSelected(true));
+				let e = await oneEvent(elem, 'd2l-filter-change');
+				expect(e.detail.allCleared).to.be.false;
+				let dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				let changes = dimensions[0].changes;
+				expect(changes.length).to.equal(2);
+				expect(changes[0].valueKey).to.equal('2');
+				expect(changes[0].selected).to.be.true;
+				expect(changes[0].startValue).to.equal('2018-02-05T20:00:10.000Z'); // 14 days
+				expect(changes[0].endValue).to.equal('2018-02-12T20:00:10.000Z');
+				expect(elem._dimensions[0].values[1].selected).to.be.true;
+				expect(changes[1].valueKey).to.equal('1');
+				expect(changes[1].selected).to.be.false;
+				expect(changes[1].startValue).to.be.undefined;
+				expect(changes[1].endValue).to.be.undefined;
+				expect(elem._dimensions[0].values[0].selected).to.be.false;
+
+				setTimeout(() => value.setSelected(false));
+				e = await oneEvent(elem, 'd2l-filter-change');
+				expect(e.detail.allCleared).to.be.false;
+				dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.true;
+				changes = dimensions[0].changes;
+				expect(changes[0].valueKey).to.equal('2');
+				expect(changes[0].selected).to.be.false;
+				expect(changes[0].startValue).to.be.undefined;
+				expect(changes[0].endValue).to.be.undefined;
+				expect(elem._dimensions[0].values[1].selected).to.be.false;
+
+				clock.restore();
+			});
+
+			it('single set date-time range dimension fires change events', async() => {
+				const elem = await fixture(singleSetDimensionDateTimeRangeFixture);
+				const selectedElem = elem.querySelector('d2l-filter-dimension-set-date-time-range-value[selected]');
+				expect(selectedElem.startValue).to.equal(undefined);
+				expect(selectedElem.endValue).to.equal(undefined);
+				expect(elem._dimensions[0].values[0].selected).to.be.true;
+				expect(elem._dimensions[0].values[1].selected).to.be.false;
+
+				// set startValue and wait for event
+				const dateTimeRange = elem.shadowRoot.querySelector('d2l-input-date-time-range');
+				dateTimeRange.startValue = '2019-02-12T20:00:00.000Z';
+				dateTimeRange.dispatchEvent(new CustomEvent(
+					'change', {
+						bubbles: true,
+						composed: false
+					}
+				));
+
+				let e = await oneEvent(elem, 'd2l-filter-change');
+				let dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				let changes = dimensions[0].changes;
+				expect(changes.length).to.equal(1);
+				expect(changes[0].valueKey).to.equal('1');
+				expect(changes[0].selected).to.be.true;
+				expect(changes[0].startValue).to.equal('2019-02-12T20:00:00.000Z');
+
+				// select other item
+				const secondElem = elem.shadowRoot.querySelector('d2l-list-item[key="2"]');
+				setTimeout(() => secondElem.setSelected(true));
+				e = await oneEvent(elem, 'd2l-filter-change');
+				expect(e.detail.allCleared).to.be.false;
+				dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				changes = dimensions[0].changes;
+				expect(changes.length).to.equal(2);
+				expect(changes[0].valueKey).to.equal('2');
+				expect(changes[0].selected).to.be.true;
+				expect(elem._dimensions[0].values[1].selected).to.be.true;
+				expect(changes[1].valueKey).to.equal('1');
+				expect(changes[1].selected).to.be.false;
+				expect(changes[1].startValue).to.be.undefined;
+				expect(changes[1].endValue).to.be.undefined;
+				expect(elem._dimensions[0].values[0].selected).to.be.false;
+
+				// re-select first item, make sure start-value is maintained
+				const firstElem = elem.shadowRoot.querySelector('d2l-list-item[key="1"]');
+				setTimeout(() => firstElem.setSelected(true));
+				e = await oneEvent(elem, 'd2l-filter-change');
+				expect(e.detail.allCleared).to.be.false;
+				dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				changes = dimensions[0].changes;
+				expect(changes.length).to.equal(2);
+				expect(changes[0].valueKey).to.equal('1');
+				expect(changes[0].selected).to.be.true;
+				expect(changes[0].startValue).to.equal('2019-02-12T20:00:00.000Z');
+				expect(elem._dimensions[0].values[0].selected).to.be.true;
+				expect(changes[1].valueKey).to.equal('2');
+				expect(changes[1].selected).to.be.false;
+				expect(changes[1].startValue).to.be.undefined;
+				expect(changes[1].endValue).to.be.undefined;
+				expect(elem._dimensions[0].values[1].selected).to.be.false;
+			});
+
+			it('single set date-time range where type is "date" dimension fires change events', async() => {
+				const elem = await fixture(singleSetDimensionDateTimeRangeDateFixture);
+				const selectedElem = elem.querySelector('d2l-filter-dimension-set-date-time-range-value[selected]');
+				expect(selectedElem.startValue).to.equal(undefined);
+				expect(selectedElem.endValue).to.equal(undefined);
+				expect(elem._dimensions[0].values[0].selected).to.be.true;
+				expect(elem._dimensions[0].values[1].selected).to.be.false;
+
+				// set startValue and wait for event
+				const dateRange = elem.shadowRoot.querySelector('d2l-input-date-range');
+				dateRange.startValue = '2019-02-12T20:00:00.000Z';
+				dateRange.dispatchEvent(new CustomEvent(
+					'change', {
+						bubbles: true,
+						composed: false
+					}
+				));
+
+				let e = await oneEvent(elem, 'd2l-filter-change');
+				let dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				let changes = dimensions[0].changes;
+				expect(changes.length).to.equal(1);
+				expect(changes[0].valueKey).to.equal('1');
+				expect(changes[0].selected).to.be.true;
+				expect(changes[0].startValue).to.equal('2019-02-12T05:00:00.000Z');
+
+				// select other item
+				const secondElem = elem.shadowRoot.querySelector('d2l-list-item[key="2"]');
+				setTimeout(() => secondElem.setSelected(true));
+				e = await oneEvent(elem, 'd2l-filter-change');
+				expect(e.detail.allCleared).to.be.false;
+				dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				changes = dimensions[0].changes;
+				expect(changes.length).to.equal(2);
+				expect(changes[0].valueKey).to.equal('2');
+				expect(changes[0].selected).to.be.true;
+				expect(elem._dimensions[0].values[1].selected).to.be.true;
+				expect(changes[1].valueKey).to.equal('1');
+				expect(changes[1].selected).to.be.false;
+				expect(changes[1].startValue).to.be.undefined;
+				expect(changes[1].endValue).to.be.undefined;
+				expect(elem._dimensions[0].values[0].selected).to.be.false;
+
+				// re-select first item, make sure start-value is maintained
+				const firstElem = elem.shadowRoot.querySelector('d2l-list-item[key="1"]');
+				setTimeout(() => firstElem.setSelected(true));
+				e = await oneEvent(elem, 'd2l-filter-change');
+				expect(e.detail.allCleared).to.be.false;
+				dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				changes = dimensions[0].changes;
+				expect(changes.length).to.equal(2);
+				expect(changes[0].valueKey).to.equal('1');
+				expect(changes[0].selected).to.be.true;
+				expect(changes[0].startValue).to.equal('2019-02-12T05:00:00.000Z');
+				expect(elem._dimensions[0].values[0].selected).to.be.true;
+				expect(changes[1].valueKey).to.equal('2');
+				expect(changes[1].selected).to.be.false;
+				expect(changes[1].startValue).to.be.undefined;
+				expect(changes[1].endValue).to.be.undefined;
+				expect(elem._dimensions[0].values[1].selected).to.be.false;
+			});
+
+			it('single set date-time range where type is "date" and dates are the same fires change events', async() => {
+				const elem = await fixture(singleSetDimensionDateTimeRangeDateFixture);
+
+				// set startValue and endValue and wait for event
+				const dateRange = elem.shadowRoot.querySelector('d2l-input-date-range');
+				dateRange.startValue = '2019-02-12T20:00:00.000Z';
+				dateRange.dispatchEvent(new CustomEvent(
+					'change', {
+						bubbles: true,
+						composed: false
+					}
+				));
+				dateRange.endValue = '2019-02-12T21:00:00.000Z';
+				dateRange.dispatchEvent(new CustomEvent(
+					'change', {
+						bubbles: true,
+						composed: false
+					}
+				));
+
+				const e = await oneEvent(elem, 'd2l-filter-change');
+				const dimensions = e.detail.dimensions;
+				expect(dimensions.length).to.equal(1);
+				expect(dimensions[0].dimensionKey).to.equal('dim');
+				expect(dimensions[0].cleared).to.be.false;
+				const changes = dimensions[0].changes;
+				expect(changes.length).to.equal(1);
+				expect(changes[0].valueKey).to.equal('1');
+				expect(changes[0].selected).to.be.true;
+				expect(changes[0].startValue).to.equal('2019-02-12T05:00:00.000Z');
+				expect(changes[0].endValue).to.equal('2019-02-13T04:59:59.000Z');
+				expect(dateRange.hasAttribute('invalid')).to.be.false;
+			});
+
 			it('single set dimension with selection-single on fires change events', async() => {
 				const elem = await fixture(singleSetDimensionSingleSelectionFixture);
 				const value = elem.shadowRoot.querySelector('d2l-list-item[key="2"]');
@@ -282,10 +754,11 @@ describe('d2l-filter', () => {
 				expect(dimensions[0].dimensionKey).to.equal('dim');
 				expect(dimensions[0].cleared).to.be.false;
 				expect(dimensions[0].changes.length).to.equal(2);
-				expect(dimensions[0].changes[0].valueKey).to.equal('2');
-				expect(dimensions[0].changes[0].selected).to.be.true;
-				expect(dimensions[0].changes[1].valueKey).to.equal('1');
-				expect(dimensions[0].changes[1].selected).to.be.false;
+
+				const change1 = dimensions[0].changes.find(e => e.valueKey === '1');
+				const change2 = dimensions[0].changes.find(e => e.valueKey === '2');
+				expect(change2.selected).to.be.true;
+				expect(change1.selected).to.be.false;
 				expect(elem._dimensions[0].values[0].selected).to.be.false;
 				expect(elem._dimensions[0].values[1].selected).to.be.true;
 
@@ -295,7 +768,7 @@ describe('d2l-filter', () => {
 				dimensions = e.detail.dimensions;
 				expect(dimensions.length).to.equal(1);
 				expect(dimensions[0].dimensionKey).to.equal('dim');
-				expect(dimensions[0].cleared).to.be.false;
+				expect(dimensions[0].cleared).to.be.true;
 				expect(dimensions[0].changes.length).to.equal(1);
 				expect(dimensions[0].changes[0].valueKey).to.equal('2');
 				expect(dimensions[0].changes[0].selected).to.be.false;
@@ -457,9 +930,7 @@ describe('d2l-filter', () => {
 			it('single set dimension fires dimension first open event', async() => {
 				const elem = await fixture(singleSetDimensionFixture);
 				const eventSpy = spy(elem, 'dispatchEvent');
-				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown-button-subtle');
-				const dropdownContent = elem.shadowRoot.querySelector('d2l-dropdown-content');
-				await dropdownContent.updateComplete;
+				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
 
 				elem.opened = true;
 				const e = await oneEvent(elem, 'd2l-filter-dimension-first-open');
@@ -478,9 +949,8 @@ describe('d2l-filter', () => {
 			it('multiple dimensions fire dimension first open events', async() => {
 				const elem = await fixture(multiDimensionFixture);
 				const eventSpy = spy(elem, 'dispatchEvent');
-				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown-button-subtle');
-				const dropdownContent = elem.shadowRoot.querySelector('d2l-dropdown-menu');
-				await dropdownContent.updateComplete;
+				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
+				const menu = elem.shadowRoot.querySelector('d2l-menu');
 				const dimensions = elem.shadowRoot.querySelectorAll('d2l-menu-item');
 
 				elem.opened = true;
@@ -498,8 +968,79 @@ describe('d2l-filter', () => {
 				expect(eventSpy).to.be.calledTwice;
 
 				setTimeout(() => dimensions[0].click());
-				await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
+				await oneEvent(menu, 'd2l-hierarchical-view-show-complete');
 				expect(eventSpy).to.be.calledTwice;
+			});
+
+			describe('d2l-filter-dimension-empty-state', () => {
+				it('Fires empty state action when search empty state action is clicked', async() => {
+					const elem = await fixture(singleSetSearchEmptyStateDimensionFixture);
+					elem._handleSearch({ detail: { value: 'no results' } });
+					elem.requestUpdate();
+					await elem.updateComplete;
+
+					const eventSpy = spy(elem, 'dispatchEvent');
+					const emptyState = elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message');
+					const emptyStateAction = emptyState.querySelector('d2l-state-action-button');
+
+					setTimeout(() => emptyStateAction.dispatchEvent(new CustomEvent('d2l-state-action')));
+					const e = await oneEvent(elem, 'd2l-filter-dimension-empty-state-action');
+					expect(e.detail.key).to.equal('dim');
+					expect(e.detail.type).to.equal('search');
+					expect(eventSpy).to.be.calledOnce;
+				});
+
+				it('Fires empty state action when set empty state action is clicked', async() => {
+					const elem = await fixture(singleSetSetEmptyStateDimensionFixture);
+					const eventSpy = spy(elem, 'dispatchEvent');
+					const emptyState = elem.shadowRoot.querySelector('.d2l-filter-dimension-info-message');
+					const emptyStateAction = emptyState.querySelector('d2l-state-action-button');
+
+					setTimeout(() => emptyStateAction.dispatchEvent(new CustomEvent('d2l-state-action')));
+					const e = await oneEvent(elem, 'd2l-filter-dimension-empty-state-action');
+					expect(e.detail.key).to.equal('dim');
+					expect(e.detail.type).to.equal('set');
+					expect(eventSpy).to.be.calledOnce;
+				});
+			});
+		});
+
+		describe('d2l-filter-dimension-load-more', () => {
+			it('dimension set fires load more event', async() => {
+				const elem = await fixture(html`<d2l-filter>
+					<d2l-filter-dimension-set key="dim" has-more search-type="manual">
+						<d2l-filter-dimension-set-value key="admin" text="Admin"></d2l-filter-dimension-set-value>
+					</d2l-filter-dimension-set>
+				</d2l-filter>`);
+				const eventSpy = spy(elem, 'dispatchEvent');
+				const loadMore = elem.shadowRoot.querySelector('d2l-pager-load-more');
+				await loadMore.updateComplete;
+				setTimeout(() => loadMore.shadowRoot.querySelector('button').click());
+
+				const e = await oneEvent(elem, 'd2l-filter-dimension-load-more');
+				expect(e.detail.key).to.equal('dim');
+				expect(e.detail.value).to.equal('');
+				expect(eventSpy).to.be.calledOnce;
+			});
+
+			it('dimension set fires load more event with search value', async() => {
+				const elem = await fixture(html`<d2l-filter>
+					<d2l-filter-dimension-set key="dim" has-more search-type="manual">
+						<d2l-filter-dimension-set-value key="admin" text="Admin"></d2l-filter-dimension-set-value>
+					</d2l-filter-dimension-set>
+				</d2l-filter>`);
+				(await search(elem, 'search value')).detail.searchCompleteCallback({ displayAllKeys: true });
+				await nextFrame(); // wait for paging callback
+				await elem.updateComplete;
+
+				const loadMore = elem.shadowRoot.querySelector('d2l-pager-load-more');
+				await nextFrame(); // wait for paging info to update
+				await loadMore.updateComplete;
+
+				setTimeout(() => loadMore.shadowRoot.querySelector('button').click());
+				const e = await oneEvent(elem, 'd2l-filter-dimension-load-more');
+				expect(e.detail.key).to.equal('dim');
+				expect(e.detail.value).to.equal('search value');
 			});
 		});
 
@@ -507,18 +1048,14 @@ describe('d2l-filter', () => {
 			it('single set dimension fires search event for manual search-type', async() => {
 				const elem = await fixture('<d2l-filter><d2l-filter-dimension-set key="dim" search-type="manual"></d2l-filter-dimension-set></d2l-filter>');
 				const eventSpy = spy(elem, 'dispatchEvent');
-				const search = elem.shadowRoot.querySelector('d2l-input-search');
-				search.value = 'searching';
-
-				setTimeout(() => search.search());
-				const e = await oneEvent(elem, 'd2l-filter-dimension-search');
+				const e = await search(elem, 'searching');
 
 				expect(elem._dimensions[0].searchValue).to.equal('searching');
 				expect(e.detail.value).to.equal('searching');
 				expect(eventSpy).to.be.calledOnce;
 			});
 
-			it('single set dimension does not fire search event for clearing with manual search-type', async() => {
+			it('single set dimension fires search event when setting an empty search value on manual search-type', async() => {
 				const elem = await fixture('<d2l-filter><d2l-filter-dimension-set key="dim" search-type="manual"></d2l-filter-dimension-set></d2l-filter>');
 				const eventSpy = spy(elem, 'dispatchEvent');
 				const search = elem.shadowRoot.querySelector('d2l-input-search');
@@ -528,7 +1065,59 @@ describe('d2l-filter', () => {
 				await elem.updateComplete;
 
 				expect(elem._dimensions[0].searchValue).to.equal('');
-				expect(eventSpy).to.not.have.been.called;
+				expect(eventSpy).to.be.calledOnce;
+			});
+
+			it('clear all fires search event on all manual search-type dimensions with a non-empty search value', async() => {
+				const elem = await fixture(html`
+					<d2l-filter>
+						<d2l-filter-dimension-set key="dim" search-type="manual"></d2l-filter-dimension-set>
+						<d2l-filter-dimension-set key="dim2"></d2l-filter-dimension-set>
+						<d2l-filter-dimension-set key="dim3" search-type="manual"></d2l-filter-dimension-set>
+						<d2l-filter-dimension-set key="dim4" search-type="manual"></d2l-filter-dimension-set>
+						<d2l-filter-dimension-set key="dim5" search-type="none"></d2l-filter-dimension-set>
+					</d2l-filter>`);
+				const eventSpy = spy();
+				elem.addEventListener('d2l-filter-dimension-search', eventSpy);
+				elem._dimensions[0].searchValue = 'searched';
+				elem._dimensions[1].searchValue = 'searched';
+				elem._dimensions[2].searchValue = 'searched';
+
+				elem._handleClearAll();
+
+				expect(elem._dimensions[0].searchValue).to.equal('');
+				expect(elem._dimensions[1].searchValue).to.equal('');
+				expect(elem._dimensions[2].searchValue).to.equal('');
+				expect(eventSpy).to.be.calledTwice;
+			});
+
+			it('single set dimension fires search event on first open for manual search-type', async() => {
+				const elem = await fixture(html`
+					<d2l-filter>
+						<d2l-filter-dimension-set key="dim" text="dim" search-type="manual"></d2l-filter-dimension-set>
+					</d2l-filter>`
+				);
+
+				setTimeout(() => elem.opened = true);
+				await oneEvent(elem, 'd2l-filter-dimension-search');
+			});
+
+			it('multi set dimension fires search event on first dimension open for manual search-type', async() => {
+				const elem = await fixture(html`
+					<d2l-filter>
+						<d2l-filter-dimension-set key="dim" text="dim" search-type="manual">
+							<d2l-filter-dimension-set-value key="test" text="test"></d2l-filter-dimension-set-value>
+							<d2l-filter-dimension-set-value key="test2" text="test2"></d2l-filter-dimension-set-value>
+						</d2l-filter-dimension-set>
+						<d2l-filter-dimension-set key="dim2" text="dim2">
+							<d2l-filter-dimension-set-value key="test" text="test"></d2l-filter-dimension-set-value>
+						</d2l-filter-dimension-set>
+					</d2l-filter>`
+				);
+				const dimensions = elem.shadowRoot.querySelectorAll('d2l-menu-item');
+
+				setTimeout(() => dimensions[0].click());
+				await oneEvent(elem, 'd2l-filter-dimension-search');
 			});
 
 			it('single set dimension does not fire search event for automatic search-type', async() => {
@@ -549,15 +1138,13 @@ describe('d2l-filter', () => {
 	describe('filter counts', () => {
 		it('single set dimension is counted correctly', async() => {
 			const elem = await fixture('<d2l-filter></d2l-filter>');
-			stub(elem, 'requestUpdate'); // Do not create actual DOM nodes for this test, missing text info for labels
+			expect(elem._totalAppliedCount).to.equal(0);
 			elem._dimensions = [{
 				key: 'dim',
 				type: 'd2l-filter-dimension-set',
-				values: [{ key: 1, selected: true }, { key: 2, selected: false }, { key: 3, selected: true }]
+				values: [true, false, true].map((selected, i) => ({ key: i, text:i.toString(), selected }))
 			}];
-			expect(elem._totalAppliedCount).to.equal(0);
-
-			elem._setFilterCounts();
+			await elem.updateComplete;
 
 			expect(elem._totalAppliedCount).to.equal(2);
 			expect(elem._dimensions[0].appliedCount).to.equal(2);
@@ -565,25 +1152,23 @@ describe('d2l-filter', () => {
 
 		it('multiple dimensions are counted correctly', async() => {
 			const elem = await fixture('<d2l-filter></d2l-filter>');
-			stub(elem, 'requestUpdate'); // Do not create actual DOM nodes for this test, missing text info for labels
+			expect(elem._totalAppliedCount).to.equal(0);
 			elem._dimensions = [{
 				key: '1',
 				type: 'd2l-filter-dimension-set',
-				values: [{ key: 1, selected: true }, { key: 2, selected: false }, { key: 3, selected: true }]
+				values: [true, false, true].map((selected, i) => ({ key: i, text:i.toString(), selected }))
 			},
 			{
 				key: '2',
 				type: 'd2l-filter-dimension-set',
-				values: [{ key: 1, selected: true }, { key: 2, selected: false }, { key: 3, selected: false }]
+				values: [true, false, false].map((selected, i) => ({ key: i, text:i.toString(), selected }))
 			},
 			{
 				key: '3',
 				type: 'd2l-filter-dimension-set',
-				values: [{ key: 1, selected: false }, { key: 2, selected: false }]
+				values: [false, false].map((selected, i) => ({ key: i, text:i.toString(), selected }))
 			}];
-			expect(elem._totalAppliedCount).to.equal(0);
-
-			elem._setFilterCounts();
+			await elem.updateComplete;
 
 			expect(elem._totalAppliedCount).to.equal(3);
 			expect(elem._dimensions[0].appliedCount).to.equal(2);
@@ -633,45 +1218,31 @@ describe('d2l-filter', () => {
 			expect(elem._dimensions[2].appliedCount).to.equal(1);
 		});
 
-		describe('_formatFilterCount', () => {
-			[
-				{ name: 'None Selected', appliedCount: 0, result: undefined },
-				{ name: '1 Selected', appliedCount: 1, result: '1' },
-				{ name: '2 Selected', appliedCount: 2, result: '2' },
-				{ name: '99 Selected', appliedCount: 99, result: '99' },
-				{ name: '100 Selected', appliedCount: 100, result: '99+' },
-				{ name: '150 Selected', appliedCount: 150, result: '99+' },
-			].forEach((testCase) => {
-				it(`${testCase.name}`, async() => {
-					const elem = await fixture(html`<d2l-filter></d2l-filter>`);
-					const result = elem._formatFilterCount(testCase.appliedCount);
-					expect(result).to.equal(testCase.result);
-				});
-			});
-		});
-
 		describe('Opener Count Format', () => {
 			[
-				{ name: 'Single Dim - None Selected', count: 0, dimensions: [{ key: 1, text: 'Role' }], text: 'Role', description: 'Filter by: Role. No filters applied.' },
-				{ name: 'Single Dim - 1 Selected', count: 1, dimensions: [{ key: 1, text: 'Role' }], text: 'Role (1)', description: 'Filter by: Role. 1 filter applied.' },
-				{ name: 'Single Dim - 5 Selected', count: 5, dimensions: [{ key: 1, text: 'Role' }], text: 'Role (5)', description: 'Filter by: Role. 5 filters applied.' },
-				{ name: 'Single Dim - 99 Selected', count: 99, dimensions: [{ key: 1, text: 'Role' }], text: 'Role (99)', description: 'Filter by: Role. 99 filters applied.' },
-				{ name: 'Single Dim - 100 Selected', count: 100, dimensions: [{ key: 1, text: 'Role' }], text: 'Role (99+)', description: 'Filter by: Role. 100 filters applied.' },
-				{ name: 'Multiple Dims - None Selected', count: 0, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters', description: 'Filters. No filters applied.' },
-				{ name: 'Multiple Dims - 1 Selected', count: 1, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters (1)', description: 'Filters. 1 filter applied.' },
-				{ name: 'Multiple Dims - 5 Selected', count: 5, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters (5)', description: 'Filters. 5 filters applied.' },
-				{ name: 'Multiple Dims - 99 Selected', count: 99, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters (99)', description: 'Filters. 99 filters applied.' },
-				{ name: 'Multiple Dims - 100 Selected', count: 100, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters (99+)', description: 'Filters. 100 filters applied.' }
+				{ name: 'Single Dim - None Selected', count: 0, dimensions: [{ key: 1, text: 'Role' }], text: 'Role', badge: undefined, description: 'Filter by: Role. No filters applied.' },
+				{ name: 'Single Dim - 1 Selected', count: 1, dimensions: [{ key: 1, text: 'Role' }], text: 'Role', badge: 1, description: 'Filter by: Role. 1 filter applied.' },
+				{ name: 'Single Dim - 5 Selected', count: 5, dimensions: [{ key: 1, text: 'Role' }], text: 'Role', badge: 5, description: 'Filter by: Role. 5 filters applied.' },
+				{ name: 'Single Dim - 99 Selected', count: 99, dimensions: [{ key: 1, text: 'Role' }], text: 'Role', badge: 99, description: 'Filter by: Role. 99 filters applied.' },
+				{ name: 'Single Dim - 100 Selected', count: 100, dimensions: [{ key: 1, text: 'Role' }], text: 'Role', badge: 100, description: 'Filter by: Role. 100 filters applied.' },
+				{ name: 'Multiple Dims - None Selected', count: 0, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters', badge: undefined, description: 'Filters. No filters applied.' },
+				{ name: 'Multiple Dims - 1 Selected', count: 1, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters', badge: 1, description: 'Filters. 1 filter applied.' },
+				{ name: 'Multiple Dims - 5 Selected', count: 5, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters', badge: 5, description: 'Filters. 5 filters applied.' },
+				{ name: 'Multiple Dims - 99 Selected', count: 99, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters', badge: 99, description: 'Filters. 99 filters applied.' },
+				{ name: 'Multiple Dims - 100 Selected', count: 100, dimensions: [{ key: 1, text: 'Role' }, { key: 2, text: 'Course' }], text: 'Filters', badge: 100, description: 'Filters. 100 filters applied.' }
 			].forEach((testCase) => {
 				it(`${testCase.name}`, async() => {
 					const elem = await fixture(html`<d2l-filter></d2l-filter>`);
-					const opener = elem.shadowRoot.querySelector('d2l-dropdown-button-subtle');
+					const opener = elem.shadowRoot.querySelector('d2l-button-subtle');
 					elem._dimensions = testCase.dimensions;
+					await elem.updateComplete;
 					elem._totalAppliedCount = testCase.count;
 					await elem.updateComplete;
+					const countbadge = opener?.children[0];
 
 					expect(opener.text).to.equal(testCase.text);
 					expect(opener.description).to.equal(testCase.description);
+					expect(countbadge?.number).to.equal(testCase.badge);
 				});
 			});
 		});
@@ -696,35 +1267,81 @@ describe('d2l-filter', () => {
 
 					expect(menuItemCount.textContent).to.equal(testCase.text);
 					expect(countBadge.text).to.equal(testCase.description);
-					expect(offscreen.description).to.equal('Role.');
+					expect(offscreen.description).to.equal(`Role. ${testCase.description}`);
 				});
 			});
 		});
 	});
 
 	describe('slot change', () => {
-		it('dimensions added after initial render are handled and counts are updated', async() => {
-			const elem = await fixture(singleSetDimensionFixture);
-			expect(elem._dimensions.length).to.equal(1);
-			expect(elem._totalAppliedCount).to.equal(1);
-
+		async function addDimensionSet(elem, minWidth = 1000) {
 			const newDim = document.createElement('d2l-filter-dimension-set');
 			newDim.key = 'newDim';
 			newDim.text = 'New Dim';
+			newDim.minWidth = minWidth;
 			const newValue = document.createElement('d2l-filter-dimension-set-value');
 			newValue.key = 'newValue';
 			newValue.text = 'New Value';
 			newValue.selected = true;
 			newDim.appendChild(newValue);
 			setTimeout(() => elem.appendChild(newDim));
-			await oneEvent(elem.shadowRoot.querySelector('slot'), 'slotchange');
-			elem.requestUpdate();
+			await oneEvent(elem.shadowRoot.querySelector('slot'), 'slotchange');;
 			await elem.updateComplete;
+		}
+		it('dimensions added after initial render are handled and counts are updated', async() => {
+			const elem = await fixture(singleSetDimensionFixture);
+			expect(elem._dimensions.length).to.equal(1);
+			expect(elem._totalAppliedCount).to.equal(1);
+
+			await addDimensionSet(elem);
 
 			expect(elem._dimensions.length).to.equal(2);
 			expect(elem._dimensions[0].key).to.equal('dim');
 			expect(elem._dimensions[1].key).to.equal('newDim');
 			expect(elem._totalAppliedCount).to.equal(2);
+			expect(elem._minWidth).to.equal(1000);
+		});
+
+		it('does not use smaller minWidth values from new dimensions', async() => {
+			const elem = await fixture(singleSetDimensionFixture);
+			expect(elem._dimensions.length).to.equal(1);
+			expect(elem._totalAppliedCount).to.equal(1);
+			const initialMinWidth = elem._minWidth;
+			expect(elem._minWidth).to.not.equal(undefined);
+
+			await addDimensionSet(elem, 10);
+
+			expect(elem._dimensions.length).to.equal(2);
+			expect(elem._dimensions[0].key).to.equal('dim');
+			expect(elem._dimensions[1].key).to.equal('newDim');
+			expect(elem._totalAppliedCount).to.equal(2);
+			expect(elem._minWidth).to.equal(initialMinWidth);
+		});
+
+		it('slot chnages are ignored if _ignoreSlotChanges is true', async() => {
+			/* eslint-disable lit/no-private-properties */
+			const elem = await fixture(html`<d2l-filter _ignoreSlotChanges ._dimensions=${[
+				{ key: 'dim', type: 'd2l-filter-dimension-set', values: [{ key: 'value', text: 'Value', selected: true }] }
+			]}></d2l-filter>`);
+			/* eslint-enable lit/no-private-properties */
+
+			// Initial slot change does not update dimensions
+			expect(elem._dimensions.length).to.equal(1);
+			expect(elem._totalAppliedCount).to.equal(1);
+
+			await addDimensionSet(elem);
+
+			expect(elem._dimensions.length).to.equal(1);
+			expect(elem._totalAppliedCount).to.equal(1);
+		});
+	});
+
+	describe('create set dimension', () => {
+		it('sets minWidth to match maximum dimension minWidth value', async() => {
+			const elem = await fixture(singleSetDimensionDateTimeRangeDateFixture);
+			const timeDimension = elem._dimensions[0];
+
+			expect(elem._minWidth).to.equal(timeDimension.minWidth);
 		});
 	});
 
@@ -757,6 +1374,44 @@ describe('d2l-filter', () => {
 
 			await oneEvent(elem, 'd2l-filter-dimension-data-change');
 			expect(elem._dimensions[1].values[0].text).to.equal('Test');
+			expect(updateStub).to.be.calledOnce;
+			expect(recountSpy).to.be.not.be.called;
+			expect(searchSpy).to.be.not.be.called;
+		});
+
+		it('dimension search empty state changes are handled', async() => {
+			const dimensionSet = elem.querySelector('d2l-filter-dimension-set[key="2"]');
+			const emptyState = document.createElement('d2l-filter-dimension-set-empty-state');
+			emptyState.actionHref = 'https://d2l.com';
+			emptyState.actionText = 'Click me';
+			emptyState.description = 'Description';
+			emptyState.slot = 'search-empty-state';
+			setTimeout(() => dimensionSet.appendChild(emptyState));
+
+			await oneEvent(elem, 'd2l-filter-dimension-data-change');
+
+			expect(elem._dimensions[1].searchEmptyState.actionHref).to.equal('https://d2l.com');
+			expect(elem._dimensions[1].searchEmptyState.actionText).to.equal('Click me');
+			expect(elem._dimensions[1].searchEmptyState.description).to.equal('Description');
+			expect(updateStub).to.be.calledOnce;
+			expect(recountSpy).to.be.not.be.called;
+			expect(searchSpy).to.be.not.be.called;
+		});
+
+		it('dimension set empty state changes are handled', async() => {
+			const dimensionSet = elem.querySelector('d2l-filter-dimension-set[key="2"]');
+			const emptyState = document.createElement('d2l-filter-dimension-set-empty-state');
+			emptyState.actionHref = 'https://d2l.com';
+			emptyState.actionText = 'Click me';
+			emptyState.description = 'Description';
+			emptyState.slot = 'set-empty-state';
+			setTimeout(() => dimensionSet.appendChild(emptyState));
+
+			await oneEvent(elem, 'd2l-filter-dimension-data-change');
+
+			expect(elem._dimensions[1].setEmptyState.actionHref).to.equal('https://d2l.com');
+			expect(elem._dimensions[1].setEmptyState.actionText).to.equal('Click me');
+			expect(elem._dimensions[1].setEmptyState.description).to.equal('Description');
 			expect(updateStub).to.be.calledOnce;
 			expect(recountSpy).to.be.not.be.called;
 			expect(searchSpy).to.be.not.be.called;
@@ -859,7 +1514,7 @@ describe('d2l-filter', () => {
 			setTimeout(() => elem._handleSearch({ detail: { value: '1' } }));
 			const e = await oneEvent(elem, 'd2l-filter-dimension-search');
 
-			e.detail.searchCompleteCallback(['1']);
+			e.detail.searchCompleteCallback({ keysToDisplay: ['1'] });
 			await new Promise(requestAnimationFrame);
 			expect(elem._dimensions[0].values.length).to.equal(1);
 			expect(elem._dimensions[0].values[0].hidden).to.be.false;
@@ -887,9 +1542,8 @@ describe('d2l-filter', () => {
 		it('if there is no active dimension, do not change esc close behaviour', async() => {
 			const elem = await fixture(singleSetDimensionFixture);
 			const hideStub = stub(elem, '_handleDimensionHide');
-			const dropdown = elem.shadowRoot.querySelector('d2l-dropdown-button-subtle');
+			const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
 			const dropdownContent = elem.shadowRoot.querySelector('d2l-dropdown-content');
-			await dropdownContent.updateComplete;
 
 			elem.opened = true;
 			await oneEvent(dropdown, 'd2l-dropdown-open');
@@ -915,16 +1569,16 @@ describe('d2l-filter', () => {
 		[{ key: 'Escape', keyCode: 27 }, { key: 'ArrowLeft', keyCode: 37 }].forEach(testCase => {
 			it(`clicking ${testCase.key} in the header goes back to the dimension list`, async() => {
 				const elem = await fixture(multiDimensionFixture);
-				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown-button-subtle');
+				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
+				const menu = elem.shadowRoot.querySelector('d2l-menu');
 				const dropdownContent = elem.shadowRoot.querySelector('d2l-dropdown-menu');
-				await dropdownContent.updateComplete;
 				const dimension = elem.shadowRoot.querySelector('d2l-menu-item');
 
 				elem.opened = true;
 				await oneEvent(dropdown, 'd2l-dropdown-open');
 
 				setTimeout(() => dimension.click());
-				await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
+				await oneEvent(menu, 'd2l-hierarchical-view-show-complete');
 				expect(elem._activeDimensionKey).to.not.be.null;
 
 				const event = new CustomEvent('keydown', {
@@ -938,7 +1592,7 @@ describe('d2l-filter', () => {
 
 				const returnButton = elem.shadowRoot.querySelector('d2l-button-icon[icon="tier1:chevron-left"]');
 				setTimeout(() => returnButton.dispatchEvent(event));
-				await oneEvent(elem, 'd2l-hierarchical-view-hide-complete');
+				await oneEvent(menu, 'd2l-hierarchical-view-hide-complete');
 				expect(elem._activeDimensionKey).to.be.null;
 				expect(elem.shadowRoot.querySelector('d2l-button-icon[icon="tier1:chevron-left"]')).to.be.null;
 				expect(elem.shadowRoot.querySelector('d2l-button-subtle[slot="header"]')).to.not.be.null;
@@ -948,16 +1602,16 @@ describe('d2l-filter', () => {
 
 			it(`set dimension - clicking ${testCase.key} in the content goes back to the dimension list`, async() => {
 				const elem = await fixture(multiDimensionFixture);
-				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown-button-subtle');
+				const dropdown = elem.shadowRoot.querySelector('d2l-dropdown');
+				const menu = elem.shadowRoot.querySelector('d2l-menu');
 				const dropdownContent = elem.shadowRoot.querySelector('d2l-dropdown-menu');
-				await dropdownContent.updateComplete;
 				const dimension = elem.shadowRoot.querySelector('d2l-menu-item');
 
 				elem.opened = true;
 				await oneEvent(dropdown, 'd2l-dropdown-open');
 
 				setTimeout(() => dimension.click());
-				await oneEvent(elem, 'd2l-hierarchical-view-show-complete');
+				await oneEvent(menu, 'd2l-hierarchical-view-show-complete');
 				expect(elem._activeDimensionKey).to.not.be.null;
 
 				const event = new CustomEvent('keydown', {
@@ -972,7 +1626,7 @@ describe('d2l-filter', () => {
 				const firstListItem = elem.shadowRoot.querySelector('d2l-list-item');
 				firstListItem.focus();
 				setTimeout(() => firstListItem.dispatchEvent(event));
-				await oneEvent(elem, 'd2l-hierarchical-view-hide-complete');
+				await oneEvent(menu, 'd2l-hierarchical-view-hide-complete');
 				expect(elem._activeDimensionKey).to.be.null;
 				expect(elem.shadowRoot.querySelector('d2l-button-icon[icon="tier1:chevron-left"]')).to.be.null;
 				expect(elem.shadowRoot.querySelector('d2l-button-subtle[slot="header"]')).to.not.be.null;
@@ -1007,7 +1661,7 @@ describe('d2l-filter', () => {
 
 		it('If there are subscribers, active filters are calculated properly', async() => {
 			elem = await fixture(multiDimensionFixture);
-			elem.getSubscriberController().subscribe({ updateActiveFilters: () => {} });
+			elem._activeFiltersSubscribers.subscribe({ updateActiveFilters: () => {} });
 			await elem.updateComplete;
 
 			const item1 = elem.shadowRoot.querySelector('[data-key="1"] d2l-list-item[key="1"]');
@@ -1035,12 +1689,12 @@ describe('d2l-filter', () => {
 
 		it('If an additional subscriber is added, they are sent the active filters (which are not recalculated)', async() => {
 			elem = await fixture(multiDimensionFixture);
-			elem.getSubscriberController().subscribe({ updateActiveFilters: () => {} });
+			elem._activeFiltersSubscribers.subscribe({ updateActiveFilters: () => {} });
 			await elem.updateComplete;
 
 			const updateSpy = spy(elem, '_updateActiveFilters');
 			let id, result;
-			elem.getSubscriberController().subscribe({ updateActiveFilters: (filterId, activeFilters) => { id = filterId; result = activeFilters; } });
+			elem._activeFiltersSubscribers.subscribe({ updateActiveFilters: (filterId, activeFilters) => { id = filterId; result = activeFilters; } });
 
 			expect(updateSpy).to.not.have.been.called;
 			expect(result).to.equal(elem._activeFilters);
@@ -1053,7 +1707,7 @@ describe('d2l-filter', () => {
 			beforeEach(async() => {
 				elem = await fixture(multiDimensionFixture);
 				subscriberUpdated = false;
-				elem.getSubscriberController().subscribe({ updateActiveFilters: () => subscriberUpdated = true });
+				elem._activeFiltersSubscribers.subscribe({ updateActiveFilters: () => subscriberUpdated = true });
 				await elem.updateComplete;
 				updateSpy = spy(elem, '_updateActiveFilters');
 			});

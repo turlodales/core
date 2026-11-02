@@ -19,7 +19,7 @@ npm install @brightspace-ui/core
   * [Alert](components/alert/): alert components for displaying important information
   * [Breadcrumbs](components/breadcrumbs/): component to help users understand where they are within an application
   * [Backdrop](components/backdrop/): component for displaying backdrop behind a target element
-  * [Buttons](components/button/): normal, primary, icon and subtle buttons
+  * [Buttons](components/button/): normal, primary, icon, subtle, and toggle buttons
   * [Calendar](components/calendar/): calendar component
   * [Card](components/card/): card components
   * [Colors](components/colors/): color palette
@@ -50,6 +50,8 @@ npm install @brightspace-ui/core
   * [Selection](components/selection/): components for selection and bulk actions
   * [Scroll Wrapper](components/scroll-wrapper/): arrows to scroll content horizontally
   * [Skeleton](components/skeleton/): apply low-fidelity skeletons to your application as it loads
+  * [Skip Nav](components/skip-nav/): components for skipping past navigation panels
+  * [Sort](components/sorting/): menu for adjusting the sort order of data in a list
   * [Status Indicator](components/status-indicator/): status-indicator components
   * [Switch](components/switch/): switch component with on/off semantics
   * [Table](components/table/): table styles, column sorting and overflow handling
@@ -65,18 +67,16 @@ npm install @brightspace-ui/core
 * Helpers
   * [Helpers](helpers/): helpers for composed DOM, unique ids, etc.
 * Mixins
-  * [ArrowKeysMixin](mixins/arrow-keys-mixin.md): manage focus with arrow keys
+  * [ArrowKeysMixin](mixins/arrow-keys/): manage focus with arrow keys
   * [AsyncContainerMixin](mixins/async-container/): manage collective async state
-  * [FocusMixin](mixins/focus-mixin.md): delegate focus to a nested element when `focus()` is called
-  * [FocusVisiblePolyfillMixin](mixins/focus-visible-polyfill-mixin.md): components can use the `:focus-visible` pseudo-class polyfill
+  * [FocusMixin](mixins/focus/): delegate focus to a nested element when `focus()` is called
   * [FormElementMixin](components/form/docs/form-element-mixin.md): allow components to participate in forms and validation
-  * [InteractiveMixin](mixins/interactive-mixin.md): enables toggling interactive elements inside of nested grids
-  * [LabelledMixin](mixins/labelled-mixin.md): label custom elements by referencing elements across DOM scopes
-  * [LocalizeMixin](mixins/localize-mixin.md): localize text in your components
-  * [ProviderMixin](mixins/provider-mixin.md): provide and consume data across elements in a DI-like fashion
-  * [RtlMixin](mixins/rtl-mixin.md): enable components to define RTL styles
+  * [InteractiveMixin](mixins/interactive/): enables toggling interactive elements inside of nested grids
+  * [LabelledMixin](mixins/labelled/): label custom elements by referencing elements across DOM scopes
+  * [LocalizeMixin](mixins/localize/): localize text in your components
+  * [ProviderMixin](mixins/provider/): provide and consume data across elements in a DI-like fashion
   * [SkeletonMixin](components/skeleton/): make components skeleton-aware
-  * [VisibleOnAncestorMixin](mixins/visible-on-ancestor-mixin.md): display element on-hover of an ancestor
+  * [VisibleOnAncestorMixin](mixins/visible-on-ancestor/): display element on-hover of an ancestor
 * Templates
   * [PrimarySecondaryTemplate](templates/primary-secondary): Two Panel (primary and secondary) page template with header and optional footer
 
@@ -94,97 +94,59 @@ Start a [@web/dev-server](https://modern-web.dev/docs/dev-server/overview/) that
 npm start
 ```
 
+D2L employees can also view the latest main-branch demos at https://live.d2l.dev/BrightspaceUI/core/.
+
 ### Linting
 
 ```shell
-# eslint and lit-analyzer
+# eslint and stylelint
 npm run lint
 
 # eslint only
 npm run lint:eslint
 
-# lit-analyzer only
-npm run lint:lit
+# stylelint only
+npm run lint:style
 ```
 
 ### Testing
 
+To run the full suite of tests:
+
 ```shell
-# lint, unit tests and axe tests
 npm test
+```
 
+Alternatively, tests can be selectively run:
+
+```shell
 # unit tests
-npm run test:headless
+npm run test:unit
 
-# debug or run a subset of local unit tests
-npm run test:headless:watch
+# aXe accessibility tests
+npm run test:axe
+
+# translations tests
+npm run test:translations
 ```
 
 Note: The axe tests require `prefers-reduced-motion` emulation to be turned on in the dev console if debugging in a local browser.
 
-### Visual Diff Testing
-
-This repo uses the [@brightspace-ui/visual-diff utility](https://github.com/BrightspaceUI/visual-diff/) to compare current snapshots against a set of golden snapshots stored in source control.
-
-The golden snapshots in source control must be updated by the [visual-diff GitHub Action](https://github.com/BrightspaceUI/actions/tree/main/visual-diff).  If a pull request results in visual differences, a draft pull request with the new goldens will automatically be opened against its branch.
-
-To run the tests locally to help troubleshoot or develop new tests, first install these dependencies:
+This repo uses [@brightspace-ui/testing](https://github.com/BrightspaceUI/testing)'s vdiff command to perform visual regression testing:
 
 ```shell
-npm install @brightspace-ui/visual-diff@X mocha@Y puppeteer@Z  --no-save
+# vdiff
+npm run test:vdiff
+
+# re-generate goldens
+npm run test:vdiff -- --golden
 ```
 
-Replace `X`, `Y` and `Z` with [the current versions](https://github.com/BrightspaceUI/actions/tree/main/visual-diff#current-dependency-versions) the action is using.
+### Versioning and Releasing
 
-Then run the tests:
+This repo is configured to use `semantic-release`. Commits prefixed with `fix:` and `feat:` will trigger patch and minor releases when merged to `main`.
 
-```shell
-# run visual-diff tests
-npx mocha './**/*.visual-diff.js' -t 10000
-# subset of visual-diff tests:
-npx mocha './**/*.visual-diff.js' -t 10000 -g some-pattern
-# update visual-diff goldens
-npx mocha './**/*.visual-diff.js' -t 10000 --golden
-```
-
-## Versioning & Releasing
-
-> TL;DR: Commits prefixed with `fix:` and `feat:` will trigger patch and minor releases when merged to `main`. Read on for more details...
-
-The [semantic-release GitHub Action](https://github.com/BrightspaceUI/actions/tree/main/semantic-release) is called from the `release.yml` GitHub Action workflow to handle version changes and releasing.
-
-### Version Changes
-
-All version changes should obey [semantic versioning](https://semver.org/) rules:
-1. **MAJOR** version when you make incompatible API changes,
-2. **MINOR** version when you add functionality in a backwards compatible manner, and
-3. **PATCH** version when you make backwards compatible bug fixes.
-
-The next version number will be determined from the commit messages since the previous release. Our semantic-release configuration uses the [Angular convention](https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-angular) when analyzing commits:
-* Commits which are prefixed with `fix:` or `perf:` will trigger a `patch` release. Example: `fix: validate input before using`
-* Commits which are prefixed with `feat:` will trigger a `minor` release. Example: `feat: add toggle() method`
-* To trigger a MAJOR release, include `BREAKING CHANGE:` with a space or two newlines in the footer of the commit message
-* Other suggested prefixes which will **NOT** trigger a release: `build:`, `ci:`, `docs:`, `style:`, `refactor:` and `test:`. Example: `docs: adding README for new component`
-
-To revert a change, add the `revert:` prefix to the original commit message. This will cause the reverted change to be omitted from the release notes. Example: `revert: fix: validate input before using`.
-
-### Releases
-
-When a release is triggered, it will:
-* Update the version in `package.json`
-* Tag the commit
-* Create a GitHub release (including release notes)
-* Deploy a new package to NPM
-
-### Releasing from Maintenance Branches
-
-Occasionally you'll want to backport a feature or bug fix to an older release. `semantic-release` refers to these as [maintenance branches](https://semantic-release.gitbook.io/semantic-release/usage/workflow-configuration#maintenance-branches).
-
-Maintenance branch names should be of the form: `+([0-9])?(.{+([0-9]),x}).x`.
-
-Regular expressions are complicated, but this essentially means branch names should look like:
-* `1.15.x` for patch releases on top of the `1.15` release (after version `1.16` exists)
-* `2.x` for feature releases on top of the `2` release (after version `3` exists)
+To learn how to create major releases and release from maintenance branches, refer to the [semantic-release GitHub Action](https://github.com/BrightspaceUI/actions/tree/main/semantic-release) documentation.
 
 ## Future Enhancements
 

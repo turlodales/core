@@ -1,0 +1,32 @@
+name: translation
+on:
+  pull_request:
+    paths:
+      - 'lang/**'
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  format:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Brightspace/third-party-actions@actions/checkout
+      - uses: Brightspace/setup-node@main
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+          d2l-registry-token: ${{ secrets.D2L_PACKAGE_REGISTRY_AUTH_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Run formatter
+        uses: BrightspaceUI/actions/t9n-format@main
+        with:
+          t9n-source: en
+          t9n-path: ./lang/
+          t9n-newlines: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}

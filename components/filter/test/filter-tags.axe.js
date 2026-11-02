@@ -2,7 +2,7 @@ import '../filter.js';
 import '../filter-dimension-set.js';
 import '../filter-dimension-set-value.js';
 import '../filter-tags.js';
-import { expect, fixture, html, waitUntil } from '@open-wc/testing';
+import { expect, fixture, html, waitUntil } from '@brightspace-ui/testing';
 
 const basicFixture = html`
 	<div>
@@ -21,7 +21,7 @@ const basicFixture = html`
 				<d2l-filter-dimension-set-value text="Value 2 - 3" key="3"></d2l-filter-dimension-set-value>
 			</d2l-filter-dimension-set>
 		</d2l-filter>
-		<d2l-filter-tags filter-ids="filter" label="The applied filters"></d2l-filter-tags>
+		<d2l-filter-tags filter-ids="filter"></d2l-filter-tags>
 	</div>
 `;
 
@@ -32,7 +32,7 @@ const emptyFixture = html`
 				<d2l-filter-dimension-set-value text="Value 1 - 5" key="5"></d2l-filter-dimension-set-value>
 			</d2l-filter-dimension-set>
 			</d2l-filter>
-		<d2l-filter-tags filter-ids="empty-filter" label="The applied filters"></d2l-filter-tags>
+		<d2l-filter-tags filter-ids="empty-filter"></d2l-filter-tags>
 	</div>
 `;
 
@@ -41,7 +41,6 @@ describe('d2l-filter-tags', () => {
 	it('basic', async() => {
 		const elem = await fixture(basicFixture);
 		const filterTags = elem.querySelector('d2l-filter-tags');
-		await filterTags.updateComplete;
 		await waitUntil(() => filterTags._allActiveFilters.get('filter').length === 4, 'Active filters were not set');
 
 		await expect(elem).to.be.accessible();
@@ -49,9 +48,6 @@ describe('d2l-filter-tags', () => {
 
 	it('empty', async() => {
 		const elem = await fixture(emptyFixture);
-		const filterTags = elem.querySelector('d2l-filter-tags');
-		await filterTags.updateComplete;
-
 		await expect(elem).to.be.accessible();
 	});
 

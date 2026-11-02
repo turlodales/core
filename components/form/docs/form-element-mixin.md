@@ -1,14 +1,14 @@
 # FormElementMixin
 
-The `FormElementMixin` allows the user to turn a custom web component into a form element.
+The `FormElementMixin` allows custom web components to participate as a form element.
 
 This means that the component will be able to:
 1. Perform live self-validation when being edited.
-1. Participate in validation and submission when added to `d2l-form` or `d2l-form-native`.
+1. Participate in validation and submission when added to `d2l-form`.
 
-All custom form elements must provide a form value that will be submitted during `d2l-form` or `d2l-form-native` submission.
-However, participating in validation is optional. Some custom form elements may not need validation because they have no
-invalid state.
+All custom form elements must provide a form value that will be submitted during `d2l-form` submission.
+
+Participating in validation is, however, optional. Some custom form elements may not need validation because they have no invalid state.
 
 ## Form Value
 
@@ -18,12 +18,12 @@ invalid state.
 | `name` | String | The name of the form control. Submitted with the form as part of a name/value pair. |
 
 **Methods:**
+- `resetValidation()`: Resets any validation errors on the form element. Note that this does not reset any form element value.
 - `setFormValue(value)`: Sets the current value of the form control. Submitted with the form as part of a name/value pair. `value` may be a:
 	1. An `Object`: `{ 'key1': val, 'key2': val }`
 		- When an `Object` is provided, all keys-value pairs will be submitted. To avoid collision it is recommended that you prefix each key with the component's `name` property value.
 	1. A single value: `'my-value'`
 		- When a single value is provided a key-value pair will be submitted with the component's `name` property value as the key. If `name` does not have a value, the value will not be submitted.
-	- **Note:** When using `d2l-form-native` all values will be converted to `String`s. Complex value may be used with `d2l-form` but should only be used if absolutely required to maintain compatibility with `d2l-form-native`.
 
 ## Validation
 
@@ -61,27 +61,23 @@ invalid state.
 
 ## Usage
 
-
 ```javascript
 import { FormElementMixin } from '@brightspace-ui/core/form/form-element-mixin.js';
 
 // Use the FormElementMixin
 class MyFormElement extends FormElementMixin(LitElement) {
 
-	static get properties() {
-		return {
-			_val1: { type: String },
-			_val2: { type: String }
-		};
-	}
-	static get styles() {
-		return css`
-			/* Add our invalid styles */
-			:host([invalid]) {
-				border: 2px solid var(--d2l-color-cinnabar);
-			}
-		`;
-	}
+	static properties = {
+		_val1: { type: String },
+		_val2: { type: String }
+	};
+
+	static styles = css`
+		/* Add our invalid styles */
+		:host([invalid]) {
+			border: 2px solid var(--d2l-color-cinnabar);
+		}
+	`;
 
 	constructor() {
 		super();

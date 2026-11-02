@@ -3,7 +3,8 @@ import '../icons/icon.js';
 import './menu-item-return.js';
 import { css, html, LitElement } from 'lit';
 import { HierarchicalViewMixin } from '../hierarchical-view/hierarchical-view-mixin.js';
-import { ThemeMixin } from '../../mixins/theme-mixin.js';
+import { PropertyRequiredMixin } from '../../mixins/property-required/property-required-mixin.js';
+import { ThemeMixin } from '../../mixins/theme/theme-mixin.js';
 
 const keyCodes = {
 	DOWN: 40,
@@ -20,62 +21,60 @@ const keyCodes = {
  * @slot - Menu items
  * @fires d2l-menu-resize - Dispatched when size of menu changes (e.g., when nested menu of a different size is opened)
  */
-class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
+class Menu extends PropertyRequiredMixin(ThemeMixin(HierarchicalViewMixin(LitElement))) {
 
-	static get properties() {
-		return {
-			/**
-			 * @ignore
-			 */
-			active: { type: Boolean, reflect: true },
-			/**
-			 * Text to be applied to menu "aria-label" for use with screen readers (REQUIRED for root menu)
-			 * @type {string}
-			 */
-			label: { type: String },
-			/**
-			 * @ignore
-			 */
-			role: { type: String, attribute: 'role' }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		active: { type: Boolean, reflect: true },
+		/**
+		 * ACCESSIBILITY: Acts as the primary label for the menu (REQUIRED for root menu)
+		 * @type {string}
+		 */
+		label: { type: String, required: true },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		role: { type: String, attribute: 'role' }
+	};
 
-	static get styles() {
-		return [ super.styles, css`
-			:host {
-				--d2l-menu-background-color: #ffffff;
-				--d2l-menu-background-color-hover: var(--d2l-color-celestine-plus-2);
-				--d2l-menu-border-color: var(--d2l-color-gypsum);
-				--d2l-menu-border-color-hover: var(--d2l-color-celestine);
-				--d2l-menu-foreground-color: var(--d2l-color-ferrite);
-				--d2l-menu-foreground-color-hover: var(--d2l-color-celestine-minus-1);
-				--d2l-menu-separator-color: var(--d2l-color-corundum);
-				box-sizing: border-box;
-				display: block;
-				min-width: 180px;
-				padding-top: 1px;
-				width: 100%;
-			}
+	static styles = [super.styles, css`
+		:host {
+			--d2l-menu-background-color: var(--d2l-theme-background-color-base);
+			--d2l-menu-background-color-hover: var(--d2l-theme-brand-color-highlight);
+			--d2l-menu-border-color: var(--d2l-theme-border-color-subtle);
+			--d2l-menu-border-color-hover: var(--d2l-theme-border-color-focus);
+			--d2l-menu-foreground-color: var(--d2l-theme-text-color-static-standard);
+			--d2l-menu-foreground-color-hover: var(--d2l-theme-brand-color-primary-hover);
+			--d2l-menu-separator-color: var(--d2l-theme-border-color-emphasized);
+			box-sizing: border-box;
+			display: block;
+			min-width: 180px;
+			padding-top: 1px;
+			width: 100%;
+		}
 
-			:host([active]) .d2l-menu-items d2l-menu-item-return[role="menuitem"],
-			:host([active]) .d2l-menu-items ::slotted([role="menuitem"]),
-			:host([active]) .d2l-menu-items ::slotted([role="menuitemcheckbox"]),
-			:host([active]) .d2l-menu-items ::slotted([role="menuitemradio"]) {
-				position: relative;
-			}
+		:host([active]) .d2l-menu-items d2l-menu-item-return[role="menuitem"],
+		:host([active]) .d2l-menu-items ::slotted([role="menuitem"]),
+		:host([active]) .d2l-menu-items ::slotted([role="menuitemcheckbox"]),
+		:host([active]) .d2l-menu-items ::slotted([role="menuitemradio"]) {
+			position: relative;
+		}
 
-			:host([theme="dark"]) {
-				--d2l-menu-background-color: #333536; /* tungsten @ 70% */
-				--d2l-menu-background-color-hover: #123559; /* celestine-1 @ 50% */
-				--d2l-menu-border-color: var(--d2l-color-tungsten);
-				--d2l-menu-foreground-color: var(--d2l-color-sylvite);
-				--d2l-menu-foreground-color-hover: #ffffff;
-				--d2l-menu-separator-color: var(--d2l-color-galena);
-				--d2l-icon-fill-color: var(--d2l-color-mica);
-				background-color: var(--d2l-menu-background-color); /* so that opacity on disabled items works */
-			}
-		`];
-	}
+		:host([theme="dark"]) {
+			--d2l-menu-background-color: #333536; /* tungsten @ 70% */
+			--d2l-menu-background-color-hover: #123559; /* celestine-1 @ 50% */
+			--d2l-menu-border-color: var(--d2l-color-tungsten);
+			--d2l-menu-border-color-hover: #ffffff;
+			--d2l-menu-foreground-color: var(--d2l-color-sylvite);
+			--d2l-menu-foreground-color-hover: #ffffff;
+			--d2l-menu-separator-color: var(--d2l-color-galena);
+			--d2l-icon-fill-color: var(--d2l-color-mica);
+			background-color: var(--d2l-menu-background-color); /* so that opacity on disabled items works */
+		}
+	`];
 
 	constructor() {
 		super();
@@ -94,8 +93,8 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
 
-		this.addEventListener('d2l-hierarchical-view-show-start', this._onVisibilityChange);
-		this.addEventListener('d2l-hierarchical-view-hide-complete', this._onVisibilityChange);
+		this.addEventListener('d2l-hierarchical-view-show-start', this._onShowStart);
+		this.addEventListener('d2l-hierarchical-view-hide-complete', this._onHideComplete);
 		this.addEventListener('d2l-hierarchical-view-show-complete', this._onShowComplete);
 		this.addEventListener('d2l-hierarchical-view-resize', this._onViewResize);
 		this.addEventListener('d2l-menu-item-visibility-change', this._onMenuItemsChanged);
@@ -127,7 +126,7 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 		changedProperties.forEach((oldValue, propName) => {
 			if (propName === 'label') this._labelChanged();
 
-			if (propName === 'childView' && this.childView) {
+			if (propName === 'rootView' && !this.rootView) {
 				const items = this.shadowRoot.querySelector('.d2l-menu-items');
 				items.insertBefore(this._createReturnItem(), items.childNodes[0]);
 
@@ -140,7 +139,9 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 		if (this.getMenuType() === 'menu-radio') {
 			this._focusSelected();
 		} else {
-			this._focusFirst();
+			const lastFocused = this._getTabFocusable();
+			if (lastFocused) this._focusItem(lastFocused);
+			else this._focusFirst();
 		}
 	}
 
@@ -162,6 +163,12 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 		}
 	}
 
+	resetFocusables(isActiveView) {
+		const focusable = this._getTabFocusable();
+		if (!focusable || (isActiveView && focusable.getRootNode().activeElement === focusable)) return;
+		focusable?.setAttribute('tabindex', '-1');
+	}
+
 	_createReturnItem() {
 		const item = document.createElement('d2l-menu-item-return');
 		item.addEventListener('d2l-menu-item-select', (e) => {
@@ -173,29 +180,38 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 	}
 
 	_focusFirst() {
+		const lastFocused = this._getTabFocusable();
+		if (lastFocused) lastFocused.setAttribute('tabindex', '-1');
 		const item = this._tryGetNextFocusable();
-		if (item) item.focus();
+		if (item) this._focusItem(item);
+	}
+
+	_focusItem(item) {
+		item.setAttribute('tabindex', '0');
+		item.focus();
 	}
 
 	_focusLast() {
 		const item = this._tryGetPreviousFocusable();
-		if (item) item.focus();
+		if (item) this._focusItem(item);
 	}
 
 	_focusNext(item) {
+		item.setAttribute('tabindex', '-1');
 		item = this._tryGetNextFocusable(item);
-		item ? item.focus() : this._focusFirst();
+		item ? this._focusItem(item) : this._focusFirst();
 	}
 
 	_focusPrevious(item) {
+		item.setAttribute('tabindex', '-1');
 		item = this._tryGetPreviousFocusable(item);
-		item ? item.focus() : this._focusLast();
+		item ? this._focusItem(item) : this._focusLast();
 	}
 
 	_focusSelected() {
 		const selected = this.querySelector('[selected]');
 		if (selected) {
-			selected.focus();
+			this._focusItem(selected);
 		} else {
 			this._focusFirst();
 		}
@@ -240,6 +256,10 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 		});
 	}
 
+	_getTabFocusable() {
+		return this._items.find(i => i.getAttribute('tabindex') === '0');
+	}
+
 	_isFocusable(item) {
 		if (item.nodeType !== 1) {
 			return false;
@@ -254,9 +274,18 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 	}
 
 	_labelChanged() {
-		this.setAttribute('aria-label', this.label);
+		if (typeof this.label === 'string' && this.label.trim().length > 0) {
+			this.setAttribute('aria-label', this.label);
+		} else {
+			this.removeAttribute('aria-label');
+		}
 		const returnItem = this._getMenuItemReturn();
 		if (returnItem) returnItem.setAttribute('text', this.label);
+	}
+
+	_onHideComplete(e) {
+		this.resetFocusables(e.detail.activeView === this);
+		this.active = this.isActive();
 	}
 
 	_onKeyDown(e) {
@@ -275,7 +304,7 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 			return;
 		}
 
-		if (this.childView && e.keyCode === keyCodes.LEFT) {
+		if (!this.rootView && e.keyCode === keyCodes.LEFT) {
 			e.stopPropagation();
 			this.hide();
 			return;
@@ -284,7 +313,8 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 	}
 
 	_onKeyPress(e) {
-		if (this._items.indexOf(e.composedPath()[0]) === -1) return;
+		const currentItem = e.composedPath()[0];
+		if (this._items.indexOf(currentItem) === -1) return;
 
 		if (e.keyCode === keyCodes.DOWN || e.keyCode === keyCodes.UP
 			|| e.keyCode === keyCodes.SPACE || e.keyCode === keyCodes.ENTER
@@ -293,6 +323,8 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 		}
 
 		e.stopPropagation();
+
+		currentItem.setAttribute('tabindex', '-1');
 
 		const startsWith = function(item, value) {
 			if (item.text && item.text.length > 0 && item.text.toLowerCase().substr(0, 1) === value) {
@@ -320,7 +352,7 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 		while (itemIndex !== targetItemIndex) {
 			const item = focusableItems[itemIndex];
 			if (startsWith(item, searchChar)) {
-				item.focus();
+				this._focusItem(item);
 				return;
 			}
 			itemIndex = getNextOrFirstIndex(itemIndex);
@@ -341,8 +373,12 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 		this.focus();
 	}
 
+	_onShowStart() {
+		this.active = this.isActive();
+	}
+
 	_onViewResize(e) {
-		if (this.childView) return;
+		if (!this.rootView) return;
 
 		const eventDetails = {
 			bubbles: true,
@@ -350,10 +386,6 @@ class Menu extends ThemeMixin(HierarchicalViewMixin(LitElement)) {
 			detail: e.detail
 		};
 		this.dispatchEvent(new CustomEvent('d2l-menu-resize', eventDetails));
-	}
-
-	_onVisibilityChange() {
-		this.active = this.isActive();
 	}
 
 	_tryGetNextFocusable(item) {

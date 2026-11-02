@@ -17,7 +17,7 @@ A Dropdown is a button that opens a floating container to offer menu items or ot
 
 `d2l-dropdown` is a generic opener for dropdown content (`d2l-dropdown-content`, `d2l-dropdown-menu` or `d2l-dropdown-tabs`) enabling alternate opener implementation using existing elements/components. Provide and indicate your own opener element with the class attribute value `d2l-dropdown-opener`.  Wire-up is automatic.
 
-<!-- docs: demo live name:d2l-dropdown align:flex-start autoOpen:true autoSize:false size:medium -->
+<!-- docs: demo code properties name:d2l-dropdown sandboxTitle:'Dropdown' align:flex-start autoOpen:true autoSize:false size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown.js';
@@ -58,7 +58,7 @@ If the dropdown is initially empty when it's opened, the dropdown pointer will n
 ## Opener: Dropdown Button [d2l-dropdown-button]
 `d2l-dropdown-button` is a `d2l-button` opener for dropdown content (`d2l-dropdown-content`, `d2l-dropdown-menu` or `d2l-dropdown-tabs`).
 
-<!-- docs: demo live name:d2l-dropdown-button align:flex-start autoOpen:true autoSize:false size:medium -->
+<!-- docs: demo code properties name:d2l-dropdown-button sandboxTitle:'Dropdown Button' align:flex-start autoOpen:true autoSize:false size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-button.js';
@@ -86,7 +86,7 @@ If the dropdown is initially empty when it's opened, the dropdown pointer will n
 ## Opener: Button Subtle [d2l-dropdown-button-subtle]
 `d2l-dropdown-button-subtle` is a `d2l-button-subtle` opener for dropdown content (`d2l-dropdown-content`, `d2l-dropdown-menu` or `d2l-dropdown-tabs`).
 
-<!-- docs: demo live name:d2l-dropdown-button-subtle align:flex-start autoOpen:true autoSize:false size:medium -->
+<!-- docs: demo code properties name:d2l-dropdown-button-subtle sandboxTitle:'Dropdown with Subtle Button Opener' align:flex-start autoOpen:true autoSize:false size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-button-subtle.js';
@@ -109,7 +109,7 @@ If the dropdown is initially empty when it's opened, the dropdown pointer will n
 | `disabled` | Boolean, default: `false` | Disables the dropdown opener |
 | `no-auto-open` | Boolean, default: `false` | Prevents the dropdown from automatically on click or on key press |
 | `open-on-hover` | Boolean, default: `false` | Optionally open dropdown on click or hover action |
-| `h-align` | String | Possible values are undefined (default) or text. If text, aligns the button content to the leading edge of text |
+| `h-align` | String | Possible values are undefined (default), `text` or `text-end`. If `text` or `text-end`, aligns the button content to the leading (or trailing) edge of text |
 <!-- docs: end hidden content -->
 
 ### Accessibility Properties
@@ -123,7 +123,7 @@ To make your `d2l-dropdown-button-subtle` accessible, use the following properti
 ## Opener: Context Menu [d2l-dropdown-context-menu]
 `d2l-dropdown-context-menu` is a simple/minimal opener for dropdown content (`d2l-dropdown-content`, `d2l-dropdown-menu` or `d2l-dropdown-tabs`).
 
-<!-- docs: demo live name:d2l-dropdown-context-menu align:flex-start autoOpen:true autoSize:false size:medium -->
+<!-- docs: demo code properties name:d2l-dropdown-context-menu sandboxTitle:'Dropdown with Context Menu Opener' align:flex-start autoOpen:true autoSize:false size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-context-menu.js';
@@ -160,7 +160,7 @@ To make your usage of `d2l-dropdown-context-menu` accessible, use the following 
 ## Opener: More [d2l-dropdown-more]
 `d2l-dropdown-more` is a simple/minimal opener for dropdown content (`d2l-dropdown-content`, `d2l-dropdown-menu` or `d2l-dropdown-tabs`).
 
-<!-- docs: demo live name:d2l-dropdown-more align:flex-start autoOpen:true autoSize:false size:medium -->
+<!-- docs: demo code properties name:d2l-dropdown-more sandboxTitle:'Dropdown with More Opener' align:flex-start autoOpen:true autoSize:false size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-more.js';
@@ -197,7 +197,7 @@ To make your usage of `d2l-dropdown-more` accessible, use the following property
 ## Content: Container [d2l-dropdown-content]
 `d2l-dropdown-content` is a generic container for dropdown content.  It provides behavior such as sizing,  positioning, and managing focus gain/loss.
 
-<!-- docs: demo live name:d2l-dropdown-content align:flex-start autoSize:false autoOpen:true size:medium -->
+<!-- docs: demo code properties name:d2l-dropdown-content sandboxTitle:'Dropdown Content - Container' align:flex-start autoSize:false autoOpen:true size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-button.js';
@@ -214,8 +214,8 @@ To make your usage of `d2l-dropdown-more` accessible, use the following property
 
 | Property | Type | Description |
 |---|---|---|
-| `align` | String | Optionally align dropdown to either `start` or `end`. If not set, the dropdown will attempt be centred |
-| `boundary` | Object | Optionally provide boundaries to where the dropdown will appear. Valid properties are `"above"`, `"below"`, `"left"` and `"right"`. |
+| `align` | String | Optionally align dropdown to either `start` or `end`. If not set, the dropdown will attempt to be centred. |
+| `async` | Boolean, default: `false` | Enable when dropdown contains async content. When set, the dropdown will dispatch a `d2l-dropdown-async-load` event before opening for the first time, giving an opportunity to load async content. |
 | `max-height` | Number | Override default `max-height`. _Note that the default behaviour is to be as tall as necessary within the viewport, so this property is usually not needed_ |
 | `min-height` | Number | Override default height used for required space when `no-auto-fit` is true. Specify a number that would be the px value. _Note that the default behaviour is to be as tall as necessary within the viewport, so this property is usually not needed._ |
 | `max-width` | Number | Override default `max-width` |
@@ -237,6 +237,7 @@ To make your usage of `d2l-dropdown-more` accessible, use the following property
 | Name | Description |
 |---|---|
 | `d2l-dropdown-open` | Dispatched when the dropdown is opened |
+| `d2l-dropdown-async-load` | Dispatched before an "async" dropdown is opened for the first time, giving an opportunity to load async content |
 | `d2l-dropdown-close` | dispatched when the dropdown is closed |
 | `d2l-dropdown-position` | Dispatched when the dropdown position finishes adjusting |
 | `d2l-dropdown-focus-enter` | dispatched when the 'trap-focus' attribute is applied and the focus-trap is entered (trap-focus option only) |
@@ -252,18 +253,52 @@ To make your usage of `d2l-dropdown-more` accessible, use the following property
 ### Methods
 * `async resize()`: Call if the size of the content changes due to a change in a nested component. The nested component may choose to fire a custom event, which the component containing the `d2l-dropdown-content` can catch and call this method. |
 
-## Content: Menu [d2l-dropdown-menu]
-`d2l-dropdown-menu` is a container for a [d2l-menu](../menu/README.md) component. It provides additional support on top of `d2l-dropdown-content` for closing the menu when menu items are selected, resetting to the root of nested menus when reopening and automatic resizing when the menu resizes.
+### Asynchronous Content
 
-<!-- docs: demo live name:d2l-dropdown-menu align:flex-start autoSize:false size:medium -->
+For dropdown content that's fetched asynchronously, the `async` attribute and the `d2l-dropdown-async-load` event can be leveraged to let `<d2l-dropdown-content>` know when things are ready.
+
+Automatic focus and sizing logic will be delayed until content has loaded.
+
+- Set the `async` attribute
+- Add a listener for the `d2l-dropdown-async-load` event that fetches the content
+- Render `nothing` inside  `<d2l-dropdown-content>`, allowing dropdown to render a loading spinner while content loads
+- When content is ready, call `complete()` on the event detail
+- To avoid a shift in size between the "loading" and "loaded" states, consider setting a `min-width` matching the typical width of the loaded content 
+
+The `d2l-dropdown-async-load` event will dispatch pre-emptively when the user hovers or focuses on the dropdown opener, anticipating that the dropdown will be opened.
+
+It is also only be dispatched once, so there's no need to ignore subsequent calls
+
+```javascript
+class MyElem extends LitElement {
+  properties: {
+    _content: { state: true }
+  }
+  render() {
+    return html`
+      <d2l-dropdown-content
+        @d2l-dropdown-async-load="${this.#handleDropdownAsyncLoad}">
+        ${this._content}
+      </d2l-dropdown-content>
+    `;
+  }
+  async #handleDropdownAsyncLoad(e) {
+    this._content = await this.#fetchData();
+    e.detail.complete();
+  }
+}
+```
+
+## Content: Menu [d2l-dropdown-menu]
+`d2l-dropdown-menu` is a container for a [d2l-menu](https://github.com/BrightspaceUI/core/tree/main/components/menu) component. It provides additional support on top of `d2l-dropdown-content` for closing the menu when menu items are selected, resetting to the root of nested menus when reopening and automatic resizing when the menu resizes.
+
+<!-- docs: demo code properties name:d2l-dropdown-menu sandboxTitle:'Dropdown Content - Menu' align:flex-start autoSize:false size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-button.js';
   import '@brightspace-ui/core/components/dropdown/dropdown-menu.js';
   import '@brightspace-ui/core/components/menu/menu.js';
   import '@brightspace-ui/core/components/menu/menu-item.js';
-  import '@brightspace-ui/core/components/tabs/tabs.js';
-  import '@brightspace-ui/core/components/tabs/tab-panel.js';
 </script>
 <d2l-dropdown-button text="Open!" primary>
   <d2l-dropdown-menu opened>
@@ -292,34 +327,41 @@ To make your usage of `d2l-dropdown-more` accessible, use the following property
 ```
 
 ## Content: Tabs [d2l-dropdown-tabs]
-`d2l-dropdown-tabs` is a container for a [d2l-tabs](https://github.com/BrightspaceUI/tabs) component. It provides additional support on top of `d2l-dropdown-content` for automatic resizing when the tab changes.
+`d2l-dropdown-tabs` is a container for a [d2l-tabs](https://github.com/BrightspaceUI/core/tree/main/components/tabs) component. It provides additional support on top of `d2l-dropdown-content` for automatic resizing when the tab changes.
 
-<!-- docs: demo live name:d2l-dropdown-tabs autoOpen:true autoSize:false align:flex-start size:large -->
+<!-- docs: demo code properties name:d2l-dropdown-tabs sandboxTitle:'Dropdown Content - Tab' autoOpen:true autoSize:false align:flex-start size:large -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/dropdown/dropdown-button.js';
   import '@brightspace-ui/core/components/dropdown/dropdown-tabs.js';
   import '@brightspace-ui/core/components/menu/menu.js';
   import '@brightspace-ui/core/components/menu/menu-item.js';
+  import '@brightspace-ui/core/components/tabs/tab.js';
   import '@brightspace-ui/core/components/tabs/tabs.js';
   import '@brightspace-ui/core/components/tabs/tab-panel.js';
 </script>
 <d2l-dropdown-button text="Open!" primary>
   <d2l-dropdown-tabs min-width="175" max-width="300">
-    <d2l-tabs>
-      <d2l-tab-panel text="first">first content</d2l-tab-panel>
-      <d2l-tab-panel text="second">
+    <d2l-tabs text="Example">
+      <d2l-tab id="first" text="first" slot="tabs"></d2l-tab>
+      <d2l-tab-panel labelled-by="first" slot="panels">first content</d2l-tab-panel>
+      <d2l-tab id="second" text="second" slot="tabs"></d2l-tab>
+      <d2l-tab-panel labelled-by="second" slot="panels">
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
       </d2l-tab-panel>
-      <d2l-tab-panel text="third">
+      <d2l-tab id="third" text="third" slot="tabs"></d2l-tab>
+      <d2l-tab-panel labelled-by="third" slot="panels">
         <d2l-menu label="Astronomy">
           <d2l-menu-item text="Searching for the Heavens "></d2l-menu-item>
           <d2l-menu-item text="The Universe"></d2l-menu-item>
         </d2l-menu>
       </d2l-tab-panel>
-      <d2l-tab-panel text="fourth">fourth content</d2l-tab-panel>
-      <d2l-tab-panel text="fifth">fifth content</d2l-tab-panel>
-      <d2l-tab-panel text="sixth">sixth content</d2l-tab-panel>
+      <d2l-tab id="fourth" text="fourth" slot="tabs"></d2l-tab>
+      <d2l-tab-panel labelled-by="fourth" slot="panels">fourth content</d2l-tab-panel>
+      <d2l-tab id="fifth" text="fifth" slot="tabs"></d2l-tab>
+      <d2l-tab-panel labelled-by="fifth" slot="panels">fifth content</d2l-tab-panel>
+      <d2l-tab id="sixth" text="sixth" slot="tabs"></d2l-tab>
+      <d2l-tab-panel labelled-by="sixth" slot="panels">sixth content</d2l-tab-panel>
     </d2l-tabs>
   </d2l-dropdown-tabs>
 </d2l-dropdown>

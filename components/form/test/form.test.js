@@ -1,15 +1,51 @@
 import '../../validation/validation-custom.js';
+import '../../dialog/dialog.js';
 import '../form.js';
 import './form-element.js';
 import './nested-form.js';
-import { expect, fixture } from '@open-wc/testing';
-import { html } from 'lit';
+import { defineCE, expect, fixture, oneEvent, sendKeysElem } from '@brightspace-ui/testing';
+import { fake, replace, restore } from 'sinon';
+import { html, LitElement } from 'lit';
+import { FormElementMixin } from '../form-element-mixin.js';
+
+class TestTwoForms extends LitElement {
+	render() {
+		return html`
+			<d2l-form id="nested-form-1">
+				<input type="text" aria-label="Input 1" name="input1" required>
+			</d2l-form>
+			<d2l-form id="nested-form-2">
+				<input type="text" aria-label="Input 2" name="input2" required>
+			</d2l-form>
+		`;
+	}
+}
+
+const testSlotsTagName = defineCE(
+	class extends LitElement {
+		render() {
+			return html`<d2l-form>
+				<slot name="primary"></slot>
+				<slot name="secondary"></slot>
+				<slot name="info"></slot>
+			</d2l-form>`;
+		}
+	}
+);
 
 describe('d2l-form', () => {
 
 	const _validateCheckbox = e => {
 		e.detail.resolve(e.detail.forElement.checked);
 	};
+
+	before(() => {
+		customElements.define('d2l-test-two-forms', TestTwoForms);
+	});
+
+	afterEach(() => {
+		restore();
+	});
 
 	describe('single form', () => {
 
@@ -50,7 +86,7 @@ describe('d2l-form', () => {
 			it('should validate native form elements', async() => {
 				const errors = await form.validate();
 				const ele = form.querySelector('#pets');
-				expect(errors.get(ele)).to.include.members(['Pets is required.']);
+				expect(errors.get(ele)).to.include.members(['Pets is required']);
 			});
 
 			it('should validate custom form elements', async() => {
@@ -59,6 +95,91 @@ describe('d2l-form', () => {
 				formElement.setValidity({ rangeOverflow: true });
 				const errors = await form.validate();
 				expect(errors.get(formElement)).to.include.members(['Test form element failed with an overridden validation message']);
+			});
+
+			it('should validate and clear validation-customs', async() => {
+				const errors = await form.validate();
+				const ele = form.querySelector('#mycheck');
+				expect(errors.get(ele)).to.include.members(['The checkbox failed validation']);
+				expect(form._errors.size).to.be.greaterThan(0);
+				form.resetValidation();
+				expect(form._errors.size).to.equal(0);
+			});
+
+			it('should validate and clear native form elements', async() => {
+				const errors = await form.validate();
+				const ele = form.querySelector('#pets');
+				expect(errors.get(ele)).to.include.members(['Pets is required']);
+				expect(form._errors.size).to.be.greaterThan(0);
+				form.resetValidation();
+				expect(form._errors.size).to.equal(0);
+			});
+
+			it('should validate and clear custom form elements', async() => {
+				const formElement = form.querySelector('#custom-ele');
+				formElement.value = 'Non-empty';
+				formElement.setValidity({ rangeOverflow: true });
+				const errors = await form.validate();
+				expect(form._errors.size).to.be.greaterThan(0);
+				expect(errors.get(formElement)).to.include.members(['Test form element failed with an overridden validation message']);
+				form.resetValidation();
+				expect(form._errors.size).to.equal(0);
+			});
+
+			it('should validate form elements inside primary and secondary slots', async() => {
+				const element = await fixture(`<${testSlotsTagName}>
+					<input type="text" aria-label="Input 1" name="input1" required slot="primary">
+					<input type="text" aria-label="Input 2" name="input2" required slot="secondary">
+					<input type="text" aria-label="Input Ignore" name="ignore" required slot="info">
+				</${testSlotsTagName}>`);
+				const form = element.shadowRoot.querySelector('d2l-form');
+				const errors = await form.validate();
+				expect(errors.size).to.equal(2);
+				expect(errors.has(element.querySelector('[name="input1"]'))).to.be.true;
+				expect(errors.has(element.querySelector('[name="input2"]'))).to.be.true;
+				expect(errors.has(element.querySelector('[name="ignore"]'))).to.be.false;
+
+			});
+
+			it('should set errors on summary', async() => {
+				await form.validate();
+				const formErrorSummary = form.shadowRoot.querySelector('d2l-form-error-summary');
+				expect(formErrorSummary.errors.map(({ href, message }) => ({ href, message }))).to.deep.equal([
+					{
+						href: '#mycheck',
+						message: 'The checkbox failed validation'
+					},
+					{
+						href: '#pets',
+						message: 'Pets is required'
+					},
+					{
+						href: '#custom-ele',
+						message: 'Test form element is required'
+					}
+				]);
+			});
+
+			it('should use custom summary element', async() => {
+				const form = await fixture(html`<d2l-form summary-id="summary">
+					<input type="text" aria-label="Input 1" name="input1" required>
+					<input type="text" aria-label="Input 2" name="input2" required>
+					<d2l-form-error-summary id="summary"></d2l-form-error-summary>
+				</d2l-form>`);
+				await form.validate();
+				expect(form.shadowRoot.querySelector('d2l-form-error-summary')).to.be.null;
+				const formErrorSummary = form.querySelector('#summary');
+				expect(formErrorSummary.errors.map(({ href, message }) => ({ href, message }))).to.deep.equal([
+					{
+						href: '#d2l-uid-47',
+						message: 'Input 1 is required'
+					},
+					{
+						href: '#d2l-uid-49',
+						message: 'Input 2 is required'
+					},
+				]);
+
 			});
 
 		});
@@ -191,11 +312,14 @@ describe('d2l-form', () => {
 		describe('validate', () => {
 
 			[
-				{ noDirectNesting: false, noComposedNesting: false },
-				{ noDirectNesting: true, noComposedNesting: false },
-				{ noDirectNesting: false, noComposedNesting: true },
-			].forEach(({ noDirectNesting, noComposedNesting }) => {
-				it(`should validate nested forms in tree order with${noDirectNesting ? ' no ' : ' '}direct nesting and${noComposedNesting ? ' no ' : ' '}composed nesting`, async() => {
+				{ noDirectNesting: false, noComposedNesting: false, resetValidation: false },
+				{ noDirectNesting: true, noComposedNesting: false, resetValidation: false },
+				{ noDirectNesting: false, noComposedNesting: true, resetValidation: false },
+				{ noDirectNesting: false, noComposedNesting: false, resetValidation: true },
+				{ noDirectNesting: true, noComposedNesting: false, resetValidation: true },
+				{ noDirectNesting: false, noComposedNesting: true, resetValidation: true },
+			].forEach(({ noDirectNesting, noComposedNesting, resetValidation }) => {
+				it(`should validate nested forms in tree order with${noDirectNesting ? ' no ' : ' '}direct nesting and${noComposedNesting ? ' no ' : ' '}composed nesting${resetValidation ? ' and have no errors on resetValidation' : ''}`, async() => {
 
 					const formElement = form.querySelector('#custom-ele');
 					formElement.value = 'Non-empty';
@@ -209,15 +333,15 @@ describe('d2l-form', () => {
 					const expectedErrors = [
 						[form.querySelector('#mycheck'), ['The checkbox failed validation']],
 						...(nestedFormEle.noNesting ? [] : [
-							[nestedFormEle.querySelector('#nested-home-planet'), ['Home planet is required.']],
+							[nestedFormEle.querySelector('#nested-home-planet'), ['Home planet is required']],
 							[nestedFormEle.querySelector('#nested-story'), ['Wrong story']],
-							[nestedFormEle.querySelector('#nested-custom-ele'), ['Test form element is required.']],
+							[nestedFormEle.querySelector('#nested-custom-ele'), ['Test form element is required']],
 						]),
-						[form.querySelector('#pets'), ['Pets is required.']],
+						[form.querySelector('#pets'), ['Pets is required']],
 						...(composedNestedFormEle.noNesting ? [] : [
-							[composedNestedFormEle.shadowRoot.querySelector('#composed-nested-first-name'), ['First Name is required.']],
+							[composedNestedFormEle.shadowRoot.querySelector('#composed-nested-first-name'), ['First Name is required']],
 							[composedNestedFormEle.shadowRoot.querySelector('#composed-nested-pets'), ['Expected Hamster']],
-							[composedNestedFormEle.shadowRoot.querySelector('#composed-nested-custom-ele'), ['Test form element is required.']],
+							[composedNestedFormEle.shadowRoot.querySelector('#composed-nested-custom-ele'), ['Test form element is required']],
 						]),
 						[formElement, ['Test form element failed with an overridden validation message']]
 					];
@@ -225,6 +349,11 @@ describe('d2l-form', () => {
 
 					const actualErrors = [...errors.entries()];
 					expect(actualErrors).to.deep.equal(expectedErrors);
+					expect(form._errors.size).to.be.greaterThan(0);
+
+					if (!resetValidation) return;
+					form.resetValidation();
+					expect(form._errors.size).to.equal(0);
 				});
 			});
 
@@ -331,6 +460,207 @@ describe('d2l-form', () => {
 			});
 
 		});
+
+		describe('connect/disconnect', () => {
+
+			it('should not validate nested forms which have been disconnected', async() => {
+
+				const elem = await fixture(html`
+					<d2l-form>
+						<d2l-test-two-forms></d2l-test-two-forms>
+						<input type="text" aria-label="Input 3" name="input3" required>
+					</d2l-form>
+				`);
+
+				let errors = await elem.validate();
+
+				expect([...errors.entries()]).to.deep.equal([
+					[elem.querySelector('d2l-test-two-forms').shadowRoot.querySelector('[name="input1"]'), ['Input 1 is required']],
+					[elem.querySelector('d2l-test-two-forms').shadowRoot.querySelector('[name="input2"]'), ['Input 2 is required']],
+					[elem.querySelector('[name="input3"]'), ['Input 3 is required']],
+				]);
+
+				elem.querySelector('d2l-test-two-forms').shadowRoot.querySelector('#nested-form-1').remove();
+
+				errors = await elem.validate();
+
+				expect([...errors.entries()]).to.deep.equal([
+					[elem.querySelector('d2l-test-two-forms').shadowRoot.querySelector('[name="input2"]'), ['Input 2 is required']],
+					[elem.querySelector('[name="input3"]'), ['Input 3 is required']],
+				]);
+
+			});
+
+			it('should not validate nested forms inside custom elements which have been disconnected', async() => {
+
+				const parentElem = defineCE(class extends LitElement {
+					render() {
+						return html`
+							<d2l-form>
+								<d2l-test-two-forms id="nested-elem-1"></d2l-test-two-forms>
+								<d2l-test-two-forms id="nested-elem-2"></d2l-test-two-forms>
+								<input type="text" aria-label="Input 3" name="input3" required>
+							</d2l-form>
+						`;
+					}
+				});
+
+				const elem = await fixture(`<${parentElem}></${parentElem}>`);
+				const form = elem.shadowRoot.querySelector('d2l-form');
+
+				let errors = await form.validate();
+
+				expect([...errors.entries()]).to.deep.equal([
+					[form.querySelector('[id="nested-elem-1"]').shadowRoot.querySelector('[name="input1"]'), ['Input 1 is required']],
+					[form.querySelector('[id="nested-elem-1"]').shadowRoot.querySelector('[name="input2"]'), ['Input 2 is required']],
+					[form.querySelector('[id="nested-elem-2"]').shadowRoot.querySelector('[name="input1"]'), ['Input 1 is required']],
+					[form.querySelector('[id="nested-elem-2"]').shadowRoot.querySelector('[name="input2"]'), ['Input 2 is required']],
+					[form.querySelector('[name="input3"]'), ['Input 3 is required']],
+				]);
+
+				form.querySelector('[id="nested-elem-1"]').shadowRoot.querySelector('#nested-form-1').remove();
+
+				errors = await form.validate();
+
+				expect([...errors.entries()]).to.deep.equal([
+					[form.querySelector('[id="nested-elem-1"]').shadowRoot.querySelector('[name="input2"]'), ['Input 2 is required']],
+					[form.querySelector('[id="nested-elem-2"]').shadowRoot.querySelector('[name="input1"]'), ['Input 1 is required']],
+					[form.querySelector('[id="nested-elem-2"]').shadowRoot.querySelector('[name="input2"]'), ['Input 2 is required']],
+					[form.querySelector('[name="input3"]'), ['Input 3 is required']],
+				]);
+
+			});
+
+		});
+
+	});
+
+	describe('dialog form', () => {
+		it('should reset validation when dialog closes', async() => {
+			const dialog = await fixture(html`
+				<d2l-dialog opened>
+					<d2l-form id="nested-form-1">
+						<input type="text" aria-label="Input 1" name="input1" required>
+					</d2l-form>
+				</d2l-dialog>
+			`);
+
+			const form = dialog.querySelector('d2l-form');
+			form.submit();
+
+			const errors = await form.validate();
+			expect(errors.size).to.equal(1);
+			expect(form._errors.size).to.equal(1);
+
+			dialog.opened = false;
+			await oneEvent(dialog, 'd2l-dialog-close');
+			expect(form._errors.size).to.equal(0);
+		});
+
+	});
+
+	describe('track-changes', () => {
+
+		const createFixture = async(trackChanges) => {
+			const elem = await fixture(html`
+				<d2l-form ?track-changes="${trackChanges}">
+					<input name="cb" type="text">
+				</d2l-form>
+			`);
+			return elem;
+		};
+
+		let beforeUnloadListeners;
+		const triggerBeforeUnload = function() {
+			const event = new Event('beforeunload', { cancelable: true });
+			beforeUnloadListeners.forEach(listener => listener(event));
+			return event;
+		};
+
+		beforeEach(() => {
+			beforeUnloadListeners = [];
+			replace(window, 'addEventListener', fake((eventName, listener) => {
+				if (eventName === 'beforeunload') beforeUnloadListeners.push(listener);
+			}));
+			replace(window, 'removeEventListener', fake((eventName, listener) => {
+				if (eventName === 'beforeunload') {
+					const index = beforeUnloadListeners.indexOf(listener);
+					if (index > -1) beforeUnloadListeners.splice(index, 1);
+				}
+			}));
+		});
+
+		it('should not prompt on unload if track-changes is false', async() => {
+			const elem = await createFixture(false);
+			await sendKeysElem(elem.querySelector('input'), 'type', 'hello');
+			const event = triggerBeforeUnload();
+			expect(event.defaultPrevented).to.be.false;
+			expect(event.returnValue).to.be.true;
+		});
+
+		it('should not prompt on unload if track-changes is true and form is pristine', async() => {
+			await createFixture(true);
+			const event = triggerBeforeUnload();
+			expect(event.defaultPrevented).to.be.false;
+			expect(event.returnValue).to.be.true;
+		});
+
+		it('should prompt on unload if track-changes is true and form is dirty', async() => {
+			const elem = await createFixture(true);
+			await sendKeysElem(elem.querySelector('input'), 'type', 'hello');
+			const event = triggerBeforeUnload();
+			expect(event.defaultPrevented).to.be.true;
+			expect(event.returnValue).to.be.false;
+		});
+
+		it('should not prompt on unload after dirty form is submitted', async() => {
+			const elem = await createFixture(true);
+			await sendKeysElem(elem.querySelector('input'), 'type', 'hello');
+			await elem.requestSubmit();
+			const event = triggerBeforeUnload();
+			expect(event.defaultPrevented).to.be.false;
+			expect(event.returnValue).to.be.true;
+		});
+
+		it('should not prompt on unload if track-changes is disabled later and form is dirty', async() => {
+			const elem = await createFixture(true);
+			await sendKeysElem(elem.querySelector('input'), 'type', 'hello');
+			elem.trackChanges = false;
+			const event = triggerBeforeUnload();
+			expect(event.defaultPrevented).to.be.false;
+			expect(event.returnValue).to.be.true;
+		});
+	});
+
+	it('should validate custom form elements when they have nested forms', async() => {
+		const customFormElementWithNestedFormTag = defineCE(class extends FormElementMixin(LitElement) {
+			get label() { return 'Input 2'; }
+			get validity() { return this.shadowRoot.querySelector('input').validity; }
+			render() {
+				return html`
+					<input type="text" aria-label="${this.label}" name="input2" required>
+					<d2l-form></d2l-form>
+				`;
+			}
+		});
+		const customElementWithNestedFormTag = defineCE(class extends LitElement {
+			render() { return html`<d2l-form></d2l-form> `; }
+		});
+		const elem = await fixture(`
+			<d2l-form>
+				<input type="text" aria-label="Input 1" name="input1" required>
+				<${customFormElementWithNestedFormTag}></${customFormElementWithNestedFormTag}>
+				<${customElementWithNestedFormTag}></${customElementWithNestedFormTag}>
+			</d2l-form>
+		`);
+		const result = await elem.validate();
+		expect(result.size).to.equal(2);
+		expect([...result.entries()]).to.deep.equal([
+			[elem.querySelector('[name="input1"]'), ['Input 1 is required']],
+			[elem.querySelector(customFormElementWithNestedFormTag), ['Input 2 is required']]
+		]);
+		expect(elem.querySelector(customFormElementWithNestedFormTag).hasAttribute('id')).to.be.true;
+		expect(elem.querySelector(customElementWithNestedFormTag).hasAttribute('id')).to.be.false;
 	});
 
 });

@@ -1,70 +1,73 @@
-import { FocusMixin } from '../../mixins/focus-mixin.js';
-import { FocusVisiblePolyfillMixin } from '../../mixins/focus-visible-polyfill-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 
-export const ButtonMixin = superclass => class extends FocusMixin(FocusVisiblePolyfillMixin(superclass)) {
+export const ButtonMixin = superclass => class extends FocusMixin(superclass) {
 
-	static get properties() {
-		return {
-			/**
-			 * @ignore
-			 */
-			ariaExpanded: { type: String, reflect: true, attribute: 'aria-expanded' },
-			/**
-			 * @ignore
-			 */
-			ariaHaspopup: { type: String, reflect: true, attribute: 'aria-haspopup' },
-			/**
-			 * @ignore
-			 */
-			ariaLabel: { type: String, reflect: true, attribute: 'aria-label' },
-			/**
-			 * @ignore
-			 */
-			autofocus: { type: Boolean, reflect: true },
-			/**
-			 * Disables the button
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * Tooltip text when disabled
-			 * @type {string}
-			 */
-			disabledTooltip: { type: String, attribute: 'disabled-tooltip' },
-			/**
-			 * @ignore
-			 */
-			form: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			formaction: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			formenctype: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			formmethod: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			formnovalidate: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			formtarget: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			name: { type: String, reflect: true },
-			/**
-			 * @ignore
-			 */
-			type: { type: String, reflect: true }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		ariaExpanded: { type: String, reflect: true, attribute: 'aria-expanded' },
+		/**
+		 * @ignore
+		 */
+		ariaHaspopup: { type: String, reflect: true, attribute: 'aria-haspopup' },
+		/**
+		 * @ignore
+		 */
+		ariaLabel: { type: String, reflect: true, attribute: 'aria-label' },
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		autofocus: { type: Boolean, reflect: true },
+		/**
+		 * Wether the controlled element is expanded. Replaces 'aria-expanded'
+		 * @type {'true' | 'false'}
+		 */
+		expanded: { type: String, reflect: true, attribute: 'expanded' },
+		/**
+		 * Disables the button
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * Tooltip text when disabled
+		 * @type {string}
+		 */
+		disabledTooltip: { type: String, attribute: 'disabled-tooltip' },
+		/**
+		 * @ignore
+		 */
+		form: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		formaction: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		formenctype: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		formmethod: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		formnovalidate: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		formtarget: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		name: { type: String, reflect: true },
+		/**
+		 * @ignore
+		 */
+		type: { type: String, reflect: true }
+	};
 
 	constructor() {
 		super();
@@ -102,6 +105,10 @@ export const ButtonMixin = superclass => class extends FocusMixin(FocusVisiblePo
 		return 'button';
 	}
 
+	get isButtonMixin() {
+		return true;
+	}
+
 	connectedCallback() {
 		super.connectedCallback();
 		this.addEventListener('click', this._handleClick, true);
@@ -110,6 +117,25 @@ export const ButtonMixin = superclass => class extends FocusMixin(FocusVisiblePo
 	disconnectedCallback() {
 		super.disconnectedCallback();
 		this.removeEventListener('click', this._handleClick, true);
+	}
+
+	firstUpdated(changedProperties) {
+		super.firstUpdated(changedProperties);
+		const button = this.shadowRoot.querySelector(this.constructor.focusElementSelector);
+		if (!button) return;
+		button.addEventListener('focus', () => {
+			if (this.shadowRoot.querySelector(':focus-visible')) {
+				/** @ignore */
+				this.dispatchEvent(new CustomEvent('focus-visible'));
+			}
+		});
+	}
+
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+		if (changedProperties.has('ariaExpanded') && this.ariaExpanded !== undefined) {
+			this.expanded = this.ariaExpanded;
+		}
 	}
 
 	/** @internal */

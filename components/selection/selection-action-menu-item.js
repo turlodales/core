@@ -6,32 +6,24 @@ import { SelectionActionMixin } from './selection-action-mixin.js';
 import { SelectionInfo } from './selection-mixin.js';
 
 /**
- * An action menu-item component used within selection controls such as d2l-list and d2l-list-header.
+ * An action menu-item component used within selection controls such as d2l-list and d2l-list-controls.
  * @slot supporting - Allows supporting information to be displayed on the right-most side of the menu item
  * @fires d2l-selection-action-click - Dispatched when the user clicks the action button. The `SelectionInfo` is provided as the event `detail`. If `requires-selection` was specified then the event will only be dispatched if items are selected.
  * @fires d2l-selection-observer-subscribe - Internal event
  */
 class ActionMenuItem extends SelectionActionMixin(MenuItemMixin(LitElement)) {
 
-	static get styles() {
-		return [ menuItemStyles,
-			css`
-				:host {
-					align-items: center;
-					display: flex;
-					padding: 0.75rem 1rem;
-				}
-				d2l-icon {
-					flex: none;
-					margin-left: 6px;
-				}
-				:host([dir="rtl"]) d2l-icon {
-					margin-left: 0;
-					margin-right: 6px;
-				}
-			`
-		];
-	}
+	static styles = [menuItemStyles, css`
+		:host {
+			align-items: center;
+			display: flex;
+			padding: 0.75rem 1rem;
+		}
+		d2l-icon {
+			flex: none;
+			margin-inline-start: 6px;
+		}
+	`];
 
 	connectedCallback() {
 		super.connectedCallback();

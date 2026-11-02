@@ -2,16 +2,14 @@ import '../icons/icon.js';
 import { html, LitElement } from 'lit';
 import { MenuItemSelectableMixin } from './menu-item-selectable-mixin.js';
 import { menuItemSelectableStyles } from './menu-item-selectable-styles.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
 
 /**
  * A menu item component used for selection. Multiple checkboxes can be selected at once.
+ * @slot supporting - Allows supporting information to be displayed on the right-most side of the menu item
  */
-class MenuItemCheckbox extends RtlMixin(MenuItemSelectableMixin(LitElement)) {
+class MenuItemCheckbox extends MenuItemSelectableMixin(LitElement) {
 
-	static get styles() {
-		return menuItemSelectableStyles;
-	}
+	static styles = menuItemSelectableStyles;
 
 	constructor() {
 		super();
@@ -27,7 +25,7 @@ class MenuItemCheckbox extends RtlMixin(MenuItemSelectableMixin(LitElement)) {
 	render() {
 		return html`
 			<d2l-icon icon="tier1:check"></d2l-icon>
-	<div class="d2l-menu-item-text">${this.text}</div>
+			<div class="d2l-menu-item-text">${this.text}</div>
 			<div class="d2l-menu-item-supporting"><slot name="supporting"></slot></div>
 		`;
 	}

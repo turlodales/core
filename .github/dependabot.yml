@@ -4,6 +4,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      # update-package-lock workflow handles minor/patch updates - delay for a few weeks to give time to handle breaking change in those PRs
+      default-days: 25
+      semver-major-days: 5
     ignore:
-      - dependency-name: "@formatjs/intl-pluralrules"
-      - dependency-name: "intl-messageformat"
+    - dependency-name: "eslint-plugin-unicorn"
+      # requires eslint 10
+      versions: ">=66.0.0"

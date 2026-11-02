@@ -1,4 +1,4 @@
-# Search Inputs
+# Search Input
 
 Search inputs allow users to input text, execute a search, and clear results. A search input may be used in conjunction with filters, sort, and/or auto-complete.
 
@@ -10,7 +10,7 @@ Search inputs allow users to input text, execute a search, and clear results. A 
 <d2l-input-search
   label="Search"
   value="Apples"
-  placeholder="Search for fruit">
+  placeholder="Search">
 </d2l-input-search>
 ```
 
@@ -35,18 +35,12 @@ Search inputs allow users to input text, execute a search, and clear results. A 
 
 For text searches use `<d2l-input-search>`, which wraps the native `<input type="search">` element.
 
-<!-- docs: demo live name:d2l-input-search -->
+<!-- docs: demo code properties name:d2l-input-search sandboxTitle:'Search Input' -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/inputs/input-search.js';
-
-  window.addEventListener('load', function () {
-    document.querySelector('#search').addEventListener('d2l-input-search-searched', (e) => {
-      console.log('searched term:', e.detail.value);
-    });
-  });
 </script>
-<d2l-input-search id="search" label="Search">
+<d2l-input-search label="Search">
 </d2l-input-search>
 ```
 
@@ -55,16 +49,18 @@ For text searches use `<d2l-input-search>`, which wraps the native `<input type=
 
 | Property | Type | Description |
 |---|---|---|
-| `label` | String, required | Accessible label for the input |
+| `label` | String, required | Acts as the primary label for the input. Not visible. |
+| `description` | String | Additional information communicated to screenreader users when they focus on the input |
 | `disabled` | Boolean | Disables the input |
 | `maxlength` | Number | Imposes an upper character limit |
 | `no-clear` | Boolean | Prevents the "clear" button from appearing |
+| `search-on-input` | Boolean | Dispatch search events after each input event |
 | `placeholder` | String, default:`'Search...'` | Placeholder text |
 | `value` | String, default: `''` | Value of the input |
 
 ### Events
 
-The `d2l-input-search` component dispatches the `d2l-input-search-searched` event when a search is performed:
+The `<d2l-input-search>` component dispatches the `d2l-input-search-searched` event when a search is performed:
 
 ```javascript
 search.addEventListener('d2l-input-search-searched', (e) => {
@@ -74,12 +70,16 @@ search.addEventListener('d2l-input-search-searched', (e) => {
 ```
 
 When the input is cleared, the same event will be fired with an empty value.
+
+### Slots
+
+* `inline-help`: Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
 <!-- docs: end hidden content -->
 
-### Accessibility Properties
+## Accessibility
 
-To make your usage of `d2l-input-search` accessible, use the following property when applicable:
-
-| Attribute | Description |
-|---|---|
-| label | **REQUIRED** [Acts as a primary label on the input](https://www.w3.org/WAI/tutorials/forms/labels/). Not visible. |
+- While the component does not have a visible label, the search icon clearly indicates its purpose
+	- While not required to meet WCAG, this [pattern](https://www.w3.org/WAI/WCAG2/supplemental/patterns/o1p07-icons-used/) is a great way to help individuals with cognitive accessibility needs
+- It is important to note that `placeholder` is not a suitable replacement for `label` or `description`, since it only applies when the input is empty, and not all users will be able to read it in the first place
+- Search results should be announced to screen reader users using a live region around the result summary or by using the [`announce`](https://github.com/BrightspaceUI/core/blob/main/helpers/announce.js) helper
+	- It can also be used to help confirm what exactly was searched, along with how many results were found

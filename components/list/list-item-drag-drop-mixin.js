@@ -1,9 +1,10 @@
 import './list-item-drag-image.js';
 import { css, html, nothing } from 'lit';
-import { findComposedAncestor, isComposedAncestor } from '../../helpers/dom.js';
+import { findComposedAncestor, getScrollableAncestor, isComposedAncestor } from '../../helpers/dom.js';
 import { announce } from '../../helpers/announce.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { dragActions } from './list-item-drag-handle.js';
+import { getFlag } from '../../helpers/flags.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { SelectionInfo } from '../selection/selection-mixin.js';
@@ -24,6 +25,8 @@ export const dropLocation = moveLocations; // backwards compatibility
 const dropTargetLeaveDelay = 1000; // ms
 const touchHoldDuration = 400; // length of time user needs to hold down touch before dragging occurs
 const scrollSensitivity = 150; // pixels between top/bottom of viewport to scroll for mobile
+const scrollContainerSensitivity = 60; // pixels between top/bottom of scrollable container to scroll for mobile
+const scrollSpeed = 10; // pixels to scroll for mobile
 
 const createDragEvent = (name) => {
 	const event = new Event(name, { bubbles: true });
@@ -105,6 +108,7 @@ class DragState {
 
 	_cleanUpOnLeave() {
 		if (!this._activeDropTarget) return;
+		this._activeDropTarget._draggingOver = false;
 		this._activeDropTarget._dropLocation = dropLocation.void;
 		this._activeDropTarget._inTopArea = false;
 		this._activeDropTarget._inBottomArea = false;
@@ -217,7 +221,7 @@ export class NewPositionEventDetails {
 				list[i] = list[i - 1];
 			}
 		} else {
-			destination = this.dropLocation === dropLocation.above  ? Math.max(destination - 1, 0) : destination;
+			destination = this.dropLocation === dropLocation.above ? Math.max(destination - 1, 0) : destination;
 			for (let i = origin; i < destination; i++) {
 				list[i] = list[i + 1];
 			}
@@ -247,48 +251,53 @@ export class NewPositionEventDetails {
 
 export const ListItemDragDropMixin = superclass => class extends superclass {
 
-	static get properties() {
-		return {
-			/**
-			 * **Drag & drop:** Whether the item is draggable
-			 * @type {boolean}
-			 */
-			draggable: { type: Boolean, reflect: true },
-			/**
-			 * @ignore
-			 */
-			dragging: { type: Boolean, reflect: true },
-			/**
-			 * **Drag & drop:** The drag-handle label for assistive technology. If implementing drag & drop, you should change this to dynamically announce what the drag-handle is moving for assistive technology in keyboard mode.
-			 * @type {string}
-			 */
-			dragHandleText: { type: String, attribute: 'drag-handle-text' },
-			/**
-			 * **Drag & drop:** Whether nested items can be dropped on this item
-			 * @type {boolean}
-			 */
-			dropNested: { type: Boolean, attribute: 'drop-nested' },
-			/**
-			 * **Drag & drop:** Text to drag and drop
-			 * @type {string}
-			 */
-			dropText: { type: String, attribute: 'drop-text' },
-			/**
-			 * Value to identify item if selectable
-			 * @type {string}
-			 */
-			key: { type: String, reflect: true },
-			_draggingOver: { type: Boolean },
-			_dropLocation: { type: Number, reflect: true, attribute: '_drop-location' },
-			_focusingDragHandle: { type: Boolean },
-			_hovering: { type: Boolean },
-			_keyboardActive: { type: Boolean },
-			_keyboardTextInfo: { type: Object }
-		};
-	}
+	static properties = {
+		/**
+		 * **Drag & drop:** Disables keyboard dragging interaction. If draggable, a keyboard alternative should be provided for the dragging functionality.
+		 * @type {boolean}
+		 */
+		keyboardDragDisabled: { type: Boolean, attribute: 'keyboard-drag-disabled' },
+		/**
+		 * **Drag & drop:** Whether the item is draggable
+		 * @type {boolean}
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		draggable: { type: Boolean, reflect: true },
+		/**
+		 * @ignore
+		 */
+		dragging: { type: Boolean, reflect: true },
+		/**
+		 * **Drag & drop:** The drag-handle label for assistive technology. If implementing drag & drop, you should change this to dynamically announce what the drag-handle is moving for assistive technology in keyboard mode.
+		 * @type {string}
+		*/
+		dragHandleText: { type: String, attribute: 'drag-handle-text' },
+		/**
+		 * **Drag & drop:** Whether nested items can be dropped on this item
+		 * @type {boolean}
+		*/
+		dropNested: { type: Boolean, attribute: 'drop-nested' },
+		/**
+		 * **Drag & drop:** Text to drag and drop
+		 * @type {string}
+		*/
+		dropText: { type: String, attribute: 'drop-text' },
+		/**
+		 * Value to identify item if selectable
+		 * @type {string}
+		*/
+		key: { type: String, reflect: true },
+		_dragHandleShowAlways: { type: Boolean, attribute: '_drag-handle-show-always', reflect: true },
+		_draggingOver: { type: Boolean },
+		_dropLocation: { type: Number, reflect: true, attribute: '_drop-location' },
+		_focusingDragHandle: { type: Boolean },
+		_hovering: { type: Boolean },
+		_keyboardActive: { type: Boolean },
+		_keyboardTextInfo: { type: Object }
+	};
 
 	static get styles() {
-		const styles = [ css`
+		const styles = [css`
 			:host {
 				display: block;
 				position: relative;
@@ -303,12 +312,32 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 				width: 100%;
 				z-index: 1;
 			}
+
 			.d2l-list-item-drag-bottom-marker {
 				bottom: -6px;
 			}
 			.d2l-list-item-drag-top-marker {
 				top: -6px;
 			}
+
+			:host([layout="tile"]) .d2l-list-item-drag-bottom-marker,
+			:host([layout="tile"]) .d2l-list-item-drag-top-marker {
+				height: 100%;
+				width: auto;
+			}
+
+			:host([layout="tile"]) .d2l-list-item-drag-bottom-marker {
+				/* The gap between the cards plus half the width of the marker  */
+				inset-inline-end: calc(-0.9rem + 3px);
+				bottom: 0;
+			}
+			:host([layout="tile"]) .d2l-list-item-drag-top-marker {
+				/* The gap between the cards plus half the width of the marker  */
+				inset-inline-start: calc(-0.9rem + 3px);
+				top: 0;
+			}
+
+
 			.d2l-list-item-drag-area {
 				cursor: move;
 				height: 100%;
@@ -317,6 +346,11 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 				display: grid;
 				grid-template-columns: 100%;
 				grid-template-rows: 1rem 1fr 1fr 1rem;
+			}
+			:host([layout="tile"]) .d2l-list-item-drag-drop-grid {
+				display: grid;
+				grid-template-columns: 1rem 1fr 1fr 1rem;
+				grid-template-rows: 100%;
 			}
 			:host([_drop-location="7"]) {
 				z-index: 1; /* drop target border must render on top of next adjacent border */
@@ -328,12 +362,23 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 			:host([_drop-location="7"]) [slot="control-container"]::after {
 				border-color: transparent;
 			}
+			:host(:not([no-primary-action])) [slot="outside-control-action"] ~ [slot="content"] {
+				pointer-events: none;
+			}
 
 			@media only screen and (hover: hover), only screen and (pointer: fine) {
 				d2l-list-item-drag-handle {
 					opacity: 0;
 				}
+				:host([layout="tile"][draggable]) d2l-list-item-drag-handle {
+					opacity: 1;
+				}
+
 				:host([selected]) d2l-list-item-drag-handle,
+				:host([current]) d2l-list-item-drag-handle,
+				:host([_drag-handle-show-always]) d2l-list-item-drag-handle,
+				:host([_focusing]) d2l-list-item-drag-handle,
+				d2l-list-item-drag-handle:hover,
 				d2l-list-item-drag-handle.d2l-hovering,
 				d2l-list-item-drag-handle.d2l-focusing {
 					opacity: 1;
@@ -354,11 +399,19 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 		this.dropNested = false;
 	}
 
+	get dropDisabled() {
+		return this._dropNestedOnly && !this.dropNested;
+	}
+
 	connectedCallback() {
 		super.connectedCallback();
 		if (!this.key) {
 			this.draggable = false;
 		}
+		const list = this.getRootList();
+		this._dragMultiple = list?.hasAttribute('drag-multiple');
+		this._dropNestedOnly = list?.hasAttribute('drop-nested-only');
+		this._dragHandleShowAlways = list?.dragHandleShowAlways;
 	}
 
 	firstUpdated(changedProperties) {
@@ -366,9 +419,24 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 		super.firstUpdated(changedProperties);
 	}
 
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+		if (this._dropNestedOnly) {
+			this.keyboardDragDisabled = true;
+		}
+	}
+
 	activateDragHandle() {
 		if (this.shadowRoot) this.shadowRoot.querySelector(`#${this._itemDragId}`).activateKeyboardMode();
 	}
+
+	get _isListItemDragAndDropMixin() {
+		return true;
+	}
+
+	#scrollableContainer;
+	#touchAction = '';
+	#improvedMobileDragAndDropFlag = getFlag('GAUD-10642-improved-mobile-drag-and-drop', true);
 
 	_annoucePositionChange(dragTargetKey, dropTargetKey, dropLocation) {
 		/** Dispatched when a draggable list item's position changes in the list. See [Event Details: d2l-list-item-position-change](#event-details%3A-d2l-list-item-position-change). */
@@ -380,7 +448,7 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 
 	_dispatchListItemsMove(sourceItems, targetItem, moveLocation, keyboardActive) {
 		if (!keyboardActive) keyboardActive = false;
-		const rootList = this._getRootList();
+		const rootList = this.getRootList();
 		/** @ignore */
 		rootList.dispatchEvent(new CustomEvent('d2l-list-items-move', {
 			detail: {
@@ -395,14 +463,25 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 		}));
 	}
 
+	_dispatchMoveAroundCollapsedItem(listItem, moveAbove) {
+		const parentListItem = this._getParentList();
+		if (parentListItem) {
+			const parentItems = parentListItem.getItems();
+			const nextItemIdex = parentItems.indexOf(listItem);
+			this._dispatchListItemsMove([this], parentItems[nextItemIdex], moveAbove ? moveLocations.above : moveLocations.below, true);
+		} else {
+			this._dispatchMoveRootItem(moveAbove);
+		}
+	}
+
 	_dispatchMoveListItemFirst(moveToRoot) {
-		const list = (moveToRoot ? this._getRootList() : findComposedAncestor(this, node => node.tagName === 'D2L-LIST'));
+		const list = (moveToRoot ? this.getRootList() : findComposedAncestor(this, node => node.tagName === 'D2L-LIST'));
 		const items = list.getItems();
 		this._dispatchListItemsMove([this], items[0], moveLocations.above, true);
 	}
 
 	_dispatchMoveListItemLast(moveToRoot) {
-		const list = (moveToRoot ? this._getRootList() : findComposedAncestor(this, node => node.tagName === 'D2L-LIST'));
+		const list = (moveToRoot ? this.getRootList() : findComposedAncestor(this, node => node.tagName === 'D2L-LIST'));
 		const items = list.getItems();
 		this._dispatchListItemsMove([this], items[items.length - 1], moveLocations.below, true);
 	}
@@ -410,42 +489,54 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 	_dispatchMoveListItemNest() {
 		const listItem = this._getPreviousListItemSibling();
 		if (listItem) {
+			this._expandListItemOnKeyboardMove(listItem);
 			this._dispatchListItemsMove([this], listItem, moveLocations.nest, true);
 		}
 	}
 
 	_dispatchMoveListItemNext() {
-		const listItem = this._getNextListItemSibling();
-		if (listItem) {
-			const nestedList = listItem._getNestedList();
+		const nextListItemSibling = this._getNextListItemSibling();
+		// if next sibling is collapsed - move item below it
+		if (nextListItemSibling && nextListItemSibling.expandable && !nextListItemSibling.expanded) {
+			this._dispatchMoveAroundCollapsedItem(nextListItemSibling, false);
+		} else if (nextListItemSibling) {
+			this._expandListItemOnKeyboardMove(nextListItemSibling);
+			const nestedList = nextListItemSibling._getNestedList();
 			const items = (nestedList ? nestedList.getItems() : []);
 			if (items.length > 0) {
 				this._dispatchListItemsMove([this], items[0], moveLocations.above, true);
 			} else {
-				this._dispatchListItemsMove([this], listItem, moveLocations.below, true);
+				this._dispatchListItemsMove([this], nextListItemSibling, moveLocations.below, true);
 			}
 		} else {
 			const parentListItem = this._getParentListItem();
 			if (parentListItem) {
 				this._dispatchListItemsMove([this], parentListItem, moveLocations.below, true);
+			} else {
+				this._dispatchMoveRootItem(false);
 			}
 		}
 	}
 
 	_dispatchMoveListItemPrevious() {
-		const listItem = this._getPreviousListItemSibling();
-		if (listItem) {
-			const nestedList = listItem._getNestedList();
+		const previousListItemSibling = this._getPreviousListItemSibling();
+		// if previous sibling is collapsed - move item above it
+		if (previousListItemSibling && previousListItemSibling.expandable && !previousListItemSibling.expanded) {
+			this._dispatchMoveAroundCollapsedItem(previousListItemSibling, true);
+		} else if (previousListItemSibling) {
+			const nestedList = previousListItemSibling._getNestedList();
 			const items = (nestedList ? nestedList.getItems() : []);
 			if (items.length > 0) {
 				this._dispatchListItemsMove([this], items[items.length - 1], moveLocations.below, true);
 			} else {
-				this._dispatchListItemsMove([this], listItem, moveLocations.above, true);
+				this._dispatchListItemsMove([this], previousListItemSibling, moveLocations.above, true);
 			}
 		} else {
 			const parentListItem = this._getParentListItem();
 			if (parentListItem) {
 				this._dispatchListItemsMove([this], parentListItem, moveLocations.above, true);
+			} else {
+				this._dispatchMoveRootItem(true);
 			}
 		}
 	}
@@ -453,13 +544,44 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 	_dispatchMoveListItemUnnest() {
 		const listItem = this._getParentListItem();
 		if (listItem) {
+			this._expandListItemOnKeyboardMove(listItem);
 			this._dispatchListItemsMove([this], listItem, moveLocations.below, true);
+		}
+	}
+
+	_dispatchMoveRootItem(moveAbove) {
+		const rootList = this.getRootList();
+		const items = rootList.getItems();
+		const currentIndex = items.indexOf(this);
+		if (moveAbove && currentIndex !== 0) {
+			this._dispatchListItemsMove([this], items[currentIndex - 1], moveLocations.above, true);
+		} else if (!moveAbove && currentIndex !== items.length - 1) {
+			this._dispatchListItemsMove([this], items[currentIndex + 1], moveLocations.below, true);
+		}
+	}
+
+	_expandListItemOnKeyboardMove(listItem) {
+		if (this._keyboardActive && listItem.expandable && !listItem.expanded) {
+			listItem._toggleExpandCollapse();
 		}
 	}
 
 	_findListItemFromCoordinates(x, y) {
 		const listNode = findComposedAncestor(this.parentNode, (node) => node && node.tagName === 'D2L-LIST');
-		return listNode.shadowRoot.elementFromPoint(x, y);
+		// remove this if when cleaning 'GAUD-10642-improved-mobile-drag-and-drop'
+		if (!this.#improvedMobileDragAndDropFlag) {
+			return listNode.shadowRoot.elementFromPoint(x, y);
+		}
+
+		// This is to make sure that in Firefox it looks for the list item
+		// in the shadow DOM (if rendered as part of a template)
+		// or in the light DOM (when using the default slot of a parent element)
+		const node = listNode.getRootNode().elementFromPoint(x, y);
+		if (node?._isListItemDragAndDropMixin) {
+			return node;
+		}
+
+		return null;
 	}
 
 	_getKeyboardText() {
@@ -483,7 +605,7 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 		this.dragging = false;
 
 		// check the dropEffect in case the user cancelled by Escape while dragging ('none' set by browser)
-		if (e.dataTransfer.dropEffect !== 'none' && dragState.shouldDrop(e.timeStamp)) {
+		if (!dragState.dropTarget?.dropDisabled && e.dataTransfer.dropEffect !== 'none' && dragState.shouldDrop(e.timeStamp)) {
 
 			const dropTargetList = findComposedAncestor(dragState.dropTarget, node => node.tagName === 'D2L-LIST');
 			const shouldDispatchPositionChange = !dragState.dragTargets.find(dragTarget => {
@@ -498,6 +620,8 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 			this._dispatchListItemsMove(dragState.dragTargets, dragState.dropTarget, dragState.dropLocation, false);
 
 		}
+		const nodeImage = this.shadowRoot.querySelector('.d2l-list-item-drag-image') || this;
+		if (nodeImage) nodeImage.classList.remove('dragging');
 
 		clearDragState();
 	}
@@ -545,7 +669,7 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 	}
 
 	_onDragOver(e) {
-		if (!this.key) return;
+		if (!this.key || this.dropDisabled) return;
 		const dragState = getDragState();
 		dragState.updateTime(e.timeStamp);
 		e.preventDefault();
@@ -557,21 +681,39 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 			e.dataTransfer.setData('text/plain', `${this.dropText}`);
 		}
 
-		const rootList = this._getRootList(this);
-		const selectionInfo = rootList.getSelectionInfo(rootList.dragMultiple);
-
-		if (rootList.dragMultiple && selectionInfo.keys.length > 1) {
+		const getDragImage = (count, includePlusSign) => {
 			let dragImage = this.shadowRoot.querySelector('d2l-list-item-drag-image');
 			if (!dragImage) {
 				dragImage = document.createElement('d2l-list-item-drag-image');
 				this.shadowRoot.appendChild(dragImage);
 			}
-			dragImage.count = selectionInfo.keys.length;
-			e.dataTransfer.setDragImage(dragImage, 24, 26);
+			dragImage.count = count;
+			dragImage.includePlusSign = includePlusSign;
+			return dragImage;
+		};
+
+		const rootList = this.getRootList(this);
+		const selectionInfo = rootList.getSelectionInfo(rootList.dragMultiple);
+		if (rootList.dragMultiple && selectionInfo.keys.length > 1) {
+			const lazyLoadListItems = this._getFlattenedListItems().lazyLoadListItems;
+			let includePlus = false;
+			if (lazyLoadListItems.size > 0) {
+				for (const selectedItemKey of selectionInfo.keys) {
+					if (lazyLoadListItems.has(selectedItemKey)) {
+						includePlus = true;
+						break;
+					}
+				}
+			}
+			if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(getDragImage(selectionInfo.keys.length, includePlus), 24, 26);
+		} else if (rootList.dragMultiple && this.expandable) {
+			const flattenedListItems = this._getFlattenedListItems(this);
+			if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(getDragImage(flattenedListItems.listItems.size, flattenedListItems.lazyLoadListItems.size > 0), 24, 26);
 		} else {
 			if (this.shadowRoot) {
 				const nodeImage = this.shadowRoot.querySelector('.d2l-list-item-drag-image') || this;
-				e.dataTransfer.setDragImage(nodeImage, 50, 50);
+				nodeImage.classList.add('dragging');
+				if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(nodeImage, 50, 50);
 			}
 		}
 
@@ -625,47 +767,19 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 	}
 
 	_onDropTargetBottomDragEnter(e) {
-		e.dataTransfer.dropEffect = 'move';
-		const dragState = getDragState();
-		dragState.setActiveDropTarget(this, dropLocation.below);
-		this._inBottomArea = true;
+		this.#onDropEnterHelper(e, false, false);
 	}
 
 	_onDropTargetLowerDragEnter(e) {
-		e.dataTransfer.dropEffect = 'move';
-		if (this.dropNested) {
-			this._inBottomArea = false;
-			const dragState = getDragState();
-			dragState.setActiveDropTarget(this, moveLocations.nest);
-		} else {
-			if (this._inBottomArea) {
-				const dragState = getDragState();
-				dragState.setActiveDropTarget(this, dropLocation.above);
-				this._inBottomArea = false;
-			}
-		}
+		this.#onDropEnterHelper(e, false, true);
 	}
 
 	_onDropTargetTopDragEnter(e) {
-		e.dataTransfer.dropEffect = 'move';
-		const dragState = getDragState();
-		dragState.setActiveDropTarget(this, dropLocation.above);
-		this._inTopArea = true;
+		this.#onDropEnterHelper(e, true, false);
 	}
 
 	_onDropTargetUpperDragEnter(e) {
-		e.dataTransfer.dropEffect = 'move';
-		if (this.dropNested) {
-			this._inTopArea = false;
-			const dragState = getDragState();
-			dragState.setActiveDropTarget(this, moveLocations.nest);
-		} else {
-			if (this._inTopArea) {
-				const dragState = getDragState();
-				dragState.setActiveDropTarget(this, dropLocation.below);
-				this._inTopArea = false;
-			}
-		}
+		this.#onDropEnterHelper(e, true, true);
 	}
 
 	_onFocusinDragHandle() {
@@ -679,18 +793,20 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 
 	_onHostDragEnter(e) {
 		const dragState = getDragState();
-		if (this === dragState.dragTarget) return;
 
 		// check if any of the drag targets are ancestors of the drop target
 		const invalidDropTarget = dragState.dragTargets.find(dragTarget => {
 			return isComposedAncestor(dragTarget, this);
 		});
 
-		if (invalidDropTarget) return;
+		if (invalidDropTarget) {
+			dragState.clear();
+			return;
+		}
 
 		// assert that both the source and target are from the same list - may allow this in the future
-		const targetRoot = dragState.dragTargets[0] && dragState.dragTargets[0]._getRootList();
-		if (this._getRootList() !== targetRoot) return;
+		const targetRoot = dragState.dragTargets[0] && dragState.dragTargets[0].getRootList();
+		if (this.getRootList() !== targetRoot) return;
 
 		dragState.addDropTarget(this);
 		this._draggingOver = true;
@@ -700,6 +816,7 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 	_onTouchCancel() {
 		if (this._touchTimeoutId) clearTimeout(this._touchTimeoutId);
 		this._touchStarted = false;
+		if (this.#improvedMobileDragAndDropFlag) this.#resetScrollableContainer();
 	}
 
 	/**
@@ -708,14 +825,22 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 	_onTouchEnd(e) {
 		if (this._touchTimeoutId) clearTimeout(this._touchTimeoutId);
 		if (!this._touchStarted) return;
-		e.preventDefault();
+		if (e.cancelable) e.preventDefault();
 		this._touchStarted = false;
+		// leave the code inside the if when removing 'GAUD-10642-improved-mobile-drag-and-drop'
+		if (this.#improvedMobileDragAndDropFlag) this.#resetScrollableContainer();
 		this._currentTouchListItem = undefined;
 		// simulate drop if over a drop area
 		const touch = e.changedTouches[0];
 		const listItem = this._findListItemFromCoordinates(touch.clientX, touch.clientY);
-		const dropGrid = listItem.shadowRoot.querySelector('.d2l-list-item-drag-drop-grid');
-		if (dropGrid) dropGrid.dispatchEvent(createDragEvent('drop'));
+		// remove the if when cleaning 'GAUD-10642-improved-mobile-drag-and-drop' and leave the else code block
+		if (!this.#improvedMobileDragAndDropFlag) {
+			const dropGrid = listItem.shadowRoot.querySelector('.d2l-list-item-drag-drop-grid');
+			if (dropGrid) dropGrid.dispatchEvent(createDragEvent('drop'));
+		} else if (listItem) {
+			const dropGrid = listItem.shadowRoot.querySelector('.d2l-list-item-drag-drop-grid');
+			if (dropGrid) dropGrid.dispatchEvent(createDragEvent('drop'));
+		}
 		// simulate dragend
 		if (this.shadowRoot)
 			this.shadowRoot.querySelector('.d2l-list-item-drag-area').dispatchEvent(createDragEvent('dragend'));
@@ -731,6 +856,8 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 			e.preventDefault();
 		}
 		const touch = e.changedTouches[0];
+		if (this.#improvedMobileDragAndDropFlag) this.#doTouchScroll(touch);
+
 		const listItem = this._findListItemFromCoordinates(touch.clientX, touch.clientY);
 		if (!listItem) return;
 		// simulate host dragenter
@@ -738,6 +865,7 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 			listItem.dispatchEvent(createDragEvent('dragenter'));
 			this._currentTouchListItem = listItem;
 		}
+
 		// get the drop area
 		const dropGrid = listItem.shadowRoot.querySelector('.d2l-list-item-drag-drop-grid');
 		if (!dropGrid) return;
@@ -753,6 +881,8 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 				this._currentTouchDropArea = movingOverElem;
 			}
 		}
+		// Delete all of the following code when removing 'GAUD-10642-improved-scroll-in-mobile'
+		if (this.#improvedMobileDragAndDropFlag) return;
 		// scroll the viewport if we've reached the end
 		if (touch.clientY > window.innerHeight / 2 && window.innerHeight - touch.clientY < scrollSensitivity) {
 			// scroll down
@@ -770,6 +900,17 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 		// simulate dragstart for touch and hold
 		this._touchTimeoutId = setTimeout(() => {
 			this._touchStarted = true;
+			// leave the code inside the if when removing 'GAUD-10642-improved-mobile-drag-and-drop'
+			if (this.#improvedMobileDragAndDropFlag) {
+				// search for scrollable container
+				this.#scrollableContainer = getScrollableAncestor(this);
+				if (this.#scrollableContainer) {
+					// check if it has the touch-action style already
+					const touchAction = this.#scrollableContainer.style.getPropertyValue('touch-action');
+					if (touchAction && touchAction !== 'none') this.#touchAction = touchAction;
+					this.#scrollableContainer.style.setProperty('touch-action', 'none');
+				}
+			}
 			if (this.shadowRoot)
 				this.shadowRoot.querySelector('.d2l-list-item-drag-area').dispatchEvent(createDragEvent('dragstart'));
 		}, touchHoldDuration);
@@ -790,13 +931,19 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 			<d2l-list-item-drag-handle
 				id="${this._itemDragId}"
 				class="${classMap(classes)}"
+				?disabled="${this.keyboardDragDisabled}"
 				text="${ifDefined(this.dragHandleText)}"
 				keyboard-text-info="${ifDefined(this._keyboardTextInfo)}"
+				layout="${this.layout}"
 				@focusin="${this._onFocusinDragHandle}"
 				@focusout="${this._onFocusoutDragHandle}"
 				@d2l-list-item-drag-handle-action="${this._onDragHandleActions}">
 			</d2l-list-item-drag-handle>
 		`) : nothing;
+	}
+
+	_renderDragMultipleImage() {
+		return this._dragMultiple && this.draggable && (this.selectable || this.expandable) ? html`<d2l-list-item-drag-image></d2l-list-item-drag-image>` : nothing;
 	}
 
 	_renderDragTarget(templateMethod) {
@@ -833,5 +980,71 @@ export const ListItemDragDropMixin = superclass => class extends superclass {
 
 	_renderTopPlacementMarker(renderTemplate) {
 		return this._dropLocation === dropLocation.above ? html`<div class="d2l-list-item-drag-top-marker">${renderTemplate}</div>` : null;
+	}
+
+	#doTouchScroll(touch) {
+		if (!touch || !this.#scrollableContainer) return;
+		if (this.#scrollableContainer === document.body) {
+			this.#handleViewPortTouchScrolling(touch);
+		} else {
+			this.#handleContainerTouchScrolling(touch);
+		}
+	}
+
+	#handleContainerTouchScrolling(touch) {
+		// scroll the viewport if we've reached the end
+		const rect = this.#scrollableContainer.getBoundingClientRect();
+		if (rect.bottom - touch.clientY < scrollContainerSensitivity) {
+			// scroll down
+			this.#scrollableContainer.scrollBy(0, scrollSpeed);
+		} else if (touch.clientY - rect.top < scrollContainerSensitivity) {
+			// scroll up
+			this.#scrollableContainer.scrollBy(0, -scrollSpeed);
+		}
+	}
+
+	#handleViewPortTouchScrolling(touch) {
+		const height = window.innerHeight;
+		if (touch.clientY > height / 2 && height - touch.clientY < scrollSensitivity) {
+			// scroll down
+			window.scrollBy(0, scrollSpeed);
+		} else if (touch.clientY < height / 2 && touch.clientY < scrollSensitivity) {
+			// scroll up
+			window.scrollBy(0, -scrollSpeed);
+		}
+	}
+
+	#onDropEnterHelper(e, isTopHalf, isMiddle) {
+		if (this.dropDisabled) return;
+		e.dataTransfer.dropEffect = 'move';
+
+		let location;
+		if (this._dropNestedOnly || (isMiddle && this.dropNested)) {
+			location = moveLocations.nest;
+		} else if (!isMiddle) {
+			location = isTopHalf ? dropLocation.above : dropLocation.below;
+			this._inTopArea = isTopHalf;
+			this._inBottomArea = !isTopHalf;
+		} else if (isTopHalf) {
+			location = this._inTopArea ? moveLocations.below : moveLocations.above;
+			this._inTopArea = false;
+		} else {
+			location = this._inBottomArea ? moveLocations.above : moveLocations.below;
+			this._inBottomArea = false;
+		}
+		const dragState = getDragState();
+		dragState.setActiveDropTarget(this, location);
+	}
+
+	#resetScrollableContainer() {
+		if (this.#scrollableContainer) {
+			if (this.#touchAction) {
+				this.#scrollableContainer.style.setProperty('touch-action', this.#touchAction);
+			} else {
+				this.#scrollableContainer.style.removeProperty('touch-action');
+			}
+			this.#touchAction = '';
+		}
+		this.#scrollableContainer = undefined;
 	}
 };

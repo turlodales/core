@@ -1,19 +1,17 @@
 import { css, html, LitElement } from 'lit';
 import { radioStyles } from '../input-radio-styles.js';
-import { RtlMixin } from '../../../mixins/rtl-mixin.js';
 
-class TestInputRadioLabel extends RtlMixin(LitElement) {
+class TestInputRadioLabel extends LitElement {
 
-	static get styles() {
-		return [ radioStyles,
-			css`
-				:host {
-					display: block;
-					width: 200px;
-				}
-			`
-		];
-	}
+	static styles = [radioStyles,
+		css`
+			:host {
+				display: block;
+				overflow: hidden;
+				width: 200px;
+			}
+		`
+	];
 
 	render() {
 		return html`
@@ -33,6 +31,10 @@ class TestInputRadioLabel extends RtlMixin(LitElement) {
 				<input type="radio" name="myGroup" value="long">
 				Label for radio that wraps nicely onto
 				multiple lines and stays aligned
+			</label>
+			<label class="d2l-input-radio-label">
+				<input type="radio" name="myGroup" value="long">
+				https://en.wikipedia.org/wiki/Dark_matter
 			</label>
 		`;
 	}

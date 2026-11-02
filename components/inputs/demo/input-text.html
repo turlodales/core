@@ -5,8 +5,8 @@
 		<meta charset="UTF-8">
 		<link rel="stylesheet" href="../../demo/styles.css" type="text/css">
 		<script type="module">
-			import '../../button/button-icon.js';
 			import '../../demo/demo-page.js';
+			import '../../button/button-icon.js';
 			import '../../icons/icon.js';
 			import '../input-text.js';
 		</script>
@@ -15,7 +15,8 @@
 				--d2l-button-icon-min-height: 1.8rem;
 				--d2l-button-icon-min-width: 1.8rem;
 				--d2l-button-icon-border-radius: 4px;
-				--d2l-button-icon-focus-box-shadow: 0 0 0 1px #ffffff, 0 0 0 3px var(--d2l-color-celestine);
+				--d2l-button-icon-focus-color: var(--d2l-color-celestine);
+				--d2l-button-icon-focus-offset: 1px;
 			}
 			d2l-icon[slot="left"], d2l-icon[slot="right"] {
 				margin-left: 0.55rem;
@@ -33,6 +34,12 @@
 	</head>
 	<body unresolved>
 		<d2l-demo-page page-title="d2l-input-text">
+			<h2>Invalid Number Type (console warning logged)</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-input-text label="Name" type="number"></d2l-input-text>
+				</template>
+			</d2l-demo-snippet>
 
 			<h2>Simple</h2>
 			<d2l-demo-snippet>
@@ -62,10 +69,10 @@
 				</template>
 			</d2l-demo-snippet>
 
-			<h2>Placeholder</h2>
+			<h2>Instructions</h2>
 			<d2l-demo-snippet>
 				<template>
-					<d2l-input-text label="Name" label-hidden placeholder="Enter a name..."></d2l-input-text>
+					<d2l-input-text label="Name" instructions="Use the keyboard to enter some sweet stuff... :)"></d2l-input-text>
 				</template>
 			</d2l-demo-snippet>
 
@@ -126,6 +133,34 @@
 			<d2l-demo-snippet>
 				<template>
 					<d2l-input-text label="Name" input-width="400px"></d2l-input-text>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Inline Help</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-input-text label="Alphabet" pattern="[a-z]*" pattern-failure-text="Must be a lowercase letter from a to z">
+						<div slot="inline-help">
+							Enter only lowercase letters from the alphabet.
+						</div>
+					</d2l-input-text>
+				</template>
+			</d2l-demo-snippet>
+
+			<h2>Inline help (multiline) checkbox</h2>
+			<d2l-demo-snippet>
+				<template>
+					<d2l-input-text label="Name">
+						<div slot="inline-help">
+							Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+							sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+							Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+							nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+							reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+							pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa
+							qui officia deserunt mollit anim id est laborum.
+						</div>
+					</d2l-input-text>
 				</template>
 			</d2l-demo-snippet>
 

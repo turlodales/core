@@ -7,18 +7,16 @@ export const asyncStates = {
 
 export const AsyncContainerMixin = superclass => class extends superclass {
 
-	static get properties() {
-		return {
-			/**
-			 * @ignore
-			 */
-			asyncPendingDelay: { type: Number, attribute: 'async-pending-delay' },
-			/**
-			 * @ignore
-			 */
-			asyncState: { type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		asyncPendingDelay: { type: Number, attribute: 'async-pending-delay' },
+		/**
+		 * @ignore
+		 */
+		asyncState: { type: String }
+	};
 
 	constructor() {
 		super();
@@ -59,7 +57,7 @@ export const AsyncContainerMixin = superclass => class extends superclass {
 		try {
 			await promise;
 			if (this._asyncPromises.indexOf(promise) !== -1) this._asyncCounts.fulfilled++;
-		} catch (error) {
+		} catch {
 			if (this._asyncPromises.indexOf(promise) !== -1) this._asyncCounts.rejected++;
 		} finally {
 			if (this._asyncPromises.indexOf(promise) !== -1) {

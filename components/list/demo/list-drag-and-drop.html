@@ -7,7 +7,7 @@
 	<script type="module">
 		import '../../demo/demo-page.js';
 		import './list-drag-and-drop-position.js';
-		import './list-drag-and-drop.js';
+		import './demo-list-nested.js';
 	</script>
 </head>
 <body unresolved>
@@ -22,14 +22,104 @@
 			</template>
 		</d2l-demo-snippet>
 
+		<h2>Add Button</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-drag-and-drop-position add-button selectable></d2l-demo-list-drag-and-drop-position>
+			</template>
+		</d2l-demo-snippet>
+
 		<h2>Move Event</h2>
 
 		<d2l-demo-snippet>
 			<template>
-				<d2l-demo-list-drag-and-drop></d2l-demo-list-drag-and-drop>
+				<d2l-demo-list-nested demo-item-key="imgPrimaryAndSupporting" is-draggable selectable disable-expand-feature></d2l-demo-list-nested>
 			</template>
 		</d2l-demo-snippet>
 
+		<h2>Add Button</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-nested add-button demo-item-key="imgPrimaryAndSupporting" is-draggable selectable></d2l-demo-list-nested>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>Drop Nested Only</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-nested drop-nested-only demo-item-key="imgPrimaryAndSupporting" is-draggable selectable></d2l-demo-list-nested>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>Disable Keyboard Drag</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-nested demo-item-key="imgPrimaryAndSupporting" is-draggable selectable keyboard-drag-disabled></d2l-demo-list-nested>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>Always Show Handle</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-nested demo-item-key="imgPrimaryAndSupporting" is-draggable selectable drag-handle-show-always></d2l-demo-list-nested>
+			</template>
+		</d2l-demo-snippet>
+
+		<h1>Tile Drag and Drop</h1>
+
+		<h2>Position Change Event</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-drag-and-drop-position tiles hrefs tile-header></d2l-demo-list-drag-and-drop-position>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>With Selection</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-drag-and-drop-position tiles hrefs tile-header selectable></d2l-demo-list-drag-and-drop-position>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>Without title</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-drag-and-drop-position tiles hrefs selectable></d2l-demo-list-drag-and-drop-position>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>Without hrefs</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-drag-and-drop-position tiles tile-header></d2l-demo-list-drag-and-drop-position>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>With Actions</h2>
+
+		<d2l-demo-snippet>
+			<template>
+				<d2l-demo-list-drag-and-drop-position tiles tile-header actions></d2l-demo-list-drag-and-drop-position>
+			</template>
+		</d2l-demo-snippet>
+
+		<h2>Within a scrollable container</h2>
+		<d2l-demo-snippet>
+			<template>
+				<div style="height: 200px; overflow: auto; padding-left: 15px;" id="scrollable-container">
+					<d2l-demo-list-drag-and-drop-position tiles hrefs tile-header selectable></d2l-demo-list-drag-and-drop-position>
+				</div>
+			</template>
+		</d2l-demo-snippet>
 
 	</d2l-demo-page>
 

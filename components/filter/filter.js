@@ -2,149 +2,209 @@ import '../colors/colors.js';
 import '../count-badge/count-badge.js';
 import '../button/button-icon.js';
 import '../button/button-subtle.js';
-import '../dropdown/dropdown-button-subtle.js';
+import '../dropdown/dropdown.js';
 import '../dropdown/dropdown-content.js';
 import '../dropdown/dropdown-menu.js';
+import '../state/state-action-button.js';
+import '../state/state-action-link.js';
+import '../empty-state/empty-state-simple.js';
+import '../expand-collapse/expand-collapse-content.js';
 import '../hierarchical-view/hierarchical-view.js';
+import '../icons/icon.js';
 import '../inputs/input-search.js';
 import '../list/list.js';
 import '../list/list-item.js';
 import '../loading-spinner/loading-spinner.js';
 import '../menu/menu.js';
 import '../menu/menu-item.js';
+import '../paging/pager-load-more.js';
 import '../selection/selection-select-all.js';
 import '../selection/selection-summary.js';
+import '../tooltip/tooltip.js';
 
-import { bodyCompactStyles, bodySmallStyles, bodyStandardStyles } from '../typography/styles.js';
-import { css, html, LitElement } from 'lit';
+import { bodyCompactStyles, bodySmallStyles, bodyStandardStyles, heading4Styles } from '../typography/styles.js';
+import { css, html, LitElement, nothing } from 'lit';
+import { getOverflowDeclarations, overflowEllipsisDeclarations } from '../../helpers/overflow.js';
 import { announce } from '../../helpers/announce.js';
 import { classMap } from 'lit/directives/class-map.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
+import { formatNumber } from '@brightspace-ui/intl/lib/number.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
 import { offscreenStyles } from '../offscreen/offscreen.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { SubscriberRegistryController } from '../../controllers/subscriber/subscriberControllers.js';
 
 const ARROWLEFT_KEY_CODE = 37;
 const ESCAPE_KEY_CODE = 27;
+const FILTER_CONTENT_CLASS = 'd2l-filter-dropdown-content';
 const SET_DIMENSION_ID_PREFIX = 'list-';
+
+let hasDisplayedKeyboardTooltip = false;
+
+export function resetHasDisplayedKeyboardTooltip() {
+	hasDisplayedKeyboardTooltip = false;
+}
+let spacePressed = false;
+let spaceListenerAdded = false;
+function addSpaceListener() {
+	if (spaceListenerAdded) return;
+	spaceListenerAdded = true;
+	document.addEventListener('keydown', e => {
+		if (e.key !== ' ') return;
+		spacePressed = true;
+	});
+	document.addEventListener('keyup', e => {
+		if (e.key !== ' ') return;
+		spacePressed = false;
+	});
+}
 
 /**
  * A filter component that contains one or more dimensions a user can filter by.
  * This component is in charge of all rendering.
  * @slot - Dimension components used by the filter to construct the different dimensions locally
  * @fires d2l-filter-change - Dispatched when a dimension's value(s) have changed
+ * @fires d2l-filter-dimension-empty-state-action - Dispatched when an empty state action button is clicked
  * @fires d2l-filter-dimension-first-open - Dispatched when a dimension is opened for the first time
  * @fires d2l-filter-dimension-search - Dispatched when a dimension that supports searching and has the "manual" search-type is searched
+ * @fires d2l-filter-dimension-load-more - Dispatched when a dimension load more pager clicked
  */
-class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
+class Filter extends FocusMixin(LocalizeCoreElement(LitElement)) {
 
-	static get properties() {
-		return {
-			/**
-			 * Disables the dropdown opener for the filter
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * Indicates if the filter is open
-			 * @type {boolean}
-			 */
-			opened: { type: Boolean, reflect: true },
-			/**
-			 * Optional override for the button text used for a multi-dimensional filter
-			 * @type {string}
-			 */
-			text: { type: String },
-			_activeDimensionKey: { type: String, attribute: false },
-			_dimensions: { type: Array, attribute: false },
-			_totalAppliedCount: { type: Number, attribute: false }
-		};
-	}
+	static properties = {
+		/**
+		 * Disables the dropdown opener for the filter
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * Indicates if the filter is open
+		 * @type {boolean}
+		 */
+		opened: { type: Boolean, reflect: true },
+		/**
+		 * Optional override for the button text used for a multi-dimensional filter
+		 * @type {string}
+		 */
+		text: { type: String },
+		_activeDimensionKey: { state: true },
+		_dimensions: { state: true },
+		_displayKeyboardTooltip: { state: true },
+		_ignoreSlotChanges: { type: Boolean },
+		_minWidth: { state: true },
+		_totalAppliedCount: { state: true }
+	};
 
-	static get styles() {
-		return [bodyCompactStyles, bodySmallStyles, bodyStandardStyles, offscreenStyles, css`
-			[slot="header"] {
-				padding: 0.9rem 0.3rem;
-			}
+	static styles = [bodyCompactStyles, bodySmallStyles, bodyStandardStyles, heading4Styles, offscreenStyles, css`
+		[slot="header"] {
+			padding: 0.9rem 0.3rem;
+		}
 
-			.d2l-filter-dimension-header {
-				padding-bottom: 0.9rem;
-			}
+		.d2l-filter-dimension-header {
+			padding-bottom: 0.9rem;
+		}
 
-			.d2l-filter-dimension-header,
-			.d2l-filter-dimension-header-actions {
-				align-items: center;
-				display: flex;
-			}
+		.d2l-filter-dimension-header.with-intro {
+			padding-bottom: 0.6rem;
+		}
 
-			.d2l-filter-dimension-header-actions {
-				flex-flow: row wrap;
-			}
+		.d2l-filter-dimension-header,
+		.d2l-filter-dimension-header-actions {
+			align-items: center;
+			display: flex;
+		}
 
-			d2l-input-search {
-				flex: 1 0;
-				margin-left: 0.3rem;
-				margin-right: 0.6rem;
-			}
+		.d2l-filter-dimension-header-actions {
+			flex-flow: row wrap;
+		}
 
-			:host([dir="rtl"]) d2l-input-search {
-				margin-left: 0.6rem;
-				margin-right: 0.3rem;
-			}
+		d2l-input-search {
+			flex: 1 0;
+			margin-inline: 0.3rem 0.6rem;
+		}
 
-			.d2l-filter-dimension-select-all {
-				flex-basis: 100%;
-				margin-top: 0.9rem;
-			}
+		.d2l-filter-dimension-select-all {
+			flex-basis: 100%;
+			margin-top: 0.9rem;
+		}
 
-			d2l-selection-select-all {
-				padding: 0 0.6rem;
-			}
+		d2l-selection-select-all {
+			padding: 0 0.6rem;
+		}
 
-			.d2l-filter-dimension-header-text {
-				flex-grow: 1;
-				padding-right: calc(2rem + 2px);
-				text-align: center;
-			}
-			:host([dir="rtl"]) .d2l-filter-dimension-header-text {
-				padding-left: calc(2rem + 2px);
-				padding-right: 0;
-			}
+		.d2l-filter-dimension-header-text {
+			flex-grow: 1;
+			padding-inline-end: calc(2rem + 2px);
+			text-align: center;
+			${overflowEllipsisDeclarations}
+		}
 
-			.d2l-filter-dimension-header-text,
-			.d2l-filter-dimension-set-value-text {
-				overflow: hidden;
-				text-overflow: ellipsis;
-				white-space: nowrap;
-			}
+		.d2l-filter-dimension-set-value {
+			align-items: center;
+			color: var(--d2l-color-ferrite);
+			display: flex;
+			gap: 0.45rem;
+			line-height: unset;
+		}
+		.d2l-filter-dimension-set-value d2l-icon {
+			flex-shrink: 0;
+		}
+		d2l-expand-collapse-content[expanded] {
+			margin-inline-start: -2.1rem;
+			padding-block: 0.8rem 0.4rem;
+		}
+		d2l-list-item.expanding-content {
+			overflow-y: hidden;
+		}
 
-			.d2l-filter-dimension-set-value-text {
-				color: var(--d2l-color-ferrite);
-				line-height: unset;
-			}
+		.d2l-filter-dimension-set-value-text {
+			hyphens: auto;
+			${getOverflowDeclarations({ lines: 2 })}
+		}
 
-			d2l-list-item[disabled] .d2l-filter-dimension-set-value-text {
-				color: var(--d2l-color-chromite);
-			}
+		d2l-list-item[selection-disabled] .d2l-filter-dimension-set-value,
+		d2l-list-item[selection-disabled] .d2l-body-small {
+			color: var(--d2l-color-chromite);
+		}
 
-			.d2l-filter-dimension-info-message {
-				padding: 0.9rem 0;
-				text-align: center;
-			}
+		.d2l-filter-dimension-intro-text {
+			margin: 0;
+			padding: 0.6rem 1.5rem 1.5rem;
+			text-align: center;
+		}
 
-			/* Needed to "undo" the menu-item style for multiple dimensions */
-			d2l-hierarchical-view {
-				cursor: auto;
-			}
+		.d2l-filter-dimension-intro-text.multi-dimension {
+			padding: 0 1.5rem 1.5rem;
+		}
 
-			d2l-loading-spinner {
-				padding-top: 0.6rem;
-				width: 100%;
-			}
-		`];
-	}
+		.d2l-empty-state-container {
+			padding: 0.9rem 0.9rem calc(0.9rem - 5px);
+		}
+
+		.list-header-text {
+			color: var(--d2l-color-ferrite);
+			margin: 0;
+			padding-bottom: 0.05rem;
+			padding-top: 0.65rem;
+		}
+
+		.d2l-filter-dimension-info-message {
+			color: var(--d2l-color-ferrite);
+			display: flex;
+			justify-content: center;
+		}
+
+		/* Needed to "undo" the menu-item style for multiple dimensions */
+		d2l-hierarchical-view {
+			cursor: auto;
+		}
+
+		d2l-loading-spinner {
+			padding-top: 0.6rem;
+			width: 100%;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -152,30 +212,37 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		this.opened = false;
 		this._changeEventsToDispatch = new Map();
 		this._dimensions = [];
+		this._displayKeyboardTooltip = false;
+		this._ignoreSlotChanges = false;
+		this._minWidth = 285;
 		this._openedDimensions = [];
 		this._totalAppliedCount = 0;
 
 		this._activeFilters = null;
-		this._activeFiltersSubscribers = new SubscriberRegistryController(this,
-			{ onSubscribe: this._updateActiveFiltersSubscriber.bind(this), updateSubscribers: this._updateActiveFiltersSubscribers.bind(this) },
-			{}
-		);
+		this._activeFiltersSubscribers = new SubscriberRegistryController(this, 'active-filters', {
+			onSubscribe: this._updateActiveFiltersSubscriber.bind(this),
+			updateSubscribers: this._updateActiveFiltersSubscribers.bind(this)
+		});
+		this._spacePressedDuringLastSelection = false;
 	}
 
 	static get focusElementSelector() {
-		return 'd2l-dropdown-button-subtle';
+		return 'd2l-button-subtle';
+	}
+
+	connectedCallback() {
+		super.connectedCallback();
+		addSpaceListener();
+	}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		if (this.#resizeObserver) this.#resizeObserver.disconnect();
 	}
 
 	firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
 		this.addEventListener('d2l-filter-dimension-data-change', this._handleDimensionDataChange);
-
-		// Prevent these events from bubbling out of the filter
-		this.addEventListener('d2l-hierarchical-view-hide-complete', this._stopPropagation);
-		this.addEventListener('d2l-hierarchical-view-hide-start', this._stopPropagation);
-		this.addEventListener('d2l-hierarchical-view-show-complete', this._stopPropagation);
-		this.addEventListener('d2l-hierarchical-view-show-start', this._stopPropagation);
-		this.addEventListener('d2l-hierarchical-view-resize', this._stopPropagation);
 	}
 
 	render() {
@@ -183,16 +250,15 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		const header = this._buildHeader(singleDimension);
 		const dimensions = this._buildDimensions(singleDimension);
 
-		const filterCount = this._formatFilterCount(this._totalAppliedCount);
-		let buttonText = singleDimension ? this._dimensions[0].text : (this.text || this.localize('components.filter.filters'));
-		if (filterCount) buttonText = `${buttonText} (${filterCount})`;
+		const buttonText = singleDimension ? this._dimensions[0].text : (this.text || this.localize('components.filter.filters'));
 
 		let description = singleDimension ? this.localize('components.filter.singleDimensionDescription', { filterName: this._dimensions[0].text }) : this.localize('components.filter.filters');
 		description += `. ${this.localize('components.filter.filterCountDescription', { number: this._totalAppliedCount })}`;
 
 		const dropdownContent = singleDimension ? html`
 				<d2l-dropdown-content
-					min-width="285"
+					class="vdiff-target ${FILTER_CONTENT_CLASS}"
+					min-width="${this._minWidth}"
 					max-width="420"
 					mobile-tray="right"
 					mobile-breakpoint="768"
@@ -205,7 +271,8 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 				</d2l-dropdown-content>`
 			: html`
 				<d2l-dropdown-menu
-					min-width="285"
+					class="vdiff-target ${FILTER_CONTENT_CLASS}"
+					min-width="${this._minWidth}"
 					max-width="420"
 					mobile-tray="right"
 					mobile-breakpoint="768"
@@ -219,44 +286,130 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 				</d2l-dropdown-menu>
 			`;
 
+		const countBadgeTemplate = this._totalAppliedCount ?
+			html`
+				<d2l-count-badge
+					aria-hidden="true"
+					max-digits="2"
+					type="count"
+					number="${this._totalAppliedCount}">
+				</d2l-count-badge>`
+			: nothing;
+
 		return html`
-			<d2l-dropdown-button-subtle
+			<d2l-dropdown
 				@d2l-dropdown-close="${this._handleDropdownClose}"
 				@d2l-dropdown-open="${this._handleDropdownOpen}"
 				@d2l-dropdown-position="${this._stopPropagation}"
-				text="${buttonText}"
-				description="${description}"
+				class="vdiff-target"
 				?disabled="${this.disabled}">
+				<d2l-button-subtle
+					class="d2l-dropdown-opener"
+					description="${description}"
+					text="${buttonText}"
+					icon="tier1:chevron-down"
+					icon-right
+					?disabled="${this.disabled}">
+					${countBadgeTemplate}
+				</d2l-button-subtle>
 				${dropdownContent}
-			</d2l-dropdown-button-subtle>
+			</d2l-dropdown>
 			<slot @slotchange="${this._handleSlotChange}"></slot>
 		`;
 	}
 
-	getSubscriberController() {
-		return this._activeFiltersSubscribers;
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+		if (
+			changedProperties.has('opened')
+			&& this.opened
+			&& this._dimensions.length === 1
+			&& this._dimensions[0].selectedFirst
+		) {
+			this._updateDimensionShouldBubble(this._dimensions[0]);
+		}
+		if (changedProperties.has('_dimensions')) {
+			this._setFilterCounts();
+			this._activeFiltersSubscribers.updateSubscribers();
+		}
+	}
+
+	requestFilterChangeEvent(allCleared, dimensions) {
+		this.dispatchEvent(new CustomEvent('d2l-filter-change', {
+			bubbles: true,
+			composed: false,
+			detail: { allCleared, dimensions }
+		}));
 	}
 
 	requestFilterClearAll() {
 		this._handleClearAll();
 	}
 
+	requestFilterDimensionFirstOpenEvent(dimensionKey) {
+		this._openedDimensions.push(dimensionKey);
+		this.dispatchEvent(new CustomEvent('d2l-filter-dimension-first-open', {
+			bubbles: true,
+			composed: false,
+			detail: { key: dimensionKey }
+		}));
+	}
+
+	requestFilterLoadMoreEvent(key, searchValue, callback = () => {}) {
+		const applySearch = this._getSearchCallback(key);
+		this.dispatchEvent(new CustomEvent('d2l-filter-dimension-load-more', {
+			detail: {
+				key: key,
+				value: searchValue,
+				loadMoreCompleteCallback: (options) => {
+					applySearch(options);
+					callback(options);
+				}
+			},
+			bubbles: true,
+			composed: false
+		}));
+	}
+
+	requestFilterSearchEvent(key, searchValue, callback = () => {}) {
+		const dimension = this._getDimensionByKey(key);
+		dimension.searchValue = searchValue;
+		dimension.loading = true;
+		this.requestUpdate();
+		const searchCallback = this._getSearchCallback(key);
+
+		this.dispatchEvent(new CustomEvent('d2l-filter-dimension-search', {
+			bubbles: true,
+			composed: false,
+			detail: {
+				key: dimension.key,
+				value: dimension.searchValue,
+				searchCompleteCallback: (options) => {
+					searchCallback(options);
+					callback(options);
+				}
+			}
+		}));
+	}
+
 	requestFilterValueClear(keyObject) {
-		const dimension = this._dimensions.find(dimension => dimension.key === keyObject.dimension);
+		const dimension = this._getDimensionByKey(keyObject.dimension);
 
 		switch (dimension.type) {
 			case 'd2l-filter-dimension-set':
-				this._performChangeSetDimension(dimension, keyObject.value, false);
+				this._performChangeSetDimension(dimension, [{ key: keyObject.value, selected: false }]);
 				break;
 		}
 	}
+
+	#resizeObserver;
 
 	_buildDimension(dimension, singleDimension) {
 		let dimensionHTML;
 		switch (dimension.type) {
 			case 'd2l-filter-dimension-set':
 				dimensionHTML = html`
-				<div aria-live="polite" class="d2l-filter-container">
+				<div class="d2l-filter-container">
 					${this._createSetDimension(dimension)}
 				</div>`;
 				break;
@@ -283,11 +436,10 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		}
 		return this._dimensions.map((dimension) => {
 			const builtDimension = this._buildDimension(dimension);
-			const countBadgeId = `filters-applied-count-${dimension.key}`;
 			const filtersAppliedText = `${this.localize('components.filter.filterCountDescription', { number: dimension.appliedCount })}`;
-			return html`<d2l-menu-item text="${dimension.text}" description="${dimension.text}." aria-describedby="${countBadgeId}">
+			return html`<d2l-menu-item text="${dimension.text}" description="${dimension.text}. ${filtersAppliedText}">
 				<div slot="supporting">
-					<d2l-count-badge id="${countBadgeId}" number="${dimension.appliedCount}" max-digits="2" text="${filtersAppliedText}" hide-zero></d2l-count-badge>
+					<d2l-count-badge number="${dimension.appliedCount}" max-digits="2" text="${filtersAppliedText}" hide-zero></d2l-count-badge>
 				</div>
 				${builtDimension}
 			</d2l-menu-item>`;
@@ -309,6 +461,14 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 
 		const dimension = this._getActiveDimension();
 
+		const introductoryTextClasses = {
+			'd2l-body-compact': true,
+			'd2l-filter-dimension-intro-text': true,
+			'multi-dimension': !singleDimension
+		};
+		const introductoryText = !dimension.introductoryText ? nothing : html`
+			<p class="${classMap(introductoryTextClasses)}">${dimension.introductoryText}</p>`;
+
 		const clear = html`
 			<d2l-button-subtle
 				@click="${this._handleClear}"
@@ -318,9 +478,10 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 			</d2l-button-subtle>
 		`;
 
-		const search = dimension.searchType === 'none' ? null : html`
+		const search = dimension.searchType === 'none' ? nothing : html`
 			<d2l-input-search
 				@d2l-input-search-searched="${this._handleSearch}"
+				@d2l-input-search-layout-updated="${this.#handleSearchLayoutUpdated}"
 				?disabled="${this._isDimensionEmpty(dimension)}"
 				label="${this.localize('components.input-search.search')}"
 				value="${ifDefined(dimension.searchValue)}">
@@ -347,8 +508,12 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 			</div>
 		`;
 
-		const header = singleDimension ? null : html`
-			<div class="d2l-filter-dimension-header">
+		const headerClasses = {
+			'd2l-filter-dimension-header': true,
+			'with-intro': dimension.introductoryText
+		};
+		const header = singleDimension ? nothing : html`
+			<div class="${classMap(headerClasses)}">
 				<d2l-button-icon
 					@click="${this._handleDimensionHide}"
 					icon="tier1:chevron-left"
@@ -361,8 +526,38 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		return html`
 			<div slot="header" @keydown="${this._handleDimensionHideKeyDown}">
 				${header}
+				${introductoryText}
 				${actions}
 			</div>
+		`;
+	}
+
+	_createEmptyState(emptyState, dimensionKey) {
+		let emptyStateAction = nothing;
+		if (emptyState.actionText && emptyState.actionHref) {
+			emptyStateAction = html`
+				<d2l-state-action-link
+					href="${emptyState.actionHref}"
+					text="${emptyState.actionText}">
+				</d2l-state-action-link>
+			`;
+		}
+		else if (emptyState.actionText) {
+			emptyStateAction = html`
+				<d2l-state-action-button
+					@d2l-state-action="${this._handleEmptyStateAction}"
+					data-dimension-key="${dimensionKey}"
+					data-type="${emptyState.type}"
+					text="${emptyState.actionText}">
+				</d2l-state-action-button>
+			`;
+		}
+		return html`
+			<d2l-empty-state-simple
+				class="d2l-filter-dimension-info-message"
+				description="${emptyState.description}">
+				${emptyStateAction}
+			</d2l-empty-state-simple>
 		`;
 	}
 
@@ -374,11 +569,20 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 			`;
 		}
 
+		if (dimension.minWidth) this._minWidth = Math.max(dimension.minWidth, this._minWidth);
 		if (this._isDimensionEmpty(dimension)) {
+			const emptyState = dimension.setEmptyState
+				? this._createEmptyState(dimension.setEmptyState, dimension.key)
+				: html`
+					<d2l-empty-state-simple
+						class="d2l-filter-dimension-info-message"
+						description="${this.localize('components.filter.noFilters')}">
+					</d2l-empty-state-simple>
+				`;
 			return html`
-				<p class="d2l-filter-dimension-info-message d2l-body-small" role="alert">
-					${this.localize('components.filter.noFilters')}
-				</p>
+				<div class="d2l-empty-state-container" role="alert">
+					${emptyState}
+				</div>
 			`;
 		}
 
@@ -386,53 +590,116 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		if (dimension.searchValue && dimension.searchValue !== '') {
 			const count = dimension.values.reduce((total, value) => { return !value.hidden ? total + 1 : total; }, 0);
 			const classes = {
-				'd2l-filter-dimension-info-message': true,
-				'd2l-body-small': true,
+				'd2l-empty-state-container': true,
 				'd2l-offscreen': count !== 0
 			};
-
+			const emptyState = dimension.searchEmptyState && count === 0
+				? this._createEmptyState(dimension.searchEmptyState, dimension.key)
+				: html`
+					<d2l-empty-state-simple
+						class="d2l-filter-dimension-info-message"
+						description="${this.localize('components.filter.searchResults', { number: count })}">
+					</d2l-empty-state-simple>
+				`;
 			searchResults = html`
-				<p class="${classMap(classes)}" role="alert">
-					${this.localize('components.filter.searchResults', { number: count })}
-				</p>
+				<div class="${classMap(classes)}" role="alert">
+					${emptyState}
+				</div>
 			`;
 
 			if (count === 0) return searchResults;
 		}
 
+		let listHeader = nothing;
+		let listLabel = undefined;
+		if (dimension.headerText && dimension.searchValue === '') {
+			listHeader = html`
+				<d2l-list-item>
+					<h4 class="d2l-heading-4 list-header-text" aria-hidden="true">${dimension.headerText}</h4>
+				</d2l-list-item>
+			`;
+			listLabel = dimension.headerText;
+		}
+
+		let selectedListItems = nothing;
+		let listItems = nothing;
+		if (dimension.selectedFirst) {
+			if (listLabel) listLabel = this.localize('components.filter.selectedFirstListLabel', { headerText: dimension.headerText });
+			selectedListItems = dimension.values.filter(item => item.shouldBubble).map(item => this._createSetDimensionItem(item));
+
+			listItems = dimension.values.filter(item => !item.shouldBubble).map(item => this._createSetDimensionItem(item));
+		} else {
+			listItems = dimension.values.map(item => this._createSetDimensionItem(item));
+		}
+
+		const listStyles = {
+			paddingBlockEnd: dimension.hasMore ? '10px' : undefined
+		};
+
 		return html`
 			${searchResults}
 			<d2l-list
 				id="${SET_DIMENSION_ID_PREFIX}${dimension.key}"
-				@d2l-list-selection-change="${this._handleChangeSetDimension}"
+				@d2l-list-selection-changes="${this._handleChangeSetDimension}"
 				extend-separators
 				grid
+				label="${ifDefined(listLabel)}"
 				?selection-single="${dimension.selectionSingle}"
-				separators="between">
-				${dimension.values.map(item => html`
-					<d2l-list-item
-						?disabled="${item.disabled}"
-						?hidden="${item.hidden}"
-						key="${item.key}"
-						label="${item.text}"
-						selectable
-						?selected="${item.selected}">
-						<div class="d2l-filter-dimension-set-value-text d2l-body-compact">${item.text}</div>
-					</d2l-list-item>
-				`)}
+				separators="between"
+				style=${styleMap(listStyles)}>
+				${selectedListItems}
+				${listHeader}
+				${listItems}
+				<d2l-pager-load-more slot="pager"
+					@d2l-pager-load-more="${this._handleDimensionLoadMore}"
+					?has-more="${dimension.hasMore}">
+				</d2l-pager-load-more>
 			</d2l-list>
+		`;
+	}
+
+	_createSetDimensionItem(item) {
+		const label = item.label || item.text;
+		const itemId = `list-item-${item.key}`;
+		return html`
+			<d2l-list-item
+				id="${itemId}"
+				@d2l-list-item-selected="${item.additionalContent ? this._handleListItemSelected : undefined}"
+				?selection-disabled="${item.disabled}"
+				?hidden="${item.hidden}"
+				key="${item.key}"
+				label="${label}"
+				?no-primary-action="${item.additionalContent && item.selected}"
+				selectable
+				?selected="${item.selected}">
+				<div>
+					<div class="d2l-filter-dimension-set-value d2l-body-compact">
+						<div class="d2l-filter-dimension-set-value-text">${item.text}</div>
+						${item.count !== undefined ? html`<div class="d2l-body-small">(${formatNumber(item.count)})</div>` : nothing}
+						${item.additionalContent ? html`<d2l-icon icon="${item.selected ? 'tier1:arrow-collapse-small' : 'tier1:arrow-expand-small'}" aria-hidden="true"></d2l-icon>` : nothing}
+					</div>
+					${item.additionalContent ? html`
+						<d2l-expand-collapse-content
+							?expanded="${item.selected}"
+							@d2l-expand-collapse-content-collapse="${this._handleExpandCollapse}"
+							@d2l-expand-collapse-content-expand="${this._handleExpandCollapse}">
+							${item.additionalContent()}
+						</d2l-expand-collapse-content>
+					` : nothing}
+				</div>
+			</d2l-list-item>
+			${item.additionalContent && item.selected && this._displayKeyboardTooltip ? html`<d2l-tooltip align="start" announced for="${itemId}" for-type="descriptor" @d2l-tooltip-hide="${this._handleTooltipHide}">${this.localizeHTML('components.filter.additionalContentTooltip')}</d2l-tooltip>` : nothing}
 		`;
 	}
 
 	_dispatchChangeEvent(dimension, change) {
 		this._setDimensionChangeEvent(dimension, change, false);
+		clearTimeout(this._changeEventTimeout);
 
-		if (!this._changeEventTimeout) {
-			/** 200 ms timeout used in filter-tags CLEAR_TIMEOUT. If the timeout here changes, update that as well */
-			this._changeEventTimeout = setTimeout(() => {
-				this._dispatchChangeEventNow(false);
-			}, 200);
-		}
+		/** 300 ms timeout used in filter-tags CLEAR_TIMEOUT. If the timeout here changes, update that as well */
+		this._changeEventTimeout = setTimeout(() => {
+			this._dispatchChangeEventNow(false);
+		}, 300);
 	}
 
 	_dispatchChangeEventNow(allCleared) {
@@ -441,32 +708,46 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 			dimension.changes = Array.from(dimension.changes.values());
 		});
 
-		this.dispatchEvent(new CustomEvent('d2l-filter-change', {
-			bubbles: true,
-			composed: false,
-			detail: { allCleared: allCleared, dimensions: dimensions }
-		}));
+		this.requestFilterChangeEvent(allCleared, dimensions);
 		this._changeEventsToDispatch = new Map();
-		this._changeEventTimeout = null;
-
+		clearTimeout(this._changeEventTimeout);
 		this._activeFiltersSubscribers.updateSubscribers();
 	}
 
-	_dispatchDimensionFirstOpenEvent(key) {
-		if (!this._openedDimensions.includes(key)) {
-			this.dispatchEvent(new CustomEvent('d2l-filter-dimension-first-open', { bubbles: true, composed: false, detail: { key: key } }));
-			this._openedDimensions.push(key);
+	_dispatchChangeEventValueDataChange(dimension, value, valueKey) {
+		const details = { valueKey: valueKey, selected: value.selected };
+		if (value.getAdditionalEventDetails) Object.assign(details, value.getAdditionalEventDetails(value.selected));
+		this._dispatchChangeEvent(dimension, details);
+	}
+
+	_dispatchDimensionFirstOpenEvent(dimension) {
+		if (!this._openedDimensions.includes(dimension.key)) {
+			this.requestFilterDimensionFirstOpenEvent(dimension.key);
+			if (dimension.searchType === 'manual') {
+				this._search(dimension);
+			}
 		}
 	}
 
-	_formatFilterCount(count) {
-		if (count === 0) return;
-		else if (count >= 100) return '99+';
-		else return `${count}`;
+	_getActiveDimension() {
+		return !this._activeDimensionKey ? this._dimensions[0] : this._getDimensionByKey(this._activeDimensionKey);
 	}
 
-	_getActiveDimension() {
-		return !this._activeDimensionKey ? this._dimensions[0] : this._dimensions.find(dimension => dimension.key === this._activeDimensionKey);
+	_getDimensionByKey(key) {
+		return this._dimensions.find(dimension => dimension.key === key);
+	}
+
+	_getSearchCallback(key) {
+		return function({ keysToDisplay = [], displayAllKeys = false } = {}) {
+			requestAnimationFrame(() => {
+				const dimension = this._getDimensionByKey(key);
+				dimension.displayAllKeys = displayAllKeys;
+				dimension.searchKeysToDisplay = keysToDisplay;
+				this._performDimensionSearch(dimension);
+				dimension.loading = false;
+				this.requestUpdate();
+			});
+		}.bind(this);
 	}
 
 	_getSlottedNodes(slot) {
@@ -477,15 +758,19 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 
 	_handleChangeSetDimension(e) {
 		const dimensionKey = e.target.id.slice(SET_DIMENSION_ID_PREFIX.length);
-		const dimension = this._dimensions.find(dimension => dimension.key === dimensionKey);
-		const valueKey = e.detail.key;
-		const selected = e.detail.selected;
+		const dimension = this._getDimensionByKey(dimensionKey);
 
-		this._performChangeSetDimension(dimension, valueKey, selected);
+		this._performChangeSetDimension(dimension, e.detail);
 	}
 
 	_handleClear() {
 		const dimension = this._getActiveDimension();
+
+		if (dimension.searchType !== 'none') {
+			this._handleClearSearch(dimension);
+			const searchInput = this.shadowRoot.querySelector('d2l-input-search');
+			if (searchInput) searchInput.value = '';
+		}
 
 		this._performDimensionClear(dimension);
 		this._dispatchChangeEventNow(false);
@@ -495,13 +780,19 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 	}
 
 	_handleClearAll() {
+		let hasSearch = false;
 		this._dimensions.forEach(dimension => {
-			if (dimension.searchType !== 'none' && dimension.searchValue !== '') {
-				dimension.searchValue = '';
-				this._performDimensionSearch(dimension);
+			if (dimension.searchType !== 'none') {
+				this._handleClearSearch(dimension);
+				hasSearch = true;
 			}
 			this._performDimensionClear(dimension);
 		});
+
+		if (hasSearch) {
+			const searchInputs = this.shadowRoot.querySelectorAll('d2l-input-search');
+			searchInputs?.forEach((searchInput) => searchInput.value = '');
+		}
 
 		this._dispatchChangeEventNow(true);
 		this.requestUpdate();
@@ -509,18 +800,24 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		this.text ? announce(this.localize('components.filter.clearAllAnnounceOverride', { filterText: this.text })) : announce(this.localize('components.filter.clearAllAnnounce'));
 	}
 
+	_handleClearSearch(dimension) {
+		if (dimension.searchValue === '') return;
+
+		dimension.searchValue = '';
+		this._search(dimension);
+	}
+
 	_handleDimensionDataChange(e) {
 		const changes = e.detail.changes;
-		const dimension = this._dimensions.find(dimension => dimension.key === e.detail.dimensionKey);
-		const value = e.detail.valueKey && dimension.values.find(value => value.key === e.detail.valueKey);
+		const dimension = this._getDimensionByKey(e.detail.dimensionKey);
+		const value = e.detail.valueKey && dimension?.values.find(value => value.key === e.detail.valueKey);
 		const toUpdate = e.detail.valueKey ? value : dimension;
 
 		if (!toUpdate) return;
 
 		let shouldUpdate = false,
 			shouldSearch = false,
-			shouldRecount = false,
-			shouldResizeDropdown = false;
+			shouldRecount = false;
 		changes.forEach((newValue, prop) => {
 			if (toUpdate[prop] === newValue) return;
 
@@ -537,21 +834,19 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 				}
 				this._activeFiltersSubscribers.updateSubscribers();
 			} else if (prop === 'values') {
-				if (dimension.searchValue) shouldSearch = true;
+				if (dimension.searchValue || dimension.searchType === 'manual') shouldSearch = true;
 				shouldRecount = true;
-				shouldResizeDropdown = true;
 				this._activeFiltersSubscribers.updateSubscribers();
-			} else if (prop === 'loading') {
-				shouldResizeDropdown = true;
+				newValue.forEach((field) => this._minWidth = field.minWidth ? Math.max(field.minWidth, this._minWidth) : this._minWidth);
+			} else if (prop === 'text') {
+				this._activeFiltersSubscribers.updateSubscribers();
 			}
 		});
 
 		if (shouldSearch) this._performDimensionSearch(dimension);
 		if (shouldRecount) this._setFilterCounts(dimension);
-		if (shouldUpdate)  this.requestUpdate();
-		if (shouldResizeDropdown) {
-			this._requestDropdownResize();
-		}
+		if (shouldUpdate) this.requestUpdate();
+		if (e.detail.dispatchChangeEvent) this._dispatchChangeEventValueDataChange(dimension, value, e.detail.valueKey);
 	}
 
 	_handleDimensionHide() {
@@ -569,6 +864,16 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		this._activeDimensionKey = null;
 	}
 
+	_handleDimensionLoadMore(e) {
+		const dimensionKey = e.target.parentNode.id.slice(SET_DIMENSION_ID_PREFIX.length);
+		const dimension = this._getDimensionByKey(dimensionKey);
+
+		this.requestFilterLoadMoreEvent(dimensionKey, dimension.searchValue, () => {
+			const menu = this.shadowRoot.querySelector('d2l-dropdown-menu');
+			menu ? menu.addEventListener('d2l-dropdown-position', e.detail.complete, { once: true }) : e.detail.complete();
+		});
+	}
+
 	_handleDimensionShowComplete() {
 		const returnButton = this.shadowRoot
 			&& this.shadowRoot.querySelector('d2l-button-icon[icon="tier1:chevron-left"]');
@@ -577,21 +882,58 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 
 	_handleDimensionShowStart(e) {
 		this._activeDimensionKey = e.detail.sourceView.getAttribute('data-key');
-		this._dispatchDimensionFirstOpenEvent(this._activeDimensionKey);
+		const dimension = this._getDimensionByKey(this._activeDimensionKey);
+		if (dimension.introductoryText) announce(dimension.introductoryText);
+		if (dimension.selectedFirst) this._updateDimensionShouldBubble(dimension);
+		this._dispatchDimensionFirstOpenEvent(dimension);
 	}
 
 	_handleDropdownClose(e) {
+		if (!e.target.classList?.contains(FILTER_CONTENT_CLASS)) return;
+
 		this.opened = false;
 		this._activeDimensionKey = null;
 		this._stopPropagation(e);
 	}
 
 	_handleDropdownOpen(e) {
+		if (!e.target.classList?.contains(FILTER_CONTENT_CLASS)) return;
+
 		this.opened = true;
 		if (this._dimensions.length === 1) {
-			this._dispatchDimensionFirstOpenEvent(this._dimensions[0].key);
+			const dimension = this._dimensions[0];
+			this._dispatchDimensionFirstOpenEvent(dimension);
+			if (dimension.introductoryText) announce(dimension.introductoryText);
 		}
 		this._stopPropagation(e);
+	}
+
+	_handleEmptyStateAction(e) {
+		this.dispatchEvent(new CustomEvent(
+			'd2l-filter-dimension-empty-state-action', {
+				detail: { key: e.target.getAttribute('data-dimension-key'), type: e.target.getAttribute('data-type') }
+			}
+		));
+	}
+
+	async _handleExpandCollapse(e) {
+		const expanded = e.target.expanded;
+		const eventPromise = expanded ? e.detail.expandComplete : e.detail.collapseComplete;
+		const parentListItem = e.target.closest('d2l-list-item');
+		parentListItem.classList.add('expanding-content');
+
+		await eventPromise;
+		parentListItem.classList.remove('expanding-content');
+
+		if (expanded && !hasDisplayedKeyboardTooltip && this._spacePressedDuringLastSelection) {
+			await new Promise(resolve => requestAnimationFrame(resolve));
+			this._displayKeyboardTooltip = true;
+			hasDisplayedKeyboardTooltip = true;
+		}
+	}
+
+	_handleListItemSelected() {
+		this._spacePressedDuringLastSelection = spacePressed;
 	}
 
 	_handleSearch(e) {
@@ -599,33 +941,12 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		const searchValue = e.detail.value.trim();
 		dimension.searchValue = searchValue;
 
-		if (dimension.searchType === 'automatic' || searchValue === '') {
-			this._performDimensionSearch(dimension);
-		} else if (dimension.searchType === 'manual') {
-			dimension.loading = true;
-			this.requestUpdate();
-
-			this.dispatchEvent(new CustomEvent('d2l-filter-dimension-search', {
-				bubbles: false,
-				composed: false,
-				detail: {
-					key: dimension.key,
-					value: searchValue,
-					searchCompleteCallback: function(keysToDisplay) {
-						requestAnimationFrame(() => {
-							dimension.searchKeysToDisplay = keysToDisplay;
-							this._performDimensionSearch(dimension);
-							dimension.loading = false;
-							this.requestUpdate();
-						});
-					}.bind(this)
-				}
-			}));
-		}
+		this._search(dimension);
 	}
 
 	_handleSlotChange(e) {
 		const dimensionNodes = this._getSlottedNodes(e.target);
+		if (this._ignoreSlotChanges) return;
 
 		this._dimensions = dimensionNodes.map(dimension => {
 			const type = dimension.tagName.toLowerCase();
@@ -638,11 +959,19 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 
 			switch (type) {
 				case 'd2l-filter-dimension-set': {
+					info.headerText = dimension.headerText;
+					info.introductoryText = dimension.introductoryText;
+					info.hasMore = dimension.hasMore;
+					info.minWidth = dimension.minWidth;
 					info.searchType = dimension.searchType;
+					info.searchValue = '';
+					info.selectedFirst = dimension.selectedFirst;
 					info.selectionSingle = dimension.selectionSingle;
 					if (dimension.selectAll && !dimension.selectionSingle) info.selectAllIdPrefix = SET_DIMENSION_ID_PREFIX;
+					info.searchEmptyState = dimension.getSearchEmptyState();
+					info.setEmptyState = dimension.getSetEmptyState();
 					info.valueOnlyActiveFilterText = dimension.valueOnlyActiveFilterText;
-					const values = dimension._getValues();
+					const values = dimension.getValues();
 					info.values = values;
 					break;
 				}
@@ -650,9 +979,11 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 
 			return info;
 		});
+	}
 
-		this._setFilterCounts();
-		this._activeFiltersSubscribers.updateSubscribers();
+	_handleTooltipHide() {
+		this._displayKeyboardTooltip = false;
+		hasDisplayedKeyboardTooltip = true;
 	}
 
 	_isDimensionEmpty(dimension) {
@@ -664,20 +995,30 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		return false;
 	}
 
-	_performChangeSetDimension(dimension, valueKey, selected) {
-		const value = dimension.values.find(value => value.key === valueKey);
-		if (value.selected === selected) return;
-		value.selected = selected;
+	_performChangeSetDimension(dimension, newValues) {
+		let countChange = 0;
+		const changeEventDetails = [];
 
-		if (selected) {
-			dimension.appliedCount++;
-			this._totalAppliedCount++;
-		} else {
-			dimension.appliedCount--;
-			this._totalAppliedCount--;
-		}
+		newValues.forEach(newValue => {
+			const value = dimension.values.find(value => value.key === newValue.key);
+			if (value.selected === newValue.selected) return;
+			value.selected = newValue.selected;
 
-		this._dispatchChangeEvent(dimension, { valueKey: valueKey, selected: selected });
+			if (newValue.selected) countChange++;
+			else countChange--;
+
+			const details = { valueKey: newValue.key, selected: newValue.selected };
+
+			if (value.getAdditionalEventDetails) Object.assign(details, value.getAdditionalEventDetails(newValue.selected));
+			changeEventDetails.push(details);
+		});
+
+		dimension.appliedCount += countChange;
+		this._totalAppliedCount += countChange;
+
+		this.requestUpdate();
+
+		changeEventDetails.forEach(det => this._dispatchChangeEvent(dimension, det));
 	}
 
 	_performDimensionClear(dimension) {
@@ -691,6 +1032,7 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 						value.selected = false;
 						this._setDimensionChangeEvent(dimension, { valueKey: value.key, selected: false }, true);
 					}
+					if (value.clearProperties) value.clearProperties();
 				});
 				break;
 			}
@@ -698,10 +1040,14 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 	}
 
 	_performDimensionSearch(dimension) {
+		if (dimension.selectedFirst) this._updateDimensionShouldBubble(dimension);
 		switch (dimension.type) {
 			case 'd2l-filter-dimension-set':
 				dimension.values.forEach(value => {
-					if (dimension.searchValue === '') {
+					if (
+						(dimension.searchType === 'automatic' && dimension.searchValue === '')
+						|| dimension.displayAllKeys
+					) {
 						value.hidden = false;
 						return;
 					}
@@ -713,15 +1059,17 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 				break;
 		}
 
-		this._requestDropdownResize();
 		this.requestUpdate();
 	}
 
-	_requestDropdownResize() {
-		const singleDimension = this._dimensions.length === 1;
-		if (singleDimension && this.opened) {
-			const dropdown = this.shadowRoot.querySelector('d2l-dropdown-content');
-			dropdown.requestRepositionNextResize(this.shadowRoot.querySelector('.d2l-filter-container'));
+	_search(dimension) {
+		if (dimension.searchType === 'automatic') {
+			this._performDimensionSearch(dimension);
+		} else if (dimension.searchType === 'manual') {
+			dimension.loading = true;
+			this.requestUpdate();
+
+			this.requestFilterSearchEvent(dimension.key, dimension.searchValue);
 		}
 	}
 
@@ -730,7 +1078,7 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 			this._changeEventsToDispatch.set(dimension.key, { dimensionKey: dimension.key, cleared: false, changes: new Map() });
 		}
 		const dimensionChanges = this._changeEventsToDispatch.get(dimension.key);
-		dimensionChanges.cleared = dimensionCleared;
+		dimensionChanges.cleared = dimensionCleared || (dimension.selectionSingle && !change.selected && !dimension.appliedCount);
 
 		switch (dimension.type) {
 			case 'd2l-filter-dimension-set':
@@ -767,9 +1115,14 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 			switch (dimension.type) {
 				case 'd2l-filter-dimension-set': {
 					dimension.values.forEach(value => {
-						if (value.selected) {
+						if (value.selected && !value.inactive) {
 							const keyObject = { dimension: dimension.key, value: value.key };
-							const text = dimension.valueOnlyActiveFilterText ? value.text : `${dimension.text}: ${value.text}`;
+							let text;
+							if (value.valueText) {
+								text = dimension.valueOnlyActiveFilterText ? value.valueText : `${dimension.text}: ${value.valueText}`;
+							} else {
+								text = dimension.valueOnlyActiveFilterText ? value.text : `${dimension.text}: ${value.text}`;
+							}
 							activeFilters.push({ keyObject: keyObject, text: text });
 						}
 					});
@@ -791,6 +1144,16 @@ class Filter extends FocusMixin(LocalizeCoreElement(RtlMixin(LitElement))) {
 		subscribers.forEach(subscriber => subscriber.updateActiveFilters(this.id, this._activeFilters));
 	}
 
+	_updateDimensionShouldBubble(dimension) {
+		for (const value of dimension.values) {
+			value.shouldBubble = value.selected;
+		}
+	}
+
+	#handleSearchLayoutUpdated() {
+		const content = this.shadowRoot.querySelector(`.${FILTER_CONTENT_CLASS}`);
+		content.resize();
+	}
 }
 
 customElements.define('d2l-filter', Filter);

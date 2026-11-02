@@ -1,16 +1,46 @@
 import './alert.js';
 import { css, html, LitElement } from 'lit';
+import { classMap } from 'lit/directives/class-map.js';
+import { getFlag } from '../../helpers/flags.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import { styleMap } from 'lit/directives/style-map.js';
+
+let mockedPopoverSupported = null;
+export function mockPopoverSupported(value) { mockedPopoverSupported = value; }
+export function resetPopoverSupported() { mockedPopoverSupported = null; }
+function isPopoverSupported() {
+	return mockedPopoverSupported ?? ('popover' in HTMLElement.prototype);
+}
+
+function usePopover() {
+	return getFlag('GAUD-10337-use-alert-toast-popover', true) && isPopoverSupported();
+}
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let activeReduceMotion = reduceMotion;
+export function disableReducedMotionForTesting() {
+	activeReduceMotion = false;
+}
+export function restoreReducedMotionForTesting() {
+	activeReduceMotion = reduceMotion;
+}
 
 const states = {
 	CLOSED: 'closed', // the toast is closed
 	CLOSING: 'closing', // the close animation is running
 	PREOPENING: 'preopening', // a pause before running the opening animation because transitions won't run when changing from 'diplay: none' to 'display: block'
 	OPENING: 'opening', // the opening animation is running
-	OPEN: 'open' // the toast is open
+	OPEN: 'open', // the toast is open
+	SLIDING: 'sliding' // the transform animation when multiple alerts are on the page is running
 };
+
+const TOAST_SPACING = 0.6;
+const TOAST_SPACING_SMALL = 0.3;
+
+const mediaQueryList = window.matchMedia('(max-width: 615px)');
+
+let ALERT_HAS_FOCUS = false; // if this alert or sibling alert is focused on
+let ALERT_HAS_HOVER = false; // if this alert or sibling alert is hovered on
 
 /**
  *  A component for communicating important information relating to the state of the system and the user's work flow, displayed as a pop-up at the bottom of the screen that automatically dismisses itself by default.
@@ -20,102 +50,120 @@ const states = {
  */
 class AlertToast extends LitElement {
 
-	static get properties() {
-		return {
-			/**
-			 * Text that is displayed within the alert's action button. If no text is provided the button is not displayed.
-			 * @type {string}
-			 */
-			buttonText: { type: String, attribute: 'button-text' },
+	static properties = {
+		/**
+		 * Text that is displayed within the alert's action button. If no text is provided the button is not displayed.
+		 * @type {string}
+		 */
+		buttonText: { type: String, attribute: 'button-text' },
 
-			/**
-			 * Hide the close button to prevent users from manually closing the alert
-			 * @type {boolean}
-			 */
-			hideCloseButton: { type: Boolean, attribute: 'hide-close-button' },
+		/**
+		 * Hide the close button to prevent users from manually closing the alert
+		 * @type {boolean}
+		 */
+		hideCloseButton: { type: Boolean, attribute: 'hide-close-button' },
 
-			/**
-			 * Prevents the alert from automatically closing 4 seconds after opening
-			 * @type {boolean}
-			 */
-			noAutoClose: { type: Boolean, attribute: 'no-auto-close' },
+		/**
+		 * Prevents the alert from automatically closing 4 seconds after opening
+		 * @type {boolean}
+		 */
+		noAutoClose: { type: Boolean, attribute: 'no-auto-close' },
 
-			/**
-			 * Open or close the toast alert
-			 * @type {boolean}
-			 */
-			open: { type: Boolean, reflect: true },
+		/**
+		 * Open or close the toast alert
+		 * @type {boolean}
+		 */
+		open: { type: Boolean, reflect: true },
 
-			/**
-			 * The text that is displayed below the main alert message
-			 * @type {string}
-			 */
-			subtext: { type: String },
+		/**
+		 * The text that is displayed below the main alert message
+		 * @type {string}
+		 */
+		subtext: { type: String },
 
-			/**
-			 * Type of the alert being displayed
-			 * @type {'default'|'critical'|'success'|'warning'}
-			 * @default "default"
-			 */
-			type: { type: String, reflect: true },
-			_state: { type: String }
-		};
-	}
+		/**
+		 * Type of the alert being displayed
+		 * @type {'default'|'critical'|'success'|'warning'}
+		 * @default "default"
+		 */
+		type: { type: String, reflect: true },
+		_closeClicked: { state: true },
+		_numAlertsBelow: { state: true },
+		_smallWidth: { state: true },
+		_state: { type: String },
+		_totalSiblingHeightBelow: { state: true }
+	};
 
-	static get styles() {
-		return css`
-			:host {
-				display: block;
-			}
+	static styles = css`
+		:host {
+			display: block;
+		}
 
+		.d2l-alert-toast-container {
+			background-color: transparent; /* override popover default */
+			border: none; /* override popover */
+			border-radius: 0.3rem;
+			box-shadow: 0 0.1rem 0.6rem 0 rgba(0, 0, 0, 0.1);
+			color: var(--d2l-theme-text-color-static-standard);  /* override popover default */
+			display: none;
+			inset: auto 0 0 0;  /* override popover default */
+			margin: 0 auto 1.5rem;
+			max-width: 600px;
+			padding: 0; /* override popover */
+			position: fixed;
+			width: 100%;
+		}
+		.d2l-alert-toast-container-not-popover {
+			z-index: 10000;
+		}
+
+		.d2l-alert-toast-container:not([data-state="closed"]) {
+			display: block;
+		}
+
+		.d2l-alert-toast-container[data-state="opening"],
+		.d2l-alert-toast-container.d2l-alert-toast-container-lowest[data-state="closing"] {
+			transition-duration: 600ms;
+			transition-property: opacity, transform;
+			transition-timing-function: ease;
+		}
+		.d2l-alert-toast-container[data-state="closing"] {
+			transition: opacity 200ms ease;
+		}
+
+		.d2l-alert-toast-container.d2l-alert-toast-container-close-clicked[data-state="closing"] {
+			transition-duration: 200ms;
+		}
+
+		.d2l-alert-toast-container[data-state="preopening"],
+		.d2l-alert-toast-container[data-state="closing"] {
+			opacity: 0;
+		}
+		.d2l-alert-toast-container[data-state="preopening"],
+		.d2l-alert-toast-container.d2l-alert-toast-container-lowest[data-state="closing"] {
+			transform: translateY(calc(100% + 1.5rem));
+		}
+
+		.d2l-alert-toast-container[data-state="opening"] {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
+		.d2l-alert-toast-container[data-state="sliding"] {
+			transition: inset-block-end 600ms ease;
+		}
+
+		d2l-alert {
+			animation: none;
+		}
+
+		@media (max-width: 615px) {
 			.d2l-alert-toast-container {
-				border-radius: 0.3rem;
-				bottom: 1.5rem;
-				box-shadow: 0 0.1rem 0.6rem 0 rgba(0, 0, 0, 0.1);
-				display: none;
-				left: 0;
-				margin: 0 auto;
-				max-width: 600px;
-				position: fixed;
-				right: 0;
-				width: 100%;
-				z-index: 10000;
+				margin-bottom: 12px;
+				width: calc(100% - 16px);
 			}
-
-			.d2l-alert-toast-container:not([data-state="closed"]) {
-				display: block;
-			}
-
-			.d2l-alert-toast-container[data-state="opening"],
-			.d2l-alert-toast-container[data-state="closing"] {
-				transition-duration: 250ms;
-				transition-property: transform, opacity;
-				transition-timing-function: ease-in;
-			}
-
-			.d2l-alert-toast-container[data-state="preopening"],
-			.d2l-alert-toast-container[data-state="closing"] {
-				opacity: 0;
-				transform: translateY(0.5rem);
-			}
-
-			.d2l-alert-toast-container[data-state="opening"] {
-				opacity: 1;
-				transform: translateY(0);
-			}
-
-			d2l-alert {
-				animation: none;
-			}
-
-			@media (max-width: 615px) {
-				.d2l-alert-toast-container {
-					bottom: 12px;
-					width: calc(100% - 16px);
-				}
-			}
-		`;
-	}
+		}
+	`;
 
 	constructor() {
 		super();
@@ -123,9 +171,16 @@ class AlertToast extends LitElement {
 		this.noAutoClose = false;
 		this.open = false;
 
+		this._closeClicked = false;
 		this._hasFocus = false;
 		this._hasMouse = false;
+		this._height = 0;
+		this._numAlertsBelow = 0;
+		this._smallWidth = false;
 		this._state = states.CLOSED;
+		this._totalSiblingHeightBelow = 0;
+
+		this._resizeObserver = null;
 	}
 
 	get open() {
@@ -141,22 +196,70 @@ class AlertToast extends LitElement {
 		}
 	}
 
+	async connectedCallback() {
+		super.connectedCallback();
+		document.body.addEventListener('d2l-alert-toast-close', this.#handleSiblingResize);
+		document.body.addEventListener('d2l-alert-toast-resize', this.#handleSiblingResize);
+		document.body.addEventListener('d2l-alert-toast-timer-start', this.#handleSiblingCloseTimerStart);
+		document.body.addEventListener('d2l-alert-toast-timer-stop', this.#closeTimerStop);
+		if (mediaQueryList.addEventListener) mediaQueryList.addEventListener('change', this.#handlePageResize);
+
+		await this.updateComplete;
+		this._resizeObserver = new ResizeObserver((e) => requestAnimationFrame(() => this._handleResize(e)));
+		this._resizeObserver.observe(this._innerContainer);
+	}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		document.body.removeEventListener('d2l-alert-toast-close', this.#handleSiblingResize);
+		document.body.removeEventListener('d2l-alert-toast-resize', this.#handleSiblingResize);
+		document.body.removeEventListener('d2l-alert-toast-timer-start', this.#handleSiblingCloseTimerStart);
+		document.body.removeEventListener('d2l-alert-toast-timer-stop', this.#closeTimerStop);
+		if (this._resizeObserver) this._resizeObserver.disconnect();
+		if (mediaQueryList.removeEventListener) mediaQueryList.removeEventListener('change', this.#handlePageResize);
+
+		if (this._hasMouse) ALERT_HAS_HOVER = false;
+		if (this._hasFocus) ALERT_HAS_FOCUS = false;
+	}
+
+	firstUpdated(changedProperties) {
+		super.firstUpdated(changedProperties);
+
+		this._innerContainer = this.shadowRoot.querySelector('.d2l-alert-toast-container');
+		this._smallWidth = mediaQueryList.matches;
+	}
+
 	render() {
+		const spaceBetweenAlerts = this._numAlertsBelow * (this._smallWidth ? TOAST_SPACING_SMALL : TOAST_SPACING);
+		const containerStyles = {
+			insetBlockEnd: (this._totalSiblingHeightBelow || this._numAlertsBelow) ? `calc(${this._totalSiblingHeightBelow}px + ${spaceBetweenAlerts}rem)` : 0
+		};
+		const containerClasses = {
+			'd2l-alert-toast-container-not-popover': !usePopover(),
+			'd2l-alert-toast-container': true,
+			'd2l-alert-toast-container-close-clicked': this._closeClicked,
+			'd2l-alert-toast-container-lowest': !this._totalSiblingHeightBelow,
+			'vdiff-target': true
+		};
+
 		return html`
 			<div
-				class="d2l-alert-toast-container"
+				class="${classMap(containerClasses)}"
 				data-state="${this._state}"
-				@transitionend=${this._onTransitionEnd}>
+				popover="${ifDefined(usePopover() ? 'manual' : undefined)}"
+				style="${styleMap(containerStyles)}"
+				@transitionend="${this._onTransitionEnd}">
 				<d2l-alert
-					@blur=${this._onBlur}
+					@blur="${this._onBlur}"
 					button-text="${ifDefined(this.buttonText)}"
-					@d2l-alert-button-press=${this._handleButtonPress}
-					@d2l-alert-close=${this._onCloseClicked}
-					@focus=${this._onFocus}
+					@d2l-alert-button-press="${this._handleButtonPress}"
+					@d2l-alert-close="${this._onCloseClicked}"
+					@focus="${this._onFocus}"
 					?has-close-button="${!this.hideCloseButton}"
 					?hidden="${this._state === states.CLOSED}"
-					@mouseenter=${this._onMouseEnter}
-					@mouseleave=${this._onMouseLeave}
+					@mouseenter="${this._onMouseEnter}"
+					@mouseleave="${this._onMouseLeave}"
+					role="${ifDefined(this._state !== states.CLOSED ? 'alert' : undefined)}"
 					subtext="${ifDefined(this.subtext)}"
 					type="${ifDefined(this.type)}">
 					<slot></slot>
@@ -186,9 +289,42 @@ class AlertToast extends LitElement {
 		}
 	}
 
+	#closeTimerStop = () => {
+		if (!this.open) return;
+		clearTimeout(this._setTimeoutId);
+	};
+
+	#handlePageResize = (e) => {
+		this._smallWidth = e.matches;
+	};
+
+	#handleSiblingCloseTimerStart = () => {
+		if (!this.open) return;
+		this._closeTimerStart();
+	};
+
+	#handleSiblingResize = (e) => {
+		if (e?.composedPath()[0] === this || !this.open) return;
+
+		if (!e.detail.opening) {
+			const containerBottom = this._innerContainer.getBoundingClientRect().bottom;
+			const siblingContainerBottom = e.detail.bottom;
+			if (siblingContainerBottom < containerBottom) return; // resized alert is above this alert, no need to adjust bottom spacing
+		}
+
+		this._totalSiblingHeightBelow += e.detail.heightDifference;
+		if (e.detail.opening) {
+			this._numAlertsBelow += 1;
+			if (!activeReduceMotion) this._state = states.SLIDING;
+		} else if (e.detail.closing) {
+			this._numAlertsBelow -= 1;
+			if (!activeReduceMotion) this._state = states.SLIDING;
+		}
+	};
+
 	_closeTimerStart() {
 		clearTimeout(this._setTimeoutId);
-		if (!this.noAutoClose && !this._hasFocus && !this._hasMouse) {
+		if (!this.noAutoClose && !ALERT_HAS_FOCUS && !ALERT_HAS_HOVER) {
 			const duration = this.buttonText ? 10000 : 4000;
 			this._setTimeoutId = setTimeout(() => {
 				this.open = false;
@@ -196,54 +332,102 @@ class AlertToast extends LitElement {
 		}
 	}
 
-	_closeTimerStop() {
-		clearTimeout(this._setTimeoutId);
-	}
-
 	_handleButtonPress(e) {
 		e.stopPropagation();
 		this.dispatchEvent(new CustomEvent('d2l-alert-toast-button-press'));
 	}
 
+	_handleResize() {
+		const boundingClientRect = this._innerContainer.getBoundingClientRect();
+		const newHeight = boundingClientRect.height;
+		const oldHeight = this._height;
+		this._height = newHeight;
+		if (newHeight === oldHeight || newHeight === 0) return; // do not run if height has not changed or if closed
+
+		const bottom = boundingClientRect.bottom;
+		const opening = oldHeight === 0;
+
+		/** @ignore */
+		this.dispatchEvent(new CustomEvent(
+			'd2l-alert-toast-resize', {
+				bubbles: true,
+				composed: true,
+				detail: { bottom, heightDifference: (newHeight - oldHeight), opening, closing: false }
+			}
+		));
+	}
+
 	_onBlur() {
+		ALERT_HAS_FOCUS = false;
 		this._hasFocus = false;
 		this._closeTimerStart();
+		if (!ALERT_HAS_HOVER) {
+			/** @ignore */
+			this.dispatchEvent(new CustomEvent('d2l-alert-toast-timer-start', { bubbles: true, composed: false }));
+		}
 	}
 
 	_onCloseClicked(e) {
 		e.preventDefault();
+		this._closeClicked = true;
 		this.open = false;
 	}
 
 	_onFocus() {
+		ALERT_HAS_FOCUS = true;
 		this._hasFocus = true;
-		this._closeTimerStop();
+		this.#closeTimerStop();
+		/** @ignore */
+		this.dispatchEvent(new CustomEvent('d2l-alert-toast-timer-stop', { bubbles: true, composed: false }));
 	}
 
 	_onMouseEnter() {
+		ALERT_HAS_HOVER = true;
 		this._hasMouse = true;
-		this._closeTimerStop();
+		this.#closeTimerStop();
+		/** @ignore */
+		this.dispatchEvent(new CustomEvent('d2l-alert-toast-timer-stop', { bubbles: true, composed: false }));
 	}
 
 	_onMouseLeave() {
+		ALERT_HAS_HOVER = false;
 		this._hasMouse = false;
 		this._closeTimerStart();
+		if (!ALERT_HAS_FOCUS) {
+			/** @ignore */
+			this.dispatchEvent(new CustomEvent('d2l-alert-toast-timer-start', { bubbles: true, composed: false }));
+		}
+	}
+
+	_onStateClosed() {
+		this._state = states.CLOSED;
+		this._totalSiblingHeightBelow = 0;
+		this._numAlertsBelow = 0;
+		this._closeClicked = false;
 	}
 
 	_onTransitionEnd() {
-		if (this._state === states.OPENING) {
+		if (this._state === states.OPENING || this._state === states.SLIDING) {
 			this._state = states.OPEN;
 		} else if (this._state === states.CLOSING) {
-			this._state = states.CLOSED;
+			this._onStateClosed();
 		}
 	}
 
 	_openChanged(newOpen) {
 		if (newOpen) {
+
+			if (usePopover()) {
+				// wait for popover attribute before managing top-layer (needed for case where toast is open immediately)
+				requestAnimationFrame(() => {
+					if (this.isConnected) this.shadowRoot.querySelector('[popover="manual"]')?.showPopover();
+				});
+			}
+
 			if (this._state === states.CLOSING) {
 				this._state = states.OPENING;
 			} else if (this._state === states.CLOSED) {
-				if (!reduceMotion) {
+				if (!activeReduceMotion) {
 					this._state = states.PREOPENING;
 					// pause before running the opening animation because transitions won't run when changing from 'diplay: none' to 'display: block'
 					this._preopenFrame = requestAnimationFrame(() => {
@@ -255,30 +439,53 @@ class AlertToast extends LitElement {
 					this._state = states.OPEN;
 				}
 			}
-			this.setAttribute('role', 'alert');
 		} else {
-			if (reduceMotion || this._state === states.PREOPENING) {
+			if (!this._innerContainer) return;
+
+			if (usePopover()) {
+				this.shadowRoot.querySelector('[popover="manual"]')?.hidePopover();
+			}
+
+			if (activeReduceMotion || this._state === states.PREOPENING) {
 				cancelAnimationFrame(this._preopenFrame);
-				this.removeAttribute('role');
-				this._state = states.CLOSED;
-			} else if (this._state === states.OPENING || this._state === states.OPEN) {
+			} else if (this._state === states.OPENING || this._state === states.OPEN || this._state === states.SLIDING) {
 				this._state = states.CLOSING;
 			}
-			this.dispatchEvent(new CustomEvent(
-				'd2l-alert-toast-close', {
-					bubbles: true,
-					composed: false,
-					detail: { action: this._action }
+
+			if (this._hasMouse) ALERT_HAS_HOVER = false;
+			if (this._hasFocus) ALERT_HAS_FOCUS = false;
+
+			requestAnimationFrame(() => {
+				const bottom = this._innerContainer.getBoundingClientRect().bottom;
+
+				if (activeReduceMotion || this._state === states.PREOPENING) {
+					this._onStateClosed();
 				}
-			));
+
+				this.dispatchEvent(new CustomEvent(
+					'd2l-alert-toast-close', {
+						bubbles: true,
+						composed: true,
+						detail: { bottom, heightDifference: -this._height, opening: false, closing: true }
+					}
+				));
+			});
 		}
 	}
 
-	_stateChanged(newState) {
-		if (newState === states.OPEN) {
+	_stateChanged(newState, oldState) {
+		/**
+		 * Opening state changes:
+		 * - OPENING -> OPEN
+		 * - OPENING -> SLIDING (multiple alerts opened rapidly)
+		 * - CLOSED -> OPEN (prefers-reduced-motion)
+		 */
+		const newlyOpened = oldState === states.OPENING && (newState === states.OPEN || newState === states.SLIDING);
+		const newlyOpenedReduceMotion = oldState === states.CLOSED && newState === states.OPEN;
+		if (newlyOpened || newlyOpenedReduceMotion) {
 			this._closeTimerStart();
-		} else {
-			this._closeTimerStop();
+		} else if (newState !== states.SLIDING && newState !== states.OPEN) {
+			this.#closeTimerStop();
 		}
 	}
 }

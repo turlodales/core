@@ -2,16 +2,15 @@ import { findComposedAncestor } from '../../helpers/dom.js';
 
 export const ListItemRoleMixin = superclass => class extends superclass {
 
-	static get properties() {
-		return {
-			/**
-			 * @ignore
-			 */
-			role: { type: String, reflect: true },
-			_nested: { type: Boolean, reflect: true },
-			_separators: { type: String, reflect: true }
-		};
-	}
+	static properties = {
+		/**
+		 * @ignore
+		 */
+		// eslint-disable-next-line lit/no-native-attributes
+		role: { type: String, reflect: true },
+		_nested: { type: Boolean, reflect: true },
+		_separators: { type: String, reflect: true }
+	};
 
 	constructor() {
 		super();
@@ -26,7 +25,7 @@ export const ListItemRoleMixin = superclass => class extends superclass {
 
 		const separators = parent.getAttribute('separators');
 
-		this.role = parent.hasAttribute('grid') ? 'rowgroup' : 'listitem';
+		this.role = parent.hasAttribute('grid') ? 'row' : 'listitem';
 		this._nested = (parent.slot === 'nested');
 		this._separators = separators || undefined;
 		this._extendSeparators = parent.hasAttribute('extend-separators');

@@ -4,12 +4,13 @@ import './input-fieldset.js';
 import '../tooltip/tooltip.js';
 import { css, html, LitElement } from 'lit';
 import { formatDateTimeInISO, getDateFromISODate, parseISODateTime } from '../../helpers/dateTime.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { FormElementMixin } from '../form/form-element-mixin.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import { InteractiveMixin } from '../../mixins/interactive/interactive-mixin.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { PropertyRequiredMixin } from '../../mixins/property-required/property-required-mixin.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
 
 export function getShiftedEndDate(startValue, endValue, prevStartValue, inclusive) {
@@ -28,106 +29,103 @@ export function getShiftedEndDate(startValue, endValue, prevStartValue, inclusiv
 }
 
 /**
- * A component consisting of two input-date components - one for start of range and one for end of range. Values specified for these components (through start-value and/or end-value attributes) should be localized to the user's timezone if applicable and must be in ISO 8601 calendar date format ("YYYY-MM-DD").
+ * A component consisting of two input-date components - one for start of range and one for end of range. Values specified for these components (through start-value and/or end-value attributes) should be localized to the user's time zone if applicable and must be in ISO 8601 calendar date format ("YYYY-MM-DD").
+ * @slot inline-help - Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
  * @fires change - Dispatched when there is a change to selected start date or selected end date. `start-value` and `end-value` correspond to the selected values and are formatted in ISO 8601 calendar date format (`YYYY-MM-DD`).
  */
-class InputDateRange extends FocusMixin(SkeletonMixin(FormElementMixin(RtlMixin(LocalizeCoreElement(LitElement))))) {
+class InputDateRange extends InteractiveMixin(FocusMixin(SkeletonMixin(FormElementMixin(PropertyRequiredMixin(LocalizeCoreElement(LitElement)))))) {
 
-	static get properties() {
-		return {
-			/**
-			 * ADVANCED: Automatically shifts end date when start date changes to keep same range
-			 * @type {boolean}
-			 */
-			autoShiftDates: { attribute: 'auto-shift-dates', reflect: true, type: Boolean },
-			/**
-			 * Hides the start and end labels visually
-			 * @type {boolean}
-			 */
-			childLabelsHidden: { attribute: 'child-labels-hidden', reflect: true, type: Boolean },
-			/**
-			 * Disables the inputs
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * Accessible label for the end date input. Defaults to localized "End Date".
-			 * @type {string}
-			 * @default "End Date"
-			 */
-			endLabel: { attribute: 'end-label', reflect: true, type: String },
-			/**
-			 * ADVANCED: Indicates if the end calendar dropdown is open
-			 * @type {boolean}
-			 */
-			endOpened: { attribute: 'end-opened', type: Boolean },
-			/**
-			 * Value of the end date input
-			 * @type {string}
-			 */
-			endValue: { attribute: 'end-value', reflect: true, type: String },
-			/**
-			 * Validates on inclusive range (i.e., it is valid for start and end dates to be equal)
-			 * @type {boolean}
-			 */
-			inclusiveDateRange: { attribute: 'inclusive-date-range', reflect: true, type: Boolean },
-			/**
-			 * REQUIRED: Accessible label for the input fieldset that wraps the date inputs
-			 * @type {string}
-			 */
-			label: { type: String, reflect: true },
-			/**
-			 * Hides the fieldset label visually
-			 * @type {boolean}
-			 */
-			labelHidden: { type: Boolean, attribute: 'label-hidden', reflect: true },
-			/**
-			 * Maximum valid date that could be selected by a user
-			 * @type {string}
-			 */
-			maxValue: { attribute: 'max-value', reflect: true, type: String },
-			/**
-			 * Minimum valid date that could be selected by a user
-			 * @type {string}
-			 */
-			minValue: { attribute: 'min-value', reflect: true, type: String },
-			/**
-			 * Indicates that values are required
-			 * @type {boolean}
-			 */
-			required: { type: Boolean, reflect: true },
-			/**
-			 * Accessible label for the start date input. Defaults to localized "Start Date".
-			 * @type {string}
-			 * @default "Start Date"
-			 */
-			startLabel: { attribute: 'start-label', reflect: true, type: String },
-			/**
-			 * ADVANCED: Indicates if the start calendar dropdown is open
-			 * @type {boolean}
-			 */
-			startOpened: { attribute: 'start-opened', type: Boolean },
-			/**
-			 * Value of the start date input
-			 * @type {string}
-			 */
-			startValue: { attribute: 'start-value', reflect: true, type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * ADVANCED: Automatically shifts end date when start date changes to keep same range
+		 * @type {boolean}
+		 */
+		autoShiftDates: { attribute: 'auto-shift-dates', reflect: true, type: Boolean },
+		/**
+		 * Hides the start and end labels visually. Hidden labels are still read by screen readers so make sure to set appropriate start and end labels.
+		 * @type {boolean}
+		 */
+		childLabelsHidden: { attribute: 'child-labels-hidden', reflect: true, type: Boolean },
+		/**
+		 * Disables the inputs
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * ACCESSIBILITY: Label for the end date input. Defaults to localized "End Date".
+		 * @type {string}
+		 * @default "End Date"
+		 */
+		endLabel: { attribute: 'end-label', reflect: true, type: String },
+		/**
+		 * ADVANCED: Indicates if the end calendar dropdown is open
+		 * @type {boolean}
+		 */
+		endOpened: { attribute: 'end-opened', type: Boolean },
+		/**
+		 * Value of the end date input
+		 * @type {string}
+		 */
+		endValue: { attribute: 'end-value', reflect: true, type: String },
+		/**
+		 * Validates on inclusive range (i.e., it is valid for start and end dates to be equal)
+		 * @type {boolean}
+		 */
+		inclusiveDateRange: { attribute: 'inclusive-date-range', reflect: true, type: Boolean },
+		/**
+		 * ACCESSIBILITY: REQUIRED: Label for the input fieldset that wraps the date inputs
+		 * @type {string}
+		 */
+		label: { type: String, reflect: true, required: true },
+		/**
+		 * Hides the fieldset label visually. Hidden labels are still read by screen readers so make sure to set an appropriate label.
+		 * @type {boolean}
+		 */
+		labelHidden: { type: Boolean, attribute: 'label-hidden', reflect: true },
+		/**
+		 * Maximum valid date that could be selected by a user
+		 * @type {string}
+		 */
+		maxValue: { attribute: 'max-value', reflect: true, type: String },
+		/**
+		 * Minimum valid date that could be selected by a user
+		 * @type {string}
+		 */
+		minValue: { attribute: 'min-value', reflect: true, type: String },
+		/**
+		 * Indicates that values are required
+		 * @type {boolean}
+		 */
+		required: { type: Boolean, reflect: true },
+		/**
+		 * ACCESSIBILITY: Label for the start date input. Defaults to localized "Start Date".
+		 * @type {string}
+		 * @default "Start Date"
+		 */
+		startLabel: { attribute: 'start-label', reflect: true, type: String },
+		/**
+		 * ADVANCED: Indicates if the start calendar dropdown is open
+		 * @type {boolean}
+		 */
+		startOpened: { attribute: 'start-opened', type: Boolean },
+		/**
+		 * Value of the start date input
+		 * @type {string}
+		 */
+		startValue: { attribute: 'start-value', reflect: true, type: String }
+	};
 
-	static get styles() {
-		return [super.styles, css`
-			:host {
-				display: inline-block;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-			d2l-input-date {
-				display: block;
-			}
-		`];
-	}
+	static styles = [super.styles, css`
+		:host {
+			display: inline-block;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		d2l-input-date {
+			display: block;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -159,20 +157,15 @@ class InputDateRange extends FocusMixin(SkeletonMixin(FormElementMixin(RtlMixin(
 
 	async firstUpdated(changedProperties) {
 		super.firstUpdated(changedProperties);
-
-		if (!this.label) {
-			console.warn('d2l-input-date-range component requires label text');
-		}
-
-		this.shadowRoot.querySelector('d2l-input-date-time-range-to').setParentNode(this.parentNode);
+		this.shadowRoot.querySelector('d2l-input-date-time-range-to').setParentNode(this);
 	}
 
 	render() {
 		const startDateInput = this.shadowRoot && this.shadowRoot.querySelector('.d2l-input-date-range-start');
 		const endDateInput = this.shadowRoot && this.shadowRoot.querySelector('.d2l-input-date-range-end');
-		const tooltipStart = (this.validationError && !this.startOpened && !this.childErrors.has(startDateInput)) ? html`<d2l-tooltip align="start" announced for="${this._startInputId}" state="error">${this.validationError}</d2l-tooltip>` : null;
-		const tooltipEnd = (this.validationError && !this.endOpened && !this.childErrors.has(endDateInput)) ? html`<d2l-tooltip align="start" announced for="${this._endInputId}" state="error">${this.validationError}</d2l-tooltip>` : null;
-		return html`
+		const tooltipStart = (this.validationError && !this.startOpened && !this.childErrors.has(startDateInput)) ? html`<d2l-tooltip align="start" announced for="${this._startInputId}" state="error" class="vdiff-target">${this.validationError}</d2l-tooltip>` : null;
+		const tooltipEnd = (this.validationError && !this.endOpened && !this.childErrors.has(endDateInput)) ? html`<d2l-tooltip align="start" announced for="${this._endInputId}" state="error" class="vdiff-target">${this.validationError}</d2l-tooltip>` : null;
+		return this.renderInteractiveContainer(html`
 			${tooltipStart}
 			${tooltipEnd}
 			<d2l-input-fieldset
@@ -187,7 +180,7 @@ class InputDateRange extends FocusMixin(SkeletonMixin(FormElementMixin(RtlMixin(
 					<d2l-input-date
 						?novalidate="${this.noValidate}"
 						@change="${this._handleChange}"
-						class="d2l-input-date-range-start"
+						class="d2l-input-date-range-start vdiff-target"
 						@d2l-input-date-dropdown-toggle="${this._handleDropdownToggle}"
 						?disabled="${this.disabled}"
 						.forceInvalid=${this.invalid}
@@ -205,7 +198,7 @@ class InputDateRange extends FocusMixin(SkeletonMixin(FormElementMixin(RtlMixin(
 					<d2l-input-date
 						?novalidate="${this.noValidate}"
 						@change="${this._handleChange}"
-						class="d2l-input-date-range-end"
+						class="d2l-input-date-range-end vdiff-target"
 						@d2l-input-date-dropdown-toggle="${this._handleDropdownToggle}"
 						?disabled="${this.disabled}"
 						.forceInvalid=${this.invalid}
@@ -221,8 +214,11 @@ class InputDateRange extends FocusMixin(SkeletonMixin(FormElementMixin(RtlMixin(
 						value="${ifDefined(this.endValue)}">
 					</d2l-input-date>
 				</d2l-input-date-time-range-to>
+				<slot slot="inline-help" name="inline-help"></slot>
 			</d2l-input-fieldset>
-		`;
+		`,
+		this.localize('components.input-date-range.interactive-label'),
+		() => { this.shadowRoot.querySelector('d2l-input-date').focus(); });
 	}
 
 	updated(changedProperties) {

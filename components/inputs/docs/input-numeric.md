@@ -1,6 +1,6 @@
 # Numeric Inputs
 
-Numeric inputs allow users to input numbers. These include the more generic `d2l-input-number`, as well as the percentage input `d2l-input-percent`.
+Numeric inputs allow users to input numbers. These include the more generic `<d2l-input-number>`, as well as the percentage input `<d2l-input-percent>`.
 
 <!-- docs: demo -->
 ```html
@@ -21,19 +21,12 @@ Numeric inputs allow users to input numbers. These include the more generic `d2l
 
 The `<d2l-input-number>` element is similar to `<d2l-input-text>`, except it's intended for inputting numbers only.
 
-<!-- docs: demo live name:d2l-input-number -->
+<!-- docs: demo code properties name:d2l-input-number sandboxTitle:'Number Input' -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/inputs/input-number.js';
-
-  window.addEventListener('load', function () {
-    var input = document.querySelector('#number');
-    input.addEventListener('change', (e) => {
-      console.log('numeric value: ', input.value);
-    });
-  });
 </script>
-<d2l-input-number id="number" label="Label"></d2l-input-number>
+<d2l-input-number label="Label"></d2l-input-number>
 ```
 
 <!-- docs: start hidden content -->
@@ -41,12 +34,12 @@ The `<d2l-input-number>` element is similar to `<d2l-input-text>`, except it's i
 
 | Property | Type | Description |
 |---|---|---|
-| `label` | String, required | Label for the input. |
+| `label` | String, required | Explicitly defined label for the element. |
 | `autocomplete` | String | Specifies which types of values [can be autofilled](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete) by the browser. |
 | `autofocus` | Boolean, default: `false` | When set, will automatically place focus on the input. |
 | `disabled` | Boolean, default: `false` | Disables the input. |
-| `input-width` | String, default: `4rem` | Restricts the maximum width of the input box without impacting the width of the label. |
-| `label-hidden` | Boolean, default: `false` | Hides the label visually (moves it to the input's `aria-label` attribute). |
+| `input-width` | String, default: `4rem` | Restricts the maximum width of the input box without restricting the width of the label. |
+| `label-hidden` | Boolean, default: `false` | Hides the label visually. Hidden labels are still read by screen readers so make sure to set an appropriate label. |
 | `labelled-by` | String | HTML id of an element in the same shadow root which acts as the input's label |
 | `max` | Number | Maximum value allowed. |
 | `max-exclusive` | Boolean, default: `false` | Indicates whether the max value is exclusive. |
@@ -54,10 +47,10 @@ The `<d2l-input-number>` element is similar to `<d2l-input-text>`, except it's i
 | `min` | Number | Minimum value allowed. |
 | `min-exclusive` | Boolean, default: `false` | Indicates whether the min value is exclusive. |
 | `min-fraction-digits` | Number, default: `0` | Minimum number of digits allowed after the decimal place. Must be between 0 and 20 and less than or equal to `maxFractionDigits` |
-| `placeholder` | String | Placeholder text. |
+| `name` | String | Name of the form control. Submitted with the form as part of a name/value pair. |
 | `required` | Boolean, default: `false` | Indicates that a value is required. |
-| `title` | String | Text for additional screen reader and mouseover context. |
 | `unit` | String | Unit associated with the input value, displayed next to input and announced as part of the label |
+| `unit-label` | String | Label for the unit, which is only picked up by screenreaders. Required if `unit` is used. |
 | `value` | Number | Value of the input. |
 
 ### Events
@@ -70,19 +63,11 @@ numberInput.addEventListener('change', (e) => {
   console.log(numberInput.value);
 });
 ```
+
+### Slots
+
+* `inline-help`: Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
 <!-- docs: end hidden content -->
-
-### Accessibility Properties
-
-To make your usage of `d2l-input-number` accessible, use the following properties when applicable:
-
-| Attribute | Description |
-|---|---|
-| `label` | **REQUIRED.** [Acts as a primary label on the input](https://www.w3.org/WAI/tutorials/forms/labels/). Visible unless `label-hidden` is also used. |
-| `label-hidden` | Use if label should be visually hidden but available for screen reader users. |
-| `labelled-by` | Use when another visible element should act as the label |
-| `unit` | Use to render the unit (offscreen) as part of the label. |
-| `title` | Use for additional screen reader and mouseover context. |
 
 ### Usage
 
@@ -99,19 +84,12 @@ To accept only integer numbers, set `max-fraction-digits` to zero:
 
 The `<d2l-input-percent>` element is similar to `<d2l-input-number>`, except it provides a "%" symbol beside the number.
 
-<!-- docs: demo live name:d2l-input-percent -->
+<!-- docs: demo code properties name:d2l-input-percent sandboxTitle:'Percent Input' -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/inputs/input-percent.js';
-
-  window.addEventListener('load', function () {
-    var input = document.querySelector('#percent');
-    input.addEventListener('change', (e) => {
-      console.log('percentage value: ', input.value);
-    });
-  });
 </script>
-<d2l-input-percent id="percent" label="Label"></d2l-input-percent>
+<d2l-input-percent label="Label"></d2l-input-percent>
 ```
 
 <!-- docs: start hidden content -->
@@ -119,16 +97,15 @@ The `<d2l-input-percent>` element is similar to `<d2l-input-number>`, except it 
 
 | Property | Type | Description |
 |---|---|---|
-| `label` | String, required | Label for the input. |
+| `label` | String, required | Explicitly defined label for the element. |
 | `autofocus` | Boolean, default: `false` | When set, will automatically place focus on the input. |
 | `disabled` | Boolean, default: `false` | Disables the input. |
-| `input-width` | String, default: `4rem` | Restricts the maximum width of the input box without impacting the width of the label. |
-| `label-hidden` | Boolean, default: `false` | Hides the label visually (moves it to the input's `aria-label` attribute). |
+| `input-width` | String, default: `4rem` | Restricts the maximum width of the input box without restricting the width of the label. |
+| `label-hidden` | Boolean, default: `false` | Hides the label visually. Hidden labels are still read by screen readers so make sure to set an appropriate label. |
 | `max-fraction-digits` | Number | Maximum number of digits allowed after the decimal place. |
 | `min-fraction-digits` | Number | Minimum number of digits allowed after the decimal place. |
-| `placeholder` | String | Placeholder text. |
+| `name` | String | Name of the form control. Submitted with the form as part of a name/value pair. |
 | `required` | Boolean, default: `false` | Indicates that a value is required. |
-| `title` | String | Text for additional screen reader and mouseover context. |
 | `value` | Number | Value of the input. |
 
 ### Events
@@ -141,14 +118,16 @@ numberInput.addEventListener('change', (e) => {
   console.log(numberInput.value);
 });
 ```
+
+### Slots
+
+* `inline-help`: Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
 <!-- docs: end hidden content -->
 
-### Accessibility Properties
-
-To make your usage of `d2l-input-percent` accessible, use the following properties when applicable:
-
-| Attribute | Description |
-|---|---|
-| `label` | **REQUIRED.** [Acts as a primary label on the input](https://www.w3.org/WAI/tutorials/forms/labels/). Visible unless `label-hidden` is also used. |
-| `label-hidden` | Use if label should be visually hidden but available for screen reader users. |
-| `title` | Use for additional screen reader and mouseover context. |
+## Accessibility
+- While `unit-label` is not mandatory by default, using the `unit` property makes it a required property
+	- This helps provide screenreaders more context and lets you use short forms for `unit` without risking it being unclear to screenreaders (e.g. `unit` is 'lbs', but `unit-label` is 'in pounds' )
+- Despite being a lighter colour than the input text, the `unit` text still meets the [WCAG Minimum Contrast](https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html) requirement of 4.5:1
+- Neither input component uses the `type="number"` to denote their numerical nature, so the `label` must make it clear that numerical input is expected
+	- This is because `type="number"` does not take into consideration localizations, which can cause problems for languages that use a comma as the decimal place instead of a period
+	- Using `unit-label` can greatly help with making the numerical nature of the input explicit

@@ -1,0 +1,51 @@
+import '../button.js';
+import { clickElem, expect, fixture, focusElem, hoverElem, html, oneEvent } from '@brightspace-ui/testing';
+
+describe('button', () => {
+	[
+		{ category: 'normal', template: html`<d2l-button>Normal Button</d2l-button>` },
+		{ category: 'primary', template: html`<d2l-button primary>Primary Button</d2l-button>` }
+	].forEach(({ category, template }) => {
+
+		describe(category, () => {
+			[
+				{ name: 'normal', allColorModes: true },
+				{ name: 'hover', allColorModes: true, action: hoverElem },
+				{ name: 'focus', allColorModes: true, action: focusElem },
+				{ name: 'click', action: clickElem },
+				{ name: 'disabled', allColorModes: true, action: elem => elem.disabled = true },
+				{ name: 'active', action: elem => elem.setAttribute('active', '') },
+				{ name: 'active-disabled', action: elem => { elem.setAttribute('active', ''); elem.disabled = true; } },
+				{ name: 'disabled-slotted content', action: async elem => { // Test opacity with slotted content
+					const span = document.createElement('span');
+					span.textContent = 'Slotted Content';
+					elem.innerHTML = '';
+					elem.appendChild(span);
+					elem.disabled = true;
+					await elem.updateComplete;
+				} },
+			].forEach(({ action, allColorModes, name }) => {
+				it(name, async() => {
+					const elem = await fixture(template);
+					if (action) await action(elem);
+					await expect(elem).to.be.golden({ allColorModes });
+				});
+			});
+		});
+	});
+
+	it('disabled-tooltip', async() => {
+		const elem = await fixture(html`<d2l-button disabled disabled-tooltip="Disabled Tooltip">Disabled Button</d2l-button>`);
+		hoverElem(elem);
+		await oneEvent(elem, 'd2l-tooltip-show');
+		await expect(elem).to.be.golden();
+	});
+
+	it('disabled-tooltip not disabled hover', async() => {
+		const elem = await fixture(html`<d2l-button disabled-tooltip="Disabled Tooltip">Button</d2l-button>`);
+		await hoverElem(elem);
+		await elem.updateComplete;
+		await expect(elem).to.be.golden();
+	});
+
+});

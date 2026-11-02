@@ -1,129 +1,108 @@
 import '../button/button-subtle.js';
 import { css, html, LitElement } from 'lit';
-import { getComposedChildren, isComposedAncestor } from '../../helpers/dom.js';
+import { isComposedAncestor, isVisible } from '../../helpers/dom.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { getComposedActiveElement } from '../../helpers/focus.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
-import ResizeObserver from 'resize-observer-polyfill/dist/ResizeObserver.es.js';
+import { overflowHiddenDeclarations } from '../../helpers/overflow.js';
 import { styleMap } from 'lit/directives/style-map.js';
+
+const transitionDur = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 400;
 
 /**
  * A component used to minimize the display of long content, while providing a way to reveal the full content.
  * @slot - Default content placed inside of the component
- * @fires d2l-more-less-render - Dispatched when the component finishes rendering
  */
 class MoreLess extends LocalizeCoreElement(LitElement) {
 
-	static get properties() {
-		return {
-			/**
-			 * The gradient color of the blurring effect
-			 * @type {string}
-			 */
-			blurColor: { type: String, attribute: 'blur-color' },
+	static properties = {
+		/**
+		 * Indicates whether element is in "more" state
+		 * @type {boolean}
+		 */
+		expanded: { type: Boolean, reflect: true },
 
-			/**
-			 * Indicates whether element is in "more" state
-			 * @type {boolean}
-			 */
-			expanded: { type: Boolean, reflect: true },
+		/**
+		 * Aligns the leading edge of more/less button text if value is set to "text" for left-aligned layouts, the trailing edge of text if value is set to "text-end" for right-aligned layouts
+		 * @type {'text'|'text-end'|''}
+		 */
+		hAlign: { type: String, attribute: 'h-align' },
 
-			/**
-			 * The h-align property of the more-less button
-			 * @type {'text'|''}
-			 */
-			hAlign: { type: String, attribute: 'h-align' },
+		/**
+		 * The maximum height of the content when in "less" state
+		 * @type {string}
+		 */
+		height: { type: String },
 
-			/**
-			 * The maximum height of the content when in "less" state
-			 * @type {string}
-			 */
-			height: { type: String },
+		/**
+		 * Whether the component is active or inactive
+		 * @type {boolean}
+		 */
+		inactive: { type: Boolean, reflect: true },
+		__maxHeight: { state: true },
+		__transitionAdded: { state: true }
+	};
 
-			/**
-			 * Whether the component is active or inactive
-			 * @type {boolean}
-			 */
-			inactive: { type: Boolean, reflect: true },
-			__blurBackground: { type: String },
-			__contentHeight: { type: String },
-			__transitionAdded: { type: Boolean }
-		};
-	}
+	static styles = css`
+		:host {
+			display: flow-root;
+		}
 
-	static get styles() {
-		return css`
-			:host {
-				display: block;
-			}
+		.d2l-more-less-content {
+			display: flow-root;
+			margin: -1em -1em 0;
+			padding: 1em 1em 0;
+			${overflowHiddenDeclarations}
+		}
+		.d2l-more-less-transition {
+			transition: max-height ${transitionDur}ms cubic-bezier(0, 0.7, 0.5, 1);
+		}
+		:host(:not([expanded]):not([inactive])) .d2l-more-less-content {
+			-webkit-mask-image: linear-gradient(to top, transparent, #000000 1em);
+			mask-image: linear-gradient(to top, transparent, #000000 1em);
+		}
+		:host([inactive]) .d2l-more-less-toggle {
+			display: none;
+		}
 
-			.d2l-more-less-content {
-				overflow: hidden;
-			}
+		.force-margin-scroll {
+			height: 1px;
+			margin-top: -1px;
+		}
+
+		@media (prefers-reduced-motion: reduce) {
 			.d2l-more-less-transition {
-				transition: height 400ms cubic-bezier(0, 0.7, 0.5, 1);
+				transition: none;
 			}
-			.d2l-more-less-blur {
-				display: none;
-			}
-			:host(:not([expanded]):not([inactive])) .d2l-more-less-blur {
-				bottom: 1em;
-				content: "";
-				display: block;
-				height: 1em;
-				margin-bottom: -0.75em;
-				position: relative;
-			}
-			:host([inactive]) .d2l-more-less-toggle {
-				display: none;
-			}`;
-	}
+		}
+	`;
 
 	constructor() {
 		super();
-
-		this.__blurBackground = 'linear-gradient(rgba(255, 255, 255, 0) 0%, rgb(255, 255, 255) 100%)';
-		this.__transitionAdded = false;
 
 		this.expanded = false;
 		this.height = '4em';
 		this.inactive = false;
 
+		this.__transitionAdded = false;
+		this.__maxHeight = this.height;
 		this.__baseHeight = 0;
 		this.__contentId = getUniqueId();
-		this.__resizeObserver = null;
 		this.__content = null;
-		this.__contentSlot = null;
 		this.__autoExpanded = false;
 		this.__shift = false;
-		this.__bound_reactToChanges = null;
-		this.__bound_reactToMutationChanges = null;
 		this.__bound_transitionEvents = null;
+
+		this._resizeObserver = new ResizeObserver(this.__reactToChanges.bind(this));
 	}
 
 	disconnectedCallback() {
 		super.disconnectedCallback();
 
-		if (this.__resizeObserver) {
-			this.__resizeObserver.disconnect();
-			this.__resizeObserver = null;
-		}
-		if (this.__mutationObserver) {
-			this.__mutationObserver.disconnect();
-			this.__mutationObserver = null;
-		}
+		this._resizeObserver.disconnect();
 
-		this.__content && this.__content.removeEventListener('load', this.__bound_reactToChanges, true);
-		this.__bound_reactToChanges = null;
-		this.__bound_reactToMutationChanges = null;
-
-		if (this.__contentSlot) {
-			this.__contentSlot.removeEventListener('slotchange', this.__reactToChanges.bind(this));
-			this.__contentSlot.removeEventListener('slotchange', this.__startObserving.bind(this));
-		}
-		this.__content && this.__content.removeEventListener('focusin', this.__focusIn.bind(this));
-		this.__content && this.__content.removeEventListener('focusout', this.__focusOut.bind(this));
 		this.shadowRoot.removeEventListener('transitionstart', this.__bound_transitionEvents);
 		this.shadowRoot.removeEventListener('transitionend', this.__bound_transitionEvents);
 		this.shadowRoot.removeEventListener('transitioncancel', this.__bound_transitionEvents);
@@ -134,12 +113,8 @@ class MoreLess extends LocalizeCoreElement(LitElement) {
 		super.firstUpdated();
 
 		this.__content = this.shadowRoot.querySelector('.d2l-more-less-content');
-		this.__contentSlot = this.shadowRoot.querySelector('.d2l-more-less-content slot');
-		if (this.__content.offsetParent !== null) {
-			this.__init_setBaseHeight();
-		}
-		this.__init_setupBlurColour();
-		this.__init_setupListeners();
+		this.__reactToChanges();
+		this._resizeObserver.observe(this.__content);
 
 		this.__bound_transitionEvents = this.__transitionEvents.bind(this);
 		this.shadowRoot.addEventListener('transitionstart', this.__bound_transitionEvents);
@@ -149,26 +124,27 @@ class MoreLess extends LocalizeCoreElement(LitElement) {
 	}
 
 	render() {
-		requestAnimationFrame(
-			() => this.dispatchEvent(new CustomEvent('d2l-more-less-render', {
-				bubbles: false,
-				composed: false
-			}))
-		);
 		const contentClasses = {
 			'd2l-more-less-content': true,
 			'd2l-more-less-transition': this.__transitionAdded
 		};
+
+		// The .force-margin-scroll div is used to force content bottom margin to be included in scrollHeight calculations.
 		return html`
-			<div id="${this.__contentId}" class=${classMap(contentClasses)} style=${styleMap({ height: `${this.__contentHeight}` })}>
+			<div
+				id="${this.__contentId}"
+				class=${classMap(contentClasses)}
+				style=${styleMap({ maxHeight: `${this.__maxHeight}` })}
+				@focusin="${this.__focusIn}"
+				@focusout="${this.__focusOut}">
 				<slot></slot>
+				<div class="force-margin-scroll"></div>
 			</div>
-			<div class="d2l-more-less-blur" style=${styleMap({ background: `${this.__blurBackground}` })}></div>
 			<d2l-button-subtle
 				class="d2l-more-less-toggle"
 				icon="${this.__computeIcon()}"
 				aria-controls="${this.__contentId}"
-				aria-expanded="${this.__computeAriaExpanded()}"
+				expanded="${this.__computeAriaExpanded()}"
 				@click="${this.__toggleOnClick}"
 				text="${this.__computeText()}"
 				h-align="${ifDefined(this.hAlign)}">
@@ -204,17 +180,19 @@ class MoreLess extends LocalizeCoreElement(LitElement) {
 
 	__adjustToContent_makeActive() {
 		this.inactive = false;
-		this.__contentHeight = this.height;
+		this.__maxHeight = this.height;
 	}
 
 	__adjustToContent_makeInactive() {
 		this.inactive = true;
 		this.expanded = false;
-		this.__contentHeight = 'unset';
+		// Include 1px of given room to account for issues with Firefox rounding the content's scroll height
+		this.__maxHeight = `${this.__content.scrollHeight + 1}px`;
 	}
 
 	__adjustToContent_resize(contentHeight) {
-		this.__contentHeight = `${contentHeight}px`;
+		// Include 1px of given room to account for issues with Firefox rounding the content's scroll height
+		this.__maxHeight = `${contentHeight + 1}px`;
 	}
 
 	__computeAriaExpanded() {
@@ -231,147 +209,74 @@ class MoreLess extends LocalizeCoreElement(LitElement) {
 
 	__expand() {
 		this.__transitionAdded = true;
-		this.__contentHeight = `${this.__content.scrollHeight}px`;
+		this.__maxHeight = `${this.__content.scrollHeight}px`;
 		this.expanded = true;
 	}
 
-	__focusIn() {
+	async __focusIn(e) {
 		if (this.inactive || this.expanded) {
 			return;
 		}
 
-		this.__expand();
-		this.__autoExpanded = true;
+		const target = e.composedPath()[0] || e.target;
+
+		const em = parseInt(getComputedStyle(this.__content).getPropertyValue('font-size'));
+		const { y: contentY, height: contentHeight } = this.__content.getBoundingClientRect();
+		const { y: targetY, height: targetHeight } = target.getBoundingClientRect();
+
+		if (targetY + targetHeight > contentY + contentHeight - em) {
+			this.__expand();
+			this.__autoExpanded = true;
+			await (transitionDur && new Promise(r => setTimeout(r, transitionDur)));
+		}
 	}
 
-	__focusOut(e) {
+	async __focusOut({ relatedTarget }) {
+
 		if (this.inactive
 			|| !this.__autoExpanded
-			|| isComposedAncestor(this.__content, e.relatedTarget)
+			|| isComposedAncestor(this.__content, relatedTarget)
 		) {
 			return;
 		}
 
 		this.__shrink();
 		this.__autoExpanded = false;
+
+		relatedTarget && await new Promise(r => relatedTarget.addEventListener('focus', r, { once: true }));
+		const target = getComposedActiveElement();
+
+		await (transitionDur && new Promise(r => setTimeout(r, transitionDur)));
+		const activeElement = getComposedActiveElement();
+		if (target === activeElement) {
+			target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+		}
 	}
 
 	__init_measureBaseHeight() {
 		this.__baseHeight = this.__content.offsetHeight;
 		this.__adjustToContent();
-
-		// react to images and whatnot loading
-		this.__bound_reactToChanges = this.__bound_reactToChanges || this.__reactToChanges.bind(this);
-		this.__content.addEventListener('load', this.__bound_reactToChanges, true);
 	}
 
 	__init_setBaseHeight() {
-		this.__contentHeight = this.height;
+		this.__maxHeight = this.height;
 
 		requestAnimationFrame(() => {
 			this.__init_measureBaseHeight();
 		});
 	}
 
-	__init_setupBlurColour() {
-		if (!this.blurColor
-			|| this.blurColor[0] !== '#'
-			|| (this.blurColor.length !== 4 && this.blurColor.length !== 7)
-		) {
-			return;
-		}
-
-		let hex = this.blurColor.substring(1);
-
-		// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-		if (hex.length === 3) {
-			const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-			hex = hex.replace(shorthandRegex, (m, r, g, b) => {
-				return r + r + g + g + b + b;
-			});
-		}
-
-		const bigint = parseInt(hex, 16);
-		const r = (bigint >> 16) & 255;
-		const g = (bigint >> 8) & 255;
-		const b = bigint & 255;
-
-		this.__blurBackground =
-			`linear-gradient(rgba(${r}, ${g}, ${b}, 0) 0%, rgb(${r}, ${g}, ${b}) 100%)`;
-	}
-
-	__init_setupListeners() {
-		this.__startObserving();
-		if (this.__contentSlot) {
-			this.__contentSlot.addEventListener('slotchange', this.__reactToChanges.bind(this));
-			this.__contentSlot.addEventListener('slotchange', this.__startObserving.bind(this));
-		}
-		this.__content.addEventListener('focusin', this.__focusIn.bind(this));
-		this.__content.addEventListener('focusout', this.__focusOut.bind(this));
-	}
-
-	__isOwnMutation(mutation) {
-		return mutation.target === this.__content
-			&& (mutation.type === 'style' || mutation.type === 'attributes');
-	}
-
 	__reactToChanges() {
-		if (!this.__transitionAdded) {
-			this.__reactToChanges_setupTransition();
-		} else {
-			this.__adjustToContent();
-		}
-	}
-
-	__reactToChanges_setupTransition() {
+		if (!isVisible(this) && this.__baseHeight > 0) return;
 		this.__transitionAdded = true;
 		this.__adjustToContent();
 	}
 
-	__reactToMutationChanges(mutations) {
-		if (mutations
-			&& Array.isArray(mutations)
-			&& mutations.every(this.__isOwnMutation.bind(this))
-		) {
-			return;
-		}
-
-		this.__reactToChanges();
-	}
-
 	__shrink() {
 		this.__transitionAdded = true;
-		this.__contentHeight = this.height;
+		this.__maxHeight = this.height;
 		this.expanded = false;
-	}
-
-	__startObserving() {
-		this.__bound_reactToChanges = this.__bound_reactToChanges || this.__reactToChanges.bind(this);
-		this.__bound_reactToMutationChanges = this.__bound_reactToMutationChanges || this.__reactToMutationChanges.bind(this);
-		this.__resizeObserver = this.__resizeObserver || new ResizeObserver(this.__bound_reactToChanges);
-		this.__resizeObserver.disconnect();
-		this.__mutationObserver = this.__mutationObserver || new MutationObserver(this.__bound_reactToMutationChanges);
-		this.__mutationObserver.disconnect();
-
-		if (this.__contentSlot) {
-			const children = getComposedChildren(this.__contentSlot);
-			for (let i = 0; i < children.length; ++i) {
-				this.__resizeObserver.observe(children[i]);
-				this.__mutationObserver.observe(children[i], {
-					childList: true,
-					subtree: true,
-					characterData: true,
-					attributes: true
-				});
-			}
-		}
-		this.__resizeObserver.observe(this.__content);
-		this.__mutationObserver.observe(this.__content, {
-			childList: true,
-			subtree: true,
-			characterData: true,
-			attributes: true
-		});
+		this.__content.scrollTo({ top: 0, behavior: 'instant' });
 	}
 
 	__toggleOnClick() {
@@ -387,7 +292,6 @@ class MoreLess extends LocalizeCoreElement(LitElement) {
 	__transitionEvents(e) {
 		this.dispatchEvent(new CustomEvent(e.type, { bubbles: true, composed: true, detail: e.detail }));
 	}
-
 }
 
 customElements.define('d2l-more-less', MoreLess);

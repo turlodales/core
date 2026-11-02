@@ -2,9 +2,8 @@ import '../button/button-subtle.js';
 import { html, LitElement } from 'lit';
 import { DropdownOpenerMixin } from '../dropdown/dropdown-opener-mixin.js';
 import { dropdownOpenerStyles } from '../dropdown/dropdown-opener-styles.js';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
-import { LocalizeCoreElement } from '../../helpers/localize-core-element.js';
 import { SelectionActionMixin } from './selection-action-mixin.js';
 
 /**
@@ -12,31 +11,30 @@ import { SelectionActionMixin } from './selection-action-mixin.js';
  * @slot - Dropdown content (e.g., "d2l-dropdown-content", "d2l-dropdown-menu" or "d2l-dropdown-tabs")
  * @fires d2l-selection-observer-subscribe - Internal event
  */
-class ActionDropdown extends FocusMixin(LocalizeCoreElement(SelectionActionMixin(DropdownOpenerMixin(LitElement)))) {
+class ActionDropdown extends FocusMixin(SelectionActionMixin(DropdownOpenerMixin(LitElement))) {
 
-	static get properties() {
-		return {
-			/**
-			 * REQUIRED: Text for the dropdown opener button
-			 * @type {string}
-			 */
-			text: { type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * REQUIRED: Text for the dropdown opener button
+		 * @type {string}
+		 */
+		text: { type: String }
+	};
 
-	static get styles() {
-		return dropdownOpenerStyles;
-	}
+	static styles = dropdownOpenerStyles;
 
 	static get focusElementSelector() {
 		return 'd2l-button-subtle';
 	}
 
 	render() {
+		const disabledTooltip = this._disabledTooltip || (this.disabled && this.disabledTooltip ? this.disabledTooltip : undefined);
+
 		return html`
 			<d2l-button-subtle
-				?disabled=${this.disabled}
-				disabled-tooltip="${ifDefined(this.disabled ? this.localize('components.selection.action-hint') : undefined)}"
+				class="vdiff-target"
+				?disabled="${this.disabled}"
+				disabled-tooltip="${ifDefined(disabledTooltip)}"
 				icon="tier1:chevron-down"
 				icon-right
 				text=${this.text}></d2l-button-subtle>

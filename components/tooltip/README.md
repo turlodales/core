@@ -36,7 +36,7 @@ Note: there is a [known defect](https://rally1.rallydev.com/#/?detail=/defect/64
 
 **Interactive Target Elements:**
 
-If the tooltip's target is an interactive element then it will automatically be accessibile. [A list of interactive elements can be found here.](https://github.com/BrightspaceUI/core/blob/main/components/tooltip/tooltip.js#L38)
+If the tooltip's target is an interactive element then it will automatically be accessible. [A list of interactive elements can be found here.](https://github.com/BrightspaceUI/core/blob/main/components/tooltip/tooltip.js#L38)
 
 **Static / Custom Target Elements:**
 
@@ -74,13 +74,13 @@ The `d2l-tooltip` component is used to display additional information when users
 <!-- docs: end donts -->
 <!-- docs: end best practices -->
 
-<!-- docs: demo live name:d2l-tooltip autoSize:false size:small -->
+<!-- docs: demo code properties name:d2l-tooltip sandboxTitle:'Tooltip' autoSize:false size:small -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/inputs/input-text.js';
   import '@brightspace-ui/core/components/tooltip/tooltip.js';
 </script>
-<!-- docs: start hidden content --> 
+<!-- docs: start hidden content -->
 <script>
   window.addEventListener('load', function () {
     setTimeout(function() {
@@ -90,7 +90,7 @@ The `d2l-tooltip` component is used to display additional information when users
   });
 </script>
 <!-- docs: end hidden content -->
-<d2l-input-text placeholder="Hover for Error" id="tooltip-error" aria-invalid="true" label="Text Input" label-hidden style="max-width:250px;"></d2l-input-text>
+<d2l-input-text id="tooltip-error" aria-invalid="true" label="Text Input (hover for error)" label-hidden style="max-width:250px;"></d2l-input-text>
 <d2l-tooltip for="tooltip-error" state="error">
 	Your error message will display here
 </d2l-tooltip>
@@ -117,6 +117,7 @@ The `d2l-tooltip` component is used to display additional information when users
 | `disable-focus-lock` | Boolean, default: `false` | Disables focus lock so that the tooltip will automatically close when no longer hovered even if it still has focus |
 | `force-show` | Boolean, default: `false` | Force the tooltip to stay open as long as it remains `true` |
 | `for-type` | String, default: `descriptor` | Accessibility type for the tooltip to specify whether it is the primary label for the target or a secondary descriptor. Valid values are: `label` and `descriptor`. |
+| `icon` | String | [Preset icon key](../../components/icons#preset-icons) (e.g. `tier1:gear`) |
 | `show-truncated-only` | Boolean, default: `false` | Only show the tooltip if we detect the target element is truncated |
 | `position` | String | Optionally force the tooltip to open in a certain direction. Valid values are: `top`, `bottom`, `left` and `right`. If no position is provided, the tooltip will open in the first position that has enough space for it in the order: bottom, top, right, left. |
 
@@ -141,7 +142,7 @@ In the following example to constrain the tooltip to the dashed boundary we can 
   import '@brightspace-ui/core/components/button/button.js';
   import '@brightspace-ui/core/components/tooltip/tooltip.js';
 </script>
-<!-- docs: start hidden content --> 
+<!-- docs: start hidden content -->
 <script>
   window.addEventListener('load', function () {
     setTimeout(function() {
@@ -193,12 +194,12 @@ The `d2l-tooltip-help` component is used to display additional information when 
 <!-- docs: end donts -->
 <!-- docs: end best practices -->
 
-<!-- docs: demo live name:d2l-tooltip-help autoSize:false size:medium -->
+<!-- docs: demo code properties name:d2l-tooltip-help sandboxTitle:'Help Tooltip' autoSize:false size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/tooltip/tooltip-help.js';
 </script>
-<!-- docs: start hidden content --> 
+<!-- docs: start hidden content -->
 <script>
   window.addEventListener('load', function () {
     setTimeout(function() {
@@ -215,6 +216,13 @@ The `d2l-tooltip-help` component is used to display additional information when 
 ```
 
 <!-- docs: start hidden content -->
+### Slots
+
+| Slot | Type | Description |
+|--|--|--|
+| `default` | required | Default content placed inside of the tooltip |
+| `icon` | optional | Optional slot for a custom icon |
+
 ### Properties
 
 | Property | Type | Description |
@@ -227,10 +235,10 @@ The `d2l-tooltip-help` component is used to display additional information when 
 
 ### Using in a Sentence or Paragraph
 
-When placing a help tooltip next to other text as part of a sentence or a paragraph, use `inherit-font-style` to align its style with the adjacent text 
+When placing a help tooltip next to other text as part of a sentence or a paragraph, use `inherit-font-style` to align its style with the adjacent text
 (see the demo example above).
 
-Note that the help tooltip does not support being used *within* a language term, due to challenges with translation.   
-Instead, your opener text will need to be a separate language term appearing before or after the other text and making sense on its own. 
+Note that the help tooltip does not support being used *within* a language term, due to challenges with translation.
+Instead, your opener text will need to be a separate language term appearing before or after the other text and making sense on its own.
 
 See also the [Visibility Switch](https://daylight.d2l.dev/components/switch/#d2l-switch-visibility) for an example use case.

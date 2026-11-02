@@ -1,155 +1,156 @@
 import '../tooltip/tooltip.js';
 import { css, html, LitElement } from 'lit';
-import { FocusMixin } from '../../mixins/focus-mixin.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { FocusMixin } from '../../mixins/focus/focus-mixin.js';
 import { formatNumber } from '@brightspace-ui/intl/lib/number.js';
 import { FormElementMixin } from '../form/form-element-mixin.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import { InputInlineHelpMixin } from './input-inline-help.js';
 import { inputLabelStyles } from './input-label-styles.js';
 import { inputStyles } from './input-styles.js';
-import { LabelledMixin } from '../../mixins/labelled-mixin.js';
+import { LabelledMixin } from '../../mixins/labelled/labelled-mixin.js';
 import { offscreenStyles } from '../offscreen/offscreen.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
 /**
  * A wrapper around the native `<textarea>` element that provides auto-grow and validation behaviours intended for inputting unformatted multi-line text.
+ * @slot inline-help - Help text that will appear below the input. Use this only when other helpful cues are not sufficient, such as a carefully-worded label.
  * @fires change - Dispatched when an alteration to the value is committed (typically after focus is lost) by the user
  * @fires input - Dispatched immediately after changes by the user
  */
-class InputTextArea extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(RtlMixin(LitElement))))) {
+class InputTextArea extends InputInlineHelpMixin(FocusMixin(LabelledMixin(FormElementMixin(SkeletonMixin(LitElement))))) {
 
-	static get properties() {
-		return {
-			/**
-			 * ADVANCED: Indicates that the input value is invalid
-			 * @type {string}
-			 */
-			ariaInvalid: { type: String, attribute: 'aria-invalid' },
-			/**
-			 * Additional information communicated in the aria-describedby on the input
-			 * @type {string}
-			 */
-			description: { type: String, reflect: true },
-			/**
-			 * Disables the input
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean, reflect: true },
-			/**
-			 * Hides the label visually (moves it to the input's "aria-label" attribute)
-			 * @type {boolean}
-			 */
-			labelHidden: { type: Boolean, attribute: 'label-hidden' },
-			/**
-			 * Imposes an upper character limit
-			 * @type {number}
-			 */
-			maxlength: { type: Number },
-			/**
-			 * Maximum number of rows before scrolling
-			 * @type {number}
-			 */
-			maxRows: { type: Number, attribute: 'max-rows' },
-			/**
-			 * Imposes a lower character limit
-			 * @type {number}
-			 */
-			minlength: { type: Number },
-			/**
-			 * Hides the border
-			 * @type {boolean}
-			 */
-			noBorder: { type: Boolean, attribute: 'no-border' },
-			/**
-			 * Removes default left/right padding
-			 * @type {boolean}
-			 */
-			noPadding: { type: Boolean, attribute: 'no-padding' },
-			/**
-			 * Placeholder text
-			 * @type {string}
-			 */
-			placeholder: { type: String },
-			/**
-			 * Indicates that a value is required
-			 * @type {boolean}
-			 */
-			required: { type: Boolean, reflect: true },
-			/**
-			 * Minimum number of rows
-			 * @type {number}
-			 */
-			rows: { type: Number },
-			/**
-			 * Value of the input
-			 * @type {string}
-			 */
-			value: { type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * ADVANCED: Indicates that the input value is invalid
+		 * @type {string}
+		 */
+		ariaInvalid: { type: String, attribute: 'aria-invalid' },
+		/**
+		 * Additional information communicated in the aria-describedby on the input
+		 * @type {string}
+		 */
+		description: { type: String, reflect: true },
+		/**
+		 * Disables the input
+		 * @type {boolean}
+		 */
+		disabled: { type: Boolean, reflect: true },
+		/**
+		 * Restricts the maximum width of the input box without restricting the width of the label.
+		 * @type {string}
+		 */
+		inputWidth: { attribute: 'input-width', type: String },
+		/**
+		 * Hides the label visually (moves it to the input's "aria-label" attribute)
+		 * @type {boolean}
+		 */
+		labelHidden: { type: Boolean, attribute: 'label-hidden' },
+		/**
+		 * Imposes an upper character limit
+		 * @type {number}
+		 */
+		maxlength: { type: Number },
+		/**
+		 * Maximum number of rows before scrolling
+		 * @type {number}
+		 */
+		maxRows: { type: Number, attribute: 'max-rows' },
+		/**
+		 * Imposes a lower character limit
+		 * @type {number}
+		 */
+		minlength: { type: Number },
+		/**
+		 * Hides the border
+		 * @type {boolean}
+		 */
+		noBorder: { type: Boolean, attribute: 'no-border' },
+		/**
+		 * Removes default left/right padding
+		 * @type {boolean}
+		 */
+		noPadding: { type: Boolean, attribute: 'no-padding' },
+		/**
+		 * @ignore
+		 */
+		placeholder: { type: String },
+		/**
+		 * Indicates that a value is required
+		 * @type {boolean}
+		 */
+		required: { type: Boolean, reflect: true },
+		/**
+		 * Minimum number of rows
+		 * @type {number}
+		 */
+		rows: { type: Number },
+		/**
+		 * Value of the input
+		 * @type {string}
+		 */
+		value: { type: String }
+	};
 
-	static get styles() {
-		return [ super.styles, inputStyles, inputLabelStyles, offscreenStyles, css`
-			:host {
-				display: block;
-			}
-			:host([hidden]) {
-				display: none;
-			}
-			.d2l-input-label {
-				display: inline-block;
-				vertical-align: bottom;
-			}
-			.d2l-input-textarea-container {
-				height: 100%;
-				max-width: 100%;
-				position: relative;
-			}
-			textarea.d2l-input {
-				height: 100%;
-				left: 0;
-				line-height: 1rem;
-				position: absolute;
-				resize: none;
-				top: 0;
-				z-index: 2;
-			}
-			:host([no-border]) textarea.d2l-input {
-				border-color: transparent;
-				box-shadow: none;
-			}
-			/* mirror dimensions must match textarea - match border + padding */
-			.d2l-input-textarea-mirror {
-				line-height: 1rem;
-				overflow: hidden;
-				padding-bottom: 0.5rem;
-				padding-top: 0.5rem;
-				visibility: hidden;
-				word-break: break-word; /* prevent width from growing */
-			}
-			:host([no-padding]) .d2l-input {
-				padding-left: 0;
-				padding-right: 0;
-			}
-			:host([no-border][no-padding]) textarea.d2l-input:hover,
-			:host([no-border][no-padding]) textarea.d2l-input:focus {
-				border-left-width: 1px;
-				border-right-width: 1px;
-			}
-			.d2l-input-textarea-mirror[aria-invalid="true"] {
-				padding-right: calc(18px + 0.8rem);
-			}
-			:host([dir='rtl']) .d2l-input-textarea-mirror[aria-invalid="true"] {
-				padding-left: calc(18px + 0.8rem);
-				padding-right: 0.75rem;
-			}
-			:host([skeleton]) .d2l-skeletize::before {
-				z-index: 3;
-			}
-		`];
-	}
+	static styles = [super.styles, inputStyles, inputLabelStyles, offscreenStyles, css`
+		:host {
+			display: block;
+		}
+		:host([hidden]) {
+			display: none;
+		}
+		.d2l-input-label {
+			display: inline-block;
+			vertical-align: bottom;
+		}
+		:host(:not([skeleton])) .d2l-input-label {
+			margin: 0;
+			padding-block: 0 0.4rem;
+			padding-inline: 0;
+		}
+		:host(:not([skeleton]):not([input-width])) .d2l-input-label {
+			width: 100%;
+		}
+		.d2l-input-textarea-container {
+			height: 100%;
+			max-width: 100%;
+			position: relative;
+		}
+		textarea.d2l-input {
+			height: 100%;
+			left: 0;
+			line-height: 1rem;
+			position: absolute;
+			resize: none;
+			top: 0;
+		}
+		:host([no-border]) textarea.d2l-input {
+			border-color: transparent;
+			box-shadow: none;
+		}
+		/* mirror dimensions must match textarea - match border + padding */
+		.d2l-input-textarea-mirror {
+			line-height: 1rem;
+			overflow: hidden;
+			overflow-wrap: anywhere; /* prevent width from growing */
+			padding-bottom: 0.5rem;
+			padding-top: 0.5rem;
+			visibility: hidden;
+		}
+		:host([no-padding]) .d2l-input {
+			padding-inline: 0;
+		}
+		:host([no-border][no-padding]) textarea.d2l-input:hover,
+		:host([no-border][no-padding]) textarea.d2l-input:focus {
+			border-left-width: 1px;
+			border-right-width: 1px;
+		}
+		.d2l-input-textarea-mirror[aria-invalid="true"] {
+			padding-inline-end: calc(18px + 0.8rem);
+		}
+	`];
 
 	constructor() {
 		super();
@@ -161,7 +162,20 @@ class InputTextArea extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMi
 		this.value = '';
 
 		this._descriptionId = getUniqueId();
+		this._inlineHelpId = getUniqueId();
 		this._textareaId = getUniqueId();
+	}
+
+	/** @ignore */
+	get selectionStart() {
+		return this.textarea?.selectionStart || 0;
+	}
+
+	/** @ignore */
+	set selectionStart(value) {
+		if (this.textarea !== null) {
+			this.textarea.selectionStart = value;
+		}
 	}
 
 	static get focusElementSelector() {
@@ -171,7 +185,7 @@ class InputTextArea extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMi
 	/** @ignore */
 	get textarea() {
 		// temporary until consumers are updated
-		return this.shadowRoot && this.shadowRoot.querySelector('textarea');
+		return this.shadowRoot?.querySelector('textarea');
 	}
 
 	/** @ignore */
@@ -208,6 +222,7 @@ class InputTextArea extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMi
 		const ariaInvalid = this.invalid ? 'true' : this.ariaInvalid;
 		const offscreenContainer = this.description ? html`<div class="d2l-offscreen" id="${this._descriptionId}">${this.description}</div>` : null;
 		const disabled = this.disabled || this.skeleton;
+		const ariaDescribedByIds = `${this.description ? this._descriptionId : ''} ${this._hasInlineHelp ? this._inlineHelpId : ''}`.trim();
 
 		const mirrorStyles = {};
 
@@ -215,18 +230,29 @@ class InputTextArea extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMi
 		if (this.rows > 0) mirrorStyles.minHeight = `calc(${this.rows + 1}rem + 2px)`;
 		if (this.maxRows > 0) mirrorStyles.maxHeight = `calc(${this.maxRows + 1}rem + 2px)`;
 
+		const inputClasses = {
+			'd2l-input': true
+		};
+		const inputContainerStyles = {
+			maxWidth: this.inputWidth
+		};
+		const labelStyles = {
+			minWidth: this.inputWidth && !this.skeleton ? `min(100%, ${this.inputWidth})` : undefined
+		};
+
 		const textarea = html`
-			<div class="d2l-input-textarea-container d2l-skeletize">
+			<div class="d2l-input-textarea-container d2l-skeletize" style="${styleMap(inputContainerStyles)}">
 				<div class="d2l-input d2l-input-textarea-mirror" style="${styleMap(mirrorStyles)}" aria-invalid="${ifDefined(ariaInvalid)}">
 					${lines.map(line => html`${line}<br />`)}
 				</div>
-				<textarea aria-describedby="${ifDefined(this.description ? this._descriptionId : undefined)}"
+				<textarea
+					aria-describedby="${ifDefined(ariaDescribedByIds.length > 0 ? ariaDescribedByIds : undefined)}"
 					aria-invalid="${ifDefined(ariaInvalid)}"
 					aria-label="${ifDefined(this._getAriaLabel())}"
 					aria-required="${ifDefined(ariaRequired)}"
 					@blur="${this._handleBlur}"
 					@change="${this._handleChange}"
-					class="d2l-input"
+					class=${classMap(inputClasses)}
 					?disabled="${disabled}"
 					id="${this._textareaId}"
 					@input="${this._handleInput}"
@@ -235,15 +261,16 @@ class InputTextArea extends FocusMixin(LabelledMixin(FormElementMixin(SkeletonMi
 					minlength="${ifDefined(this.minlength)}"
 					placeholder="${ifDefined(this.placeholder)}"
 					?required="${this.required}"
-					.value="${this.value}">${this.value}</textarea>
+					.value="${this.value}"></textarea>
 				${this.validationError ? html`<d2l-tooltip for=${this._textareaId} state="error" align="start">${this.validationError}</d2l-tooltip>` : null}
 			</div>
+			${this._renderInlineHelp(this._inlineHelpId)}
 			${offscreenContainer}
 		`;
 
 		if (this.label && !this.labelHidden && !this.labelledBy) {
 			return html`
-				<label class="d2l-input-label d2l-skeletize" for="${this._textareaId}">${this.label}</label>
+				<label class="d2l-input-label d2l-skeletize" for="${this._textareaId}" style="${styleMap(labelStyles)}">${this.label}</label>
 				${textarea}`;
 		}
 

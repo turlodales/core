@@ -3,197 +3,188 @@ import '../tooltip/tooltip.js';
 import { css, html, LitElement } from 'lit';
 import { ButtonMixin } from './button-mixin.js';
 import { buttonStyles } from './button-styles.js';
+import { classMap } from 'lit/directives/class-map.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { labelStyles } from '../typography/styles.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { SlottedIconMixin } from '../icons/slotted-icon-mixin.js';
 
 /**
  * A button component that can be used just like the native button, but for advanced or de-emphasized actions.
  * @slot - Default content placed inside of the button
+ * @slot icon - Optional slot for a custom icon
  */
-class ButtonSubtle extends ButtonMixin(RtlMixin(LitElement)) {
+class ButtonSubtle extends SlottedIconMixin(ButtonMixin(LitElement)) {
 
-	static get properties() {
-		return {
-			/**
-			 * A description to be added to the button for accessibility when text on button does not provide enough context
-			 * @type {string}
-			 */
-			description: { type: String },
+	static properties = {
+		/**
+		 * ACCESSIBILITY: A description to be added to the button for accessibility when text on button does not provide enough context
+		 * @type {string}
+		 */
+		description: { type: String },
 
-			/**
-			 * Aligns the leading edge of text if value is set to "text"
-			 * @type {'text'|''}
-			 */
-			hAlign: { type: String, reflect: true, attribute: 'h-align' },
+		/**
+		 * Aligns the leading edge of text if value is set to "text" for left-aligned layouts, the trailing edge of text if value is set to "text-end" for right-aligned layouts
+		 * @type {'text'|'text-end'|''}
+		 */
+		hAlign: { type: String, reflect: true, attribute: 'h-align' },
 
-			/**
-			 * Preset icon key (e.g. "tier1:gear")
-			 * @type {string}
-			 */
-			icon: { type: String, reflect: true },
+		/**
+		 * Indicates that the icon should be rendered on right
+		 * @type {boolean}
+		 */
+		iconRight: { type: Boolean, reflect: true, attribute: 'icon-right' },
 
-			/**
-			 * Indicates that the icon should be rendered on right
-			 * @type {boolean}
-			 */
-			iconRight: { type: Boolean, reflect: true, attribute: 'icon-right' },
+		/**
+		 * Whether to render the slimmer version of the button
+		 * @type {boolean}
+		 */
+		slim: { type: Boolean, reflect: true },
 
-			/**
-			 * Whether to render the slimmer version of the button
-			 * @type {boolean}
-			 */
-			slim: { type: Boolean, reflect: true },
+		/**
+		 * ACCESSIBILITY: REQUIRED: Text for the button
+		 * @type {string}
+		 */
+		text: { type: String, reflect: true }
+	};
 
-			/**
-			 * REQUIRED: Text for the button
-			 * @type {string}
-			 */
-			text: { type: String, reflect: true }
-		};
-	}
+	static styles = [super.styles, labelStyles, buttonStyles,
+		css`
+			:host {
+				--d2l-count-badge-background-color: var(--d2l-theme-background-color-interactive-primary-default);
+				--d2l-count-badge-foreground-color: var(--d2l-theme-text-color-static-inverted);
+				display: inline-block;
+			}
 
-	static get styles() {
-		return [ labelStyles, buttonStyles,
-			css`
-				:host {
-					display: inline-block;
-				}
-				:host([hidden]) {
-					display: none;
-				}
+			:host([hidden]) {
+				display: none;
+			}
 
-				button {
-					--d2l-button-subtle-padding-inline-start: 0.6rem;
-					--d2l-button-subtle-padding-inline-end: 0.6rem;
-					background-color: transparent;
-					border-color: transparent;
-					font-family: inherit;
-					padding: 0 var(--d2l-button-subtle-padding-inline-end) 0 var(--d2l-button-subtle-padding-inline-start);
-					position: relative;
-				}
+			button {
+				--d2l-button-subtle-padding-inline-start: 0.6rem;
+				--d2l-button-subtle-padding-inline-end: 0.6rem;
+				align-items: center;
+				background-color: var(--d2l-theme-background-color-interactive-tertiary-default);
+				border-color: transparent;
+				column-gap: 0.3rem;
+				display: inline-flex;
+				font-family: inherit;
+				padding-block-end: 0;
+				padding-block-start: 0;
+				padding-inline-end: var(--d2l-button-subtle-padding-inline-end);
+				padding-inline-start: var(--d2l-button-subtle-padding-inline-start);
+				position: relative;
+			}
 
-				:host([dir="rtl"]) button {
-					padding: 0 var(--d2l-button-subtle-padding-inline-start) 0 var(--d2l-button-subtle-padding-inline-end);
-				}
+			:host([slim]) button {
+				--d2l-button-subtle-padding-inline-start: 0.5rem;
+				--d2l-button-subtle-padding-inline-end: 0.5rem;
+				min-height: 1.5rem;
+			}
 
-				:host([slim]) button {
-					--d2l-button-subtle-padding-inline-start: 0.5rem;
-					--d2l-button-subtle-padding-inline-end: 0.5rem;
-					min-height: 1.5rem;
-				}
+			:host([slim]) button.d2l-button-subtle-has-icon {
+				--d2l-button-subtle-padding-inline-start: 0.4rem;
+				--d2l-button-subtle-padding-inline-end: 0.5rem;
+			}
 
-				:host([slim][icon]) button {
-					--d2l-button-subtle-padding-inline-start: 0.4rem;
-					--d2l-button-subtle-padding-inline-end: 0.5rem;
-				}
+			:host([slim][icon-right]) button.d2l-button-subtle-has-icon {
+				--d2l-button-subtle-padding-inline-start: 0.5rem;
+				--d2l-button-subtle-padding-inline-end: 0.4rem;
+			}
 
-				:host([slim][icon][icon-right]) button {
-					--d2l-button-subtle-padding-inline-start: 0.5rem;
-					--d2l-button-subtle-padding-inline-end: 0.4rem;
-				}
+			:host([h-align="text"]) button {
+				inset-inline-start: calc(var(--d2l-button-subtle-padding-inline-start) * -1);
+			}
+			:host([h-align="text-end"]) button {
+				inset-inline-end: calc(var(--d2l-button-subtle-padding-inline-end) * -1);
+			}
 
-				:host([h-align="text"]) button {
-					left: calc(var(--d2l-button-subtle-padding-inline-start) * -1);
-				}
-				:host([dir="rtl"][h-align="text"]) button {
-					left: 0;
-					right: calc(var(--d2l-button-subtle-padding-inline-start) * -1);
-				}
+			/* Firefox includes a hidden border which messes up button dimensions */
+			button::-moz-focus-inner {
+				border: 0;
+			}
 
-				/* Firefox includes a hidden border which messes up button dimensions */
-				button::-moz-focus-inner {
-					border: 0;
-				}
-				button[disabled]:hover,
-				button[disabled]:focus,
-				:host([active]) button[disabled] {
-					background-color: transparent;
-				}
-				button:hover,
-				button:focus,
-				:host([active]) button {
-					background-color: var(--d2l-color-gypsum);
-				}
+			button[disabled]:hover,
+			button[disabled]:focus,
+			:host([active]) button[disabled] {
+				background-color: var(--d2l-theme-background-color-interactive-tertiary-default);
+			}
 
-				.d2l-button-subtle-content {
-					color: var(--d2l-color-celestine);
-				}
-				button:hover:not([disabled]) .d2l-button-subtle-content,
-				button:focus:not([disabled]) .d2l-button-subtle-content,
-				:host([active]:not([disabled])) button .d2l-button-subtle-content {
-					color: var(--d2l-color-celestine-minus-1);
-				}
-				:host([icon]) .d2l-button-subtle-content,
-				:host([dir="rtl"][icon][icon-right]) .d2l-button-subtle-content {
-					padding-left: 1.2rem;
-					padding-right: 0;
-				}
-				:host([dir="rtl"][icon]) .d2l-button-subtle-content,
-				:host([icon][icon-right]) .d2l-button-subtle-content {
-					padding-left: 0;
-					padding-right: 1.2rem;
-				}
+			button:hover,
+			button:focus,
+			:host([active]) button {
+				background-color: var(--d2l-theme-background-color-interactive-tertiary-hover);
+			}
 
-				d2l-icon.d2l-button-subtle-icon {
-					color: var(--d2l-color-celestine);
-					display: none;
-					height: 0.9rem;
-					position: absolute;
-					top: 50%;
-					transform: translateY(-50%);
-					width: 0.9rem;
-				}
+			.d2l-button-subtle-content {
+				color: var(--d2l-theme-text-color-interactive-default);
+			}
 
-				button:hover:not([disabled]) d2l-icon.d2l-button-subtle-icon,
-				button:focus:not([disabled]) d2l-icon.d2l-button-subtle-icon,
-				:host([active]:not([disabled])) button d2l-icon.d2l-button-subtle-icon {
-					color: var(--d2l-color-celestine-minus-1);
-				}
+			button:hover:not([disabled]) .d2l-button-subtle-content,
+			button:focus:not([disabled]) .d2l-button-subtle-content,
+			:host([active]:not([disabled])) button .d2l-button-subtle-content {
+				color: var(--d2l-theme-text-color-interactive-hover);
+			}
 
-				:host([icon]) d2l-icon.d2l-button-subtle-icon {
-					display: inline-block;
-				}
-				:host([icon][icon-right]) d2l-icon.d2l-button-subtle-icon {
-					right: var(--d2l-button-subtle-padding-inline-end);
-				}
-				:host([dir="rtl"][icon][icon-right]) d2l-icon.d2l-button-subtle-icon {
-					left: var(--d2l-button-subtle-padding-inline-end);
-					right: auto;
-				}
+			button:hover:not([disabled]),
+			button:focus:not([disabled]),
+			:host([active]:not([disabled])) {
+				--d2l-count-badge-background-color: var(--d2l-theme-text-color-interactive-hover);
+			}
 
-				:host([disabled]) button {
-					cursor: default;
-					opacity: 0.5;
-				}
-			`
-		];
-	}
+			.property-icon,
+			slot[name="icon"]::slotted(d2l-icon-custom) {
+				color: var(--d2l-theme-text-color-interactive-default);
+			}
+
+			button:hover:not([disabled]) .property-icon,
+			button:focus:not([disabled]) .property-icon,
+			:host([active]:not([disabled])) button .property-icon,
+			button:hover:not([disabled]) slot[name="icon"]::slotted(d2l-icon-custom),
+			button:focus:not([disabled]) slot[name="icon"]::slotted(d2l-icon-custom),
+			:host([active]:not([disabled])) slot[name="icon"]::slotted(d2l-icon-custom) {
+				color: var(--d2l-theme-text-color-interactive-hover);
+			}
+
+			:host([icon-right]) .property-icon,
+			:host([icon-right]) slot[name="icon"]::slotted(d2l-icon-custom) {
+				order: 1;
+			}
+
+			.d2l-button-subtle-content-wrapper slot {
+				color: var(--d2l-theme-text-color-static-standard);
+			}
+
+			:host([disabled]) button {
+				cursor: default;
+				opacity: var(--d2l-theme-opacity-disabled-control);
+			}
+		`
+	];
 
 	constructor() {
 		super();
 		this.iconRight = false;
 		this.slim = false;
 
-		/** @internal */
 		this._buttonId = getUniqueId();
-		/** @internal */
 		this._describedById = getUniqueId();
 	}
 
 	render() {
-		const icon = this.icon ?
-			html`<d2l-icon icon="${this.icon}" class="d2l-button-subtle-icon"></d2l-icon>` : '';
+		const buttonClasses = {
+			'd2l-button-subtle-has-icon': this.hasIcon(),
+			'd2l-label-text': true
+		};
 		return html`
 			<button
 				aria-describedby="${ifDefined(this.description ? this._describedById : undefined)}"
 				aria-disabled="${ifDefined(this.disabled && this.disabledTooltip ? 'true' : undefined)}"
-				aria-expanded="${ifDefined(this.ariaExpanded)}"
+				aria-expanded="${ifDefined(this.expanded)}"
 				aria-haspopup="${ifDefined(this.ariaHaspopup)}"
 				aria-label="${ifDefined(this.ariaLabel)}"
 				?autofocus="${this.autofocus}"
-				class="d2l-label-text"
+				class="${classMap(buttonClasses)}"
 				?disabled="${this.disabled && !this.disabledTooltip}"
 				form="${ifDefined(this.form)}"
 				formaction="${ifDefined(this.formaction)}"
@@ -204,12 +195,14 @@ class ButtonSubtle extends ButtonMixin(RtlMixin(LitElement)) {
 				id="${this._buttonId}"
 				name="${ifDefined(this.name)}"
 				type="${this._getType()}">
-				${icon}
-				<span class="d2l-button-subtle-content">${this.text}</span>
-				<slot></slot>
+				${this._renderIcon()}
+				<span class="d2l-button-subtle-content-wrapper">
+					<span class="d2l-button-subtle-content">${this.text}</span>
+					<slot></slot>
+				</span>
 			</button>
 			${this.description ? html`<span id="${this._describedById}" hidden>${this.description}</span>` : null}
-			${this.disabled && this.disabledTooltip ? html`<d2l-tooltip for="${this._buttonId}">${this.disabledTooltip}</d2l-tooltip>` : ''}
+			${this.disabled && this.disabledTooltip ? html`<d2l-tooltip class="vdiff-target" for="${this._buttonId}">${this.disabledTooltip}</d2l-tooltip>` : ''}
 		`;
 	}
 

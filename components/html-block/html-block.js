@@ -1,117 +1,183 @@
 import '../colors/colors.js';
 import { codeStyles, createHtmlBlockRenderer as createCodeRenderer } from '../../helpers/prism.js';
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, unsafeCSS } from 'lit';
+import { _isValidCssSelector } from '../../helpers/internal/css.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { createHtmlBlockRenderer as createMathRenderer } from '../../helpers/mathjax.js';
-import { HtmlAttributeObserverController } from '../../controllers/attributeObserver/htmlAttributeObserverController.js';
-import { requestInstance } from '../../mixins/provider-mixin.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { getFocusRingStyles } from '../../helpers/focus.js';
+import { LoadingCompleteMixin } from '../../mixins/loading-complete/loading-complete-mixin.js';
+import { renderEmbeds } from '../../helpers/embeds.js';
+import { requestInstance } from '../../mixins/provider/provider-mixin.js';
+import { tryGet } from '@brightspace-ui/lms-context-provider/client.js';
+
+/**
+ * A private helper method that should not be used by general consumers
+ */
+export const _generateHtmlBlockContainerStyles = (selector) => {
+	if (!_isValidCssSelector(selector)) return;
+
+	selector = unsafeCSS(selector);
+	return css`
+		${selector} {
+			line-height: 1.47; /* 1.4rem / 0.95rem */
+		}
+		${selector} > :first-child {
+			margin-top: 0;
+		}
+		${selector} > :last-child {
+			margin-bottom: 0;
+		}
+	`;
+};
+
+/**
+ * A private helper method that should not be used by general consumers
+ */
+export const _generateHtmlBlockRootStyles = (selector) => {
+	if (!_isValidCssSelector(selector)) return;
+
+	selector = unsafeCSS(selector);
+	return css`
+		${selector} {
+			overflow-wrap: break-word;
+			overflow-x: auto;
+			overflow-y: hidden;
+			text-align: start;
+		}
+	`;
+};
+
+/**
+ * A private helper method that should not be used by general consumers
+ */
+export const _generateHtmlBlockContentStyles = (selector) => {
+	if (!selector) selector = '';
+	else if (!_isValidCssSelector(selector)) return;
+
+	selector = unsafeCSS(selector);
+	return css`
+		${selector} h1,
+		${selector} h2,
+		${selector} h3,
+		${selector} h4,
+		${selector} h5,
+		${selector} h6,
+		${selector} b,
+		${selector} strong,
+		${selector} b *,
+		${selector} strong * {
+			font-weight: bold;
+		}
+
+		${selector} h1 {
+			font-size: 2em;
+			line-height: 1;
+			margin: 21px 0;
+		}
+		${selector} h2 {
+			font-size: 1.5em;
+			line-height: 1;
+			margin: 20px 0;
+		}
+		${selector} h3 {
+			font-size: 1.2em;
+			line-height: 1;
+			margin: 19px 0;
+		}
+		${selector} h4 {
+			font-size: 1em;
+			line-height: 1.05;
+			margin: 21px 0;
+		}
+		${selector} h5 {
+			font-size: 0.83em;
+			line-height: 1;
+			margin: 22px 0;
+		}
+		${selector} h6 {
+			font-size: 0.67em;
+			line-height: 1;
+			margin: 25px 0;
+		}
+		${selector} pre {
+			font-family: Monospace;
+			font-size: 13px;
+			margin: 13px 0;
+		}
+		${selector} p {
+			margin: 0.5em 0 1em 0;
+		}
+		${selector} ul,
+		${selector} ol {
+			list-style-position: outside;
+			margin: 1em 0;
+			padding-inline-start: 3em;
+		}
+		${selector} ul,
+		${selector} ul[type="disc"] {
+			list-style-type: disc;
+		}
+		${selector} ul ul,
+		${selector} ul ol,
+		${selector} ol ul,
+		${selector} ol ol {
+			margin-bottom: 0;
+			margin-top: 0;
+		}
+		${selector} ul ul,
+		${selector} ol ul,
+		${selector} ul[type="circle"] {
+			list-style-type: circle;
+		}
+		${selector} ul ul ul,
+		${selector} ul ol ul,
+		${selector} ol ul ul,
+		${selector} ol ol ul,
+		${selector} ul[type="square"] {
+			list-style-type: square;
+		}
+		${selector} a,
+		${selector} a:visited,
+		${selector} a:link,
+		${selector} a:active {
+			color: var(--d2l-color-celestine, #006fbf);
+			cursor: pointer;
+			text-decoration: none;
+		}
+		${selector} a:hover {
+			color: var(--d2l-color-celestine-minus-1, #004489);
+			text-decoration: underline;
+		}
+		${selector} a {
+			--d2l-focus-ring-offset: 1px;
+			--d2l-focus-ring-color: var(--d2l-color-celestine, #006fbf);
+		}
+		${getFocusRingStyles(`${selector} a`, { extraStyles: css`border-radius: 2px; text-decoration: underline;` })}
+		@media print {
+			${selector} a,
+			${selector} a:visited,
+			${selector} a:link,
+			${selector} a:active {
+				color: var(--d2l-color-ferrite, #202122);
+			}
+		}
+		${selector} mjx-assistive-mml math {
+			position: absolute;
+		}
+	`;
+};
 
 export const htmlBlockContentStyles = css`
-	.d2l-html-block-rendered {
-		line-height: 1.47; /* 1.4rem / 0.95rem */
-	}
-	.d2l-html-block-rendered > :first-child {
-		margin-top: 0;
-	}
-	.d2l-html-block-rendered > :last-child {
-		margin-bottom: 0;
-	}
+	${_generateHtmlBlockContainerStyles('.d2l-html-block-rendered')}
 	.d2l-html-block-compact {
 		font-size: 0.8rem;
 		font-weight: 400;
 		line-height: 1.5; /* 1.2rem / 0.8rem */
 	}
-	h1, h2, h3, h4, h5, h6, b, strong, b *, strong * {
-		font-weight: bold;
-	}
-	h1 {
-		font-size: 2em;
-		line-height: 1;
-		margin: 21px 0;
-	}
-	h2 {
-		font-size: 1.5em;
-		line-height: 1;
-		margin: 20px 0;
-	}
-	h3 {
-		font-size: 1.2em;
-		line-height: 1;
-		margin: 19px 0;
-	}
-	h4 {
-		font-size: 1em;
-		line-height: 1.05;
-		margin: 21px 0;
-	}
-	h5 {
-		font-size: 0.83em;
-		line-height: 1;
-		margin: 22px 0;
-	}
-	h6 {
-		font-size: 0.67em;
-		line-height: 1;
-		margin: 25px 0;
-	}
-	pre {
-		font-family: Monospace;
-		font-size: 13px;
-		margin: 13px 0;
-	}
-	p {
-		margin: 0.5em 0 1em 0;
-	}
-	ul, ol {
-		list-style-position: outside;
-		margin: 1em 0;
-		padding-inline-start: 3em;
-	}
+	${_generateHtmlBlockContentStyles()}
 	.d2l-html-block-compact ul,
 	.d2l-html-block-compact ol {
 		padding-inline-start: 1.5em;
-	}
-	ul, ul[type="disc"] {
-		list-style-type: disc;
-	}
-	ul ul, ul ol,
-	ol ul, ol ol {
-		margin-bottom: 0;
-		margin-top: 0;
-	}
-	ul ul, ol ul, ul[type="circle"] {
-		list-style-type: circle;
-	}
-	ul ul ul, ul ol ul,
-	ol ul ul, ol ol ul,
-	ul[type="square"] {
-		list-style-type: square;
-	}
-	a,
-	a:visited,
-	a:link,
-	a:active {
-		color: var(--d2l-color-celestine, #006fbf);
-		cursor: pointer;
-		text-decoration: none;
-	}
-	a:hover,
-	a:focus {
-		color: var(--d2l-color-celestine-minus-1, #004489);
-		outline-width: 0;
-		text-decoration: underline;
-	}
-	@media print {
-		a,
-		a:visited,
-		a:link,
-		a:active {
-			color: var(--d2l-color-ferrite, #202122);
-		}
-	}
-	mjx-assistive-mml math {
-		position: absolute;
 	}
 	${codeStyles}
 `;
@@ -122,69 +188,59 @@ const getRenderers = async() => {
 	if (renderers) return renderers;
 	const rendererLoader = requestInstance(document, 'html-block-renderer-loader');
 	const tempRenderers = rendererLoader ? await rendererLoader.getRenderers() : undefined;
-	const defaultRenderers = [ createMathRenderer(), createCodeRenderer() ];
-	renderers = (tempRenderers ? [ ...defaultRenderers, ...tempRenderers ] : defaultRenderers);
+	const defaultRenderers = [createMathRenderer(), createCodeRenderer()];
+	renderers = (tempRenderers ? [...defaultRenderers, ...tempRenderers] : defaultRenderers);
 	return renderers;
 };
 
 /**
  * A component for displaying user-authored HTML.
- * @slot - Provide your user-authored HTML
  */
-class HtmlBlock extends RtlMixin(LitElement) {
+class HtmlBlock extends LoadingCompleteMixin(LitElement) {
 
-	static get properties() {
-		return {
-			/**
-			 * Whether compact styles should be applied
-			 * @type {Boolean}
-			 */
-			compact: { type: Boolean },
-			/**
-			 * The HTML to be rendered. Ignored if slotted content is provided.
-			 * @type {String}
-			 */
-			html: { type: String },
-			/**
-			 * Whether to display the HTML in inline mode
-			 * @type {Boolean}
-			 */
-			inline: { type: Boolean },
-			/**
-			 * Whether to disable deferred rendering of the user-authored HTML. Do *not* set this
-			 * unless your HTML relies on script executions that may break upon stamping.
-			 * @type {Boolean}
-			 */
-			noDeferredRendering: { type: Boolean, attribute: 'no-deferred-rendering' }
-		};
-	}
+	static properties = {
+		/**
+		 * Whether compact styles should be applied
+		 * @type {Boolean}
+		 */
+		compact: { type: Boolean },
+		/**
+		 * The HTML to be rendered. Ignored if slotted content is provided.
+		 * @type {String}
+		 */
+		html: { type: String },
+		/**
+		 * Whether to display the HTML in inline mode
+		 * @type {Boolean}
+		 */
+		inline: { type: Boolean },
+		/**
+		 * Whether to disable deferred rendering of the user-authored HTML. Do *not* set this
+		 * unless your HTML relies on script executions that may break upon stamping.
+		 * @type {Boolean}
+		 */
+		noDeferredRendering: { type: Boolean, attribute: 'no-deferred-rendering' },
+		_context: { type: Object, state: true }
+	};
 
-	static get styles() {
-		return [ htmlBlockContentStyles, css`
-			:host {
-				display: block;
-				overflow-wrap: break-word;
-				overflow-x: auto;
-				overflow-y: hidden;
-				text-align: left;
-			}
-			:host([inline]),
-			:host([inline]) .d2l-html-block-rendered {
-				display: inline;
-			}
-			:host([hidden]),
-			:host([no-deferred-rendering]) .d2l-html-block-rendered,
-			slot {
-				display: none;
-			}
-			:host([no-deferred-rendering]) slot {
-				display: contents;
-			}
-			:host([dir="rtl"]) {
-				text-align: right;
-			}
-		`];
-	}
+	static styles = [htmlBlockContentStyles, css`
+		:host {
+			display: block;
+		}
+		${_generateHtmlBlockRootStyles(':host')}
+		:host([inline]),
+		:host([inline]) .d2l-html-block-rendered {
+			display: inline;
+		}
+		:host([hidden]),
+		:host([no-deferred-rendering]) .d2l-html-block-rendered,
+		slot {
+			display: none;
+		}
+		:host([no-deferred-rendering]) slot {
+			display: contents;
+		}
+	`];
 
 	constructor() {
 		super();
@@ -192,49 +248,31 @@ class HtmlBlock extends RtlMixin(LitElement) {
 		this.html = '';
 		this.inline = false;
 		this.noDeferredRendering = false;
-		this._hasSlottedContent = false;
 
-		this._contextObserverControllerResolve = undefined;
-		this._contextObserverControllerInitialized = new Promise(resolve => {
-			this._contextObserverControllerResolve = resolve;
+		this._context = new Map();
+		this._initialContextResolve = undefined;
+		this._initialContextPromise = new Promise(resolve => this._initialContextResolve = resolve);
+
+		const contextKeysPromise = getRenderers().then(renderers => renderers.reduce((keys, currentRenderer) => {
+			if (currentRenderer.contextKeys) currentRenderer.contextKeys.forEach(key => keys.push(key));
+			return keys;
+		}, []));
+
+		const contextValsPromise = contextKeysPromise.then(contextKeys => {
+			return Promise.allSettled(contextKeys.map(key => {
+				return tryGet(key, undefined, ctx => this._context.set(key, ctx));
+			}));
 		});
 
-		getRenderers().then(renderers => renderers.reduce((attrs, currentRenderer) => {
-			if (currentRenderer.contextAttributes) currentRenderer.contextAttributes.forEach(attr => attrs.push(attr));
-			return attrs;
-		}, [])).then(rendererContextAttributes => {
-			this._contextObserverController = new HtmlAttributeObserverController(this, ...rendererContextAttributes);
-			this._contextObserverControllerResolve();
+		Promise.all([contextKeysPromise, contextValsPromise]).then(([contextKeys, contextResults]) => {
+			contextKeys.forEach((key, index) => this._context.set(key, contextResults[index].value));
+			this._initialContextResolve();
 		});
-	}
-
-	connectedCallback() {
-		super.connectedCallback();
-
-		if (!this._contentObserver || this.noDeferredRendering) return;
-
-		const slot = this.shadowRoot.querySelector('slot');
-		if (slot) {
-			const slottedNodes = slot.assignedNodes({ flatten: true });
-			this._hasSlottedContent = this._hasSlottedElements(slottedNodes);
-
-			slottedNodes.forEach(
-				node => this._contentObserver.observe(node, { attributes: true, childList: true, subtree: true })
-			);
-		}
-	}
-
-	disconnectedCallback() {
-		super.disconnectedCallback();
-		if (this._contentObserver) this._contentObserver.disconnect();
-	}
-
-	firstUpdated(changedProperties) {
-		super.firstUpdated(changedProperties);
-		this._updateContextKeys();
 	}
 
 	render() {
+		this._validateHtml();
+
 		const renderContainerClasses = {
 			'd2l-html-block-rendered': true,
 			'd2l-html-block-compact': this.compact
@@ -242,66 +280,36 @@ class HtmlBlock extends RtlMixin(LitElement) {
 
 		return html`
 			<div class="${classMap(renderContainerClasses)}"></div>
-			<slot @slotchange="${this._handleSlotChange}"></slot>
+			${this.noDeferredRendering ? html`<slot @slotchange="${this._handleSlotChange}"></slot>` : ''}
 		`;
 	}
 
 	async updated(changedProperties) {
 		super.updated(changedProperties);
-		if (changedProperties.has('html') && this.html !== undefined && this.html !== null && !this._hasSlottedContent) {
+		if (this.html !== undefined && this.html !== null && !this.noDeferredRendering) {
 			await this._updateRenderContainer();
 		}
-		if (await this._contextChanged()) {
-			if (this._hasSlottedContent) this._render();
-			else if (this.html !== undefined && this.html !== null) {
-				await this._updateRenderContainer();
-			}
-
-			this._updateContextKeys();
-		}
-	}
-
-	async _contextChanged() {
-		await this._contextObserverControllerInitialized;
-		if (!this._contextKeys) {
-			this._updateContextKeys();
-			return true;
-		}
-
-		if (this._contextKeys.size !== this._contextObserverController.values.size) return true;
-		for (const [attr, val] of this._contextKeys) {
-			if (!this._contextObserverController.values.has(attr)) return true;
-			if (this._contextObserverController.values.get(attr) !== val) return true;
-		}
-		return false;
 	}
 
 	async _handleSlotChange(e) {
-		if (!e.target || !this.shadowRoot) return;
-		const slot = this.shadowRoot.querySelector('slot');
-		const slottedNodes = slot.assignedNodes({ flatten: true });
-
-		if (!this.html && this._hasSlottedElements(slottedNodes)) {
-			this._hasSlottedContent = true;
-			await this._render(e.target);
-		} else {
-			this._hasSlottedContent = false;
-		}
+		if (!e.target || !this.shadowRoot || !this.noDeferredRendering) return;
+		await this._renderInline(e.target);
 	}
 
-	_hasSlottedElements(slottedNodes) {
-		if (!slottedNodes || slottedNodes.length === 0) return false;
-		if (slottedNodes.filter(node => node.nodeType === Node.ELEMENT_NODE || node.textContent).length === 0) return false;
-		return true;
+	async _processEmbeds() {
+		const htmlFragment = document.createRange().createContextualFragment(this.html);
+		await renderEmbeds(htmlFragment);
+		return htmlFragment;
 	}
 
 	async _processRenderers(elem) {
-		await this._contextObserverControllerInitialized;
+		await this._initialContextPromise;
 		const renderers = await getRenderers();
+		const loadingCompletePromises = [];
 		for (const renderer of renderers) {
-			if (renderer.contextAttributes) {
+			if (renderer.contextKeys) {
 				const contextValues = new Map();
-				renderer.contextAttributes.forEach(attr => contextValues.set(attr, this._contextObserverController.values.get(attr)));
+				renderer.contextKeys.forEach(key => contextValues.set(key, this._context.get(key)));
 				await renderer.render(elem, {
 					contextValues: contextValues,
 					noDeferredRendering: this.noDeferredRendering
@@ -311,12 +319,11 @@ class HtmlBlock extends RtlMixin(LitElement) {
 					noDeferredRendering: this.noDeferredRendering
 				});
 			}
+			if (typeof renderer.getLoadingComplete === 'function') {
+				loadingCompletePromises.push(renderer.getLoadingComplete());
+			}
 		}
-	}
-
-	async _render(slot) {
-		if (this.noDeferredRendering) await this._renderInline(slot);
-		else this._stamp(slot);
+		Promise.all(loadingCompletePromises).then(this.resolveLoadingComplete);
 	}
 
 	async _renderInline(slot) {
@@ -326,49 +333,30 @@ class HtmlBlock extends RtlMixin(LitElement) {
 		const noDeferredRenderingContainer = slot.assignedNodes({ flatten: true })
 			.find(node => (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'DIV'));
 
-		if (!noDeferredRenderingContainer) return;
+		if (!noDeferredRenderingContainer) {
+			this.resolveLoadingComplete();
+			return;
+		}
 		await this._processRenderers(noDeferredRenderingContainer);
 	}
 
-	_stamp(slot) {
-		const renderContainer = this.shadowRoot.querySelector('.d2l-html-block-rendered');
-
-		const stampHTML = async nodes => {
-			renderContainer.innerHTML = '';
-			if (!nodes || nodes.length === 0) return;
-
-			// Nodes must be cloned into the render container before processing, as
-			// some renderers require connected nodes (e.g. MathJax).
-			nodes.forEach(node => renderContainer.appendChild(node.cloneNode(true)));
-			await this._processRenderers(renderContainer);
-		};
-
-		if (this._contentObserver) this._contentObserver.disconnect();
-
-		if (!slot) slot = this.shadowRoot.querySelector('slot');
-		const slottedNodes = slot.assignedNodes({ flatten: true });
-
-		this._contentObserver = new MutationObserver(() => stampHTML(slottedNodes));
-		slottedNodes.forEach(
-			node => this._contentObserver.observe(node, { attributes: true, childList: true, subtree: true })
-		);
-
-		stampHTML(slottedNodes);
-	}
-
-	_updateContextKeys() {
-		if (!this._contextObserverController) return;
-		if (!this._contextKeys) this._contextKeys = new Map();
-
-		this._contextObserverController.values.forEach((val, attr) => {
-			this._contextKeys.set(attr, val);
-		});
-	}
-
 	async _updateRenderContainer() {
-		const renderContainer = this.shadowRoot.querySelector('.d2l-html-block-rendered');
-		renderContainer.innerHTML = this.html;
+		const renderContainer = this.shadowRoot?.querySelector('.d2l-html-block-rendered');
+		if (!renderContainer) return;
+		renderContainer.innerHTML = '';
+		renderContainer.append(await this._processEmbeds());
 		await this._processRenderers(renderContainer);
+	}
+
+	_validateHtml() {
+		if (this._validatingHtmlTimeout) clearTimeout(this._validatingHtmlTimeout);
+
+		this._validatingHtmlTimeout = setTimeout(() => {
+			this._validatingHtmlTimeout = undefined;
+			if (this.html && this.noDeferredRendering) {
+				throw new Error('<d2l-html-block>: "html" attribute is not supported with "no-deferred-rendering".');
+			}
+		}, 3000);
 	}
 
 }

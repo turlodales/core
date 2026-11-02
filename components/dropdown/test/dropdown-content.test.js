@@ -1,7 +1,11 @@
+import '../../button/button.js';
 import '../dropdown.js';
 import '../dropdown-content.js';
-import { aTimeout, expect, fixture, html, nextFrame, oneEvent, triggerFocusFor } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import '../dropdown-menu.js';
+import '../../menu/menu.js';
+import '../../menu/menu-item.js';
+import { aTimeout, clickElem, defineCE, expect, fixture, focusElem, html, nextFrame, oneEvent, runConstructor } from '@brightspace-ui/testing';
+import { css, LitElement } from 'lit';
 
 const normalFixture = html`
 	<div>
@@ -17,6 +21,21 @@ const normalFixture = html`
 			<button id="focusable_outside">out here</button>
 		</div>
 	</div>
+`;
+
+const nestedFixture = html`
+	<d2l-dropdown>
+		<button class="d2l-dropdown-opener"></button>
+		<d2l-dropdown-content>
+			<d2l-dropdown>
+				<button class="d2l-dropdown-opener"></button>
+				<d2l-dropdown-content>
+					<p id="non_focusable_inside">a</p>
+					<a id="focusable_inside" href="http://www.desire2learn.com">b</a>
+				</d2l-dropdown-content>
+			</d2l-dropdown>
+		</d2l-dropdown-content>
+	</d2l-dropdown>
 `;
 
 const openOnHoverFixture = html`
@@ -35,6 +54,83 @@ const openOnHoverFixture = html`
 	</div>
 `;
 
+const dropdownWithHeader = html`
+	<div>
+		<div id="optionallyFocusable">
+		<d2l-dropdown>
+					<button class="another-class d2l-dropdown-opener"></button>
+					<d2l-dropdown-content trap-focus>
+						<div slot="header">
+							<a id="focusable_header" href="http://www.desire2learn.com">b</a>
+						</div>
+						<p id="non_focusable_inside">a</p>
+						<a id="focusable_inside" href="http://www.desire2learn.com">b</a>
+					</d2l-dropdown-content>
+				</d2l-dropdown>
+			<p id="non_focusable_outside">c</p>
+			<button id="focusable_outside">out here</button>
+		</div>
+	</div>
+`;
+const dropdownD2LButtonOpener = html`
+	<div>
+		<div id="optionallyFocusable">
+		<d2l-dropdown>
+			<d2l-button class="another-class d2l-dropdown-opener"></d2l-button>
+			<d2l-dropdown-content trap-focus>
+				<div slot="header">
+					<a id="focusable_header" href="http://www.desire2learn.com">b</a>
+				</div>
+				<p id="non_focusable_inside">a</p>
+				<a id="focusable_inside" href="http://www.desire2learn.com">b</a>
+			</d2l-dropdown-content>
+		</d2l-dropdown>
+		</div>
+	</div>
+`;
+
+const menuFixture = html`
+	<div>
+		<div id="optionallyFocusable">
+			<d2l-dropdown>
+				<button class="another-class d2l-dropdown-opener"></button>
+				<d2l-dropdown-menu>
+					<d2l-menu label="Physics Topics">
+						<d2l-menu-item text="Introduction"></d2l-menu-item>
+						<d2l-menu-item text="Matter"></d2l-menu-item>
+						<d2l-menu-item text="Speed"></d2l-menu-item>
+					</d2l-menu>
+				</d2l-dropdown-menu>
+			</d2l-dropdown>
+		</div>
+	</div>
+`;
+
+const wrappedDropdown = defineCE(
+	class extends LitElement {
+		static styles = css`
+			:host { display: inline-block; }
+		`;
+		render() {
+			return html`
+				<div>
+					<div id="optionallyFocusable" tabindex="0">
+						<d2l-dropdown>
+							<button class="another-class d2l-dropdown-opener"></button>
+							<d2l-dropdown-content opened>
+								<p id="non_focusable_inside">a</p>
+								<a id="focusable_inside" href="http://www.desire2learn.com">b</a>
+							</d2l-dropdown-content>
+						</d2l-dropdown>
+						<p id="non_focusable_outside">c</p>
+						<button id="focusable_outside">out here</button>
+					</div>
+				</div>
+			`;
+		}
+	}
+);
+
 describe('d2l-dropdown', () => {
 
 	let dropdown, content;
@@ -42,7 +138,6 @@ describe('d2l-dropdown', () => {
 	beforeEach(async() => {
 		dropdown = await fixture(normalFixture);
 		content = dropdown.querySelector('d2l-dropdown-content');
-		await content.updateComplete;
 	});
 
 	describe('constructor', () => {
@@ -82,7 +177,7 @@ describe('d2l-dropdown', () => {
 			expect(content.opened).to.be.false;
 		});
 
-		it('doesnt fire open event when already opened', async() => {
+		it('does not fire open event when already opened', async() => {
 			content.opened = true;
 			await oneEvent(content, 'd2l-dropdown-open');
 			let hasDuplicateEvent = false;
@@ -92,12 +187,53 @@ describe('d2l-dropdown', () => {
 			expect(hasDuplicateEvent).to.be.false;
 		});
 
-		it('doesnt fire close event when already closed', async() => {
+		it('does not fire close event when already closed', async() => {
 			let hasDuplicateEvent = false;
 			oneEvent(content, 'd2l-dropdown-close').then(() => hasDuplicateEvent = true);
 			content.opened = false;
 			await aTimeout(100);
 			expect(hasDuplicateEvent).to.be.false;
+		});
+
+		it('does not fire open event on outer dropdown when nested dropdown is opened', async() => {
+			dropdown = await fixture(nestedFixture);
+
+			const outerContent = dropdown.querySelector('d2l-dropdown-content');
+			outerContent.opened = true;
+			await oneEvent(outerContent, 'd2l-dropdown-open');
+
+			let dispatchedFromInnerOnly = true;
+			const innerContent = outerContent.querySelector('d2l-dropdown-content');
+			outerContent.addEventListener('d2l-dropdown-open', e => {
+				if (e.target !== innerContent) dispatchedFromInnerOnly = false;
+			});
+
+			innerContent.opened = true;
+			await aTimeout(100);
+
+			expect(dispatchedFromInnerOnly).to.be.true;
+		});
+
+		it('does not fire close event on outer dropdown when nested dropdown is closed', async() => {
+			dropdown = await fixture(nestedFixture);
+
+			const outerContent = dropdown.querySelector('d2l-dropdown-content');
+			outerContent.opened = true;
+			await oneEvent(outerContent, 'd2l-dropdown-open');
+
+			const innerContent = outerContent.querySelector('d2l-dropdown-content');
+			innerContent.opened = true;
+			await oneEvent(innerContent, 'd2l-dropdown-open');
+
+			let dispatchedFromInnerOnly = true;
+			outerContent.addEventListener('d2l-dropdown-close', e => {
+				if (e.target !== innerContent) dispatchedFromInnerOnly = false;
+			});
+
+			innerContent.opened = false;
+			await aTimeout(100);
+
+			expect(dispatchedFromInnerOnly).to.be.true;
 		});
 
 	});
@@ -162,24 +298,6 @@ describe('d2l-dropdown', () => {
 		});
 	});
 
-	describe('scrollTo', () => {
-		it('sets scrollTop to specified value', async() => {
-
-			content.boundary = {
-				below: 11,
-				above: 11
-			};
-			content.opened = true;
-
-			await oneEvent(content, 'd2l-dropdown-position');
-
-			expect(content.__content.scrollTop).to.equal(0);
-			content.scrollTo(1);
-			// Rounded because on systems using display scaling, scrollTop may give you a decimal value.
-			expect(Math.round(content.__content.scrollTop)).to.equal(1);
-		});
-	});
-
 	describe('auto-focus', () => {
 
 		it('focuses on descendant when opened', async() => {
@@ -206,7 +324,7 @@ describe('d2l-dropdown', () => {
 			content.setAttribute('opened', true);
 			await oneEvent(content, 'd2l-dropdown-open');
 			await nextFrame();
-			await triggerFocusFor(dropdown.querySelector('#focusable_outside'));
+			setTimeout(() => focusElem(dropdown.querySelector('#focusable_outside')));
 			await oneEvent(content, 'd2l-dropdown-close');
 			expect(content.opened).to.be.false;
 		});
@@ -243,7 +361,7 @@ describe('d2l-dropdown', () => {
 			await oneEvent(content, 'd2l-dropdown-open');
 			await nextFrame();
 
-			await triggerFocusFor(dropdown.querySelector('#focusable_outside'));
+			await focusElem(dropdown.querySelector('#focusable_outside'));
 			await aTimeout(100);
 			expect(content.opened).to.be.true;
 		});
@@ -253,7 +371,7 @@ describe('d2l-dropdown', () => {
 			await oneEvent(content, 'd2l-dropdown-open');
 			await nextFrame();
 
-			await triggerFocusFor(content.querySelector('#focusable_inside'));
+			await focusElem(content.querySelector('#focusable_inside'));
 			await aTimeout(100);
 			expect(content.opened).to.be.true;
 		});
@@ -267,7 +385,7 @@ describe('d2l-dropdown', () => {
 			// which causes focus to be lost and activeElement to become
 			// document.body
 			document.body.setAttribute('tabindex', '-1');
-			await triggerFocusFor(document.body);
+			await focusElem(document.body);
 			await aTimeout(100);
 			expect(content.opened).to.be.true;
 		});
@@ -283,9 +401,15 @@ describe('d2l-dropdown', () => {
 			// this simulates a click on an element inside the dropdown,
 			// which causes focus to be lost and activeElement to become
 			// the focusable ancestor of the dropdown
-			await triggerFocusFor(focusableAncestor);
+			await focusElem(focusableAncestor);
 			await aTimeout(100);
 			expect(content.opened).to.be.true;
+		});
+
+		it('should not close when activeElement becomes focusable ancestor when in a custom element', async() => {
+			const elem = await fixture(`<${wrappedDropdown}></${wrappedDropdown}>`);
+			await clickElem(elem.shadowRoot.querySelector('#non_focusable_inside'));
+			expect(elem.shadowRoot.querySelector('d2l-dropdown-content').opened).to.be.true;
 		});
 
 		[
@@ -304,7 +428,6 @@ describe('d2l-dropdown', () => {
 						</d2l-dropdown-content>
 					</d2l-dropdown>`);
 				content = dropdown.querySelector('d2l-dropdown-content');
-				await content.updateComplete;
 
 				content.setAttribute('opened', true);
 				await oneEvent(content, 'd2l-dropdown-open');
@@ -326,32 +449,11 @@ describe('d2l-dropdown', () => {
 			expect(content.opened).to.be.true;
 		});
 
-		it('should focus on container when opened and no focusable light descendant exists', async() => {
-			content.querySelector('#focusable_inside').setAttribute('tabindex', '-1');
-			content.setAttribute('opened', true);
-
-			await oneEvent(content, 'd2l-dropdown-open');
-			const contentContainer = content.getContentContainer();
-			expect(contentContainer.getAttribute('tabindex')).to.equal('-1');
-			if (content.shadowRoot) {
-				expect(document.activeElement).to.equal(content);
-				expect(content.shadowRoot.activeElement).to.equal(contentContainer);
-			} else {
-				expect(document.activeElement).to.equal(contentContainer);
-			}
-		});
-
 	});
 
 	describe('aria-expanded', () => {
-
-		let opener;
-
-		beforeEach(async() => {
-			opener = dropdown.querySelector('.d2l-dropdown-opener');
-		});
-
-		it('should set aria-expanded on the opener', async() => {
+		it('should set aria-expanded on button openers', async() => {
+			const opener = dropdown.querySelector('.d2l-dropdown-opener');
 			content.setAttribute('opened', true);
 			await oneEvent(content, 'd2l-dropdown-open');
 			await opener.updateComplete;
@@ -362,6 +464,38 @@ describe('d2l-dropdown', () => {
 			await opener.updateComplete;
 			expect(opener.getAttribute('aria-expanded')).to.equal('false');
 		});
+
+		it('should set expanded on ButtonMixin openers', async() => {
+			const dropdown = await fixture(dropdownD2LButtonOpener);
+			const content = dropdown.querySelector('d2l-dropdown-content');
+			const opener = dropdown.querySelector('.d2l-dropdown-opener');
+
+			content.setAttribute('opened', true);
+			await oneEvent(content, 'd2l-dropdown-open');
+			await opener.updateComplete;
+			expect(opener.getAttribute('expanded')).to.equal('true');
+
+			setTimeout(() => content.removeAttribute('opened'));
+			await oneEvent(content, 'd2l-dropdown-close');
+			await opener.updateComplete;
+			expect(opener.getAttribute('expanded')).to.equal('false');
+		});
+	});
+
+	describe('aria-haspopup', () => {
+		it('should set aria-haspopup on button openers', async() => {
+			const opener = dropdown.querySelector('.d2l-dropdown-opener');
+			await opener.updateComplete;
+			expect(opener.getAttribute('aria-haspopup')).to.equal('true');
+		});
+
+		it('should set aria-haspopup menu on menu dropdown', async() => {
+			const elem = await fixture(menuFixture);
+			const opener = elem.querySelector('.d2l-dropdown-opener');
+
+			await opener.updateComplete;
+			expect(opener.getAttribute('aria-haspopup')).to.equal('menu');
+		});
 	});
 
 	describe('vertical-offset', () => {
@@ -369,13 +503,13 @@ describe('d2l-dropdown', () => {
 		it('vertical offset should update if set without px', async() => {
 			content.setAttribute('vertical-offset', 100);
 			await nextFrame();
-			expect(content.style.getPropertyValue('--d2l-dropdown-verticaloffset')).to.equal('100px');
+			expect(content._offset).to.equal(100);
 		});
 
 		it('vertical offset should update if set with px', async() => {
 			content.setAttribute('vertical-offset', '50px');
 			await nextFrame();
-			expect(content.style.getPropertyValue('--d2l-dropdown-verticaloffset')).to.equal('50px');
+			expect(content._offset).to.equal(50);
 		});
 
 		it('vertical offset should default to 16 if removed', async() => {
@@ -383,13 +517,13 @@ describe('d2l-dropdown', () => {
 			await nextFrame();
 			content.removeAttribute('vertical-offset');
 			await nextFrame();
-			expect(content.style.getPropertyValue('--d2l-dropdown-verticaloffset')).to.equal('16px');
+			expect(content._offset).to.equal(16);
 		});
 
 		it('vertical offset should default to 16 if set to an invalid number', async() => {
 			content.setAttribute('vertical-offset', 'thisisnotasize');
 			await nextFrame();
-			expect(content.style.getPropertyValue('--d2l-dropdown-verticaloffset')).to.equal('16px');
+			expect(content._offset).to.equal(16);
 		});
 
 	});
@@ -422,6 +556,19 @@ describe('d2l-dropdown', () => {
 			await focusTrap.updateComplete;
 			expect(focusTrap.trap).to.be.false;
 		});
+
+		it('should focus the first focusable element when entered', async() => {
+			const dropdownFixture = await fixture(dropdownWithHeader);
+			const dropdown = dropdownFixture.querySelector('d2l-dropdown-content');
+			dropdown.setAttribute('opened', true);
+			await oneEvent(dropdown, 'd2l-dropdown-open');
+
+			// Need to wait 2 frames for focus trap focus
+			await nextFrame();
+			await nextFrame();
+			expect(document.activeElement).to.equal(dropdown.querySelector('#focusable_header'));
+		});
+
 	});
 
 	describe('open-on-hover option', () => {
@@ -433,7 +580,6 @@ describe('d2l-dropdown', () => {
 			content = dropdown.querySelector('d2l-dropdown-content');
 			dropdownOpener = dropdown.querySelector('d2l-dropdown');
 			opener = dropdown.querySelector('.d2l-dropdown-opener');
-			await content.updateComplete;
 		});
 
 		it('gets opener when the opener has multiple classes', () => {
@@ -620,7 +766,7 @@ describe('d2l-dropdown', () => {
 				content.setAttribute('opened', true);
 				await oneEvent(content, 'd2l-dropdown-open');
 				await nextFrame();
-				await triggerFocusFor(dropdown.querySelector('#focusable_outside'));
+				setTimeout(() => focusElem(dropdown.querySelector('#focusable_outside')));
 				await oneEvent(content, 'd2l-dropdown-close');
 				expect(content.opened).to.be.false;
 			});

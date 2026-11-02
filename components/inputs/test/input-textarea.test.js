@@ -1,6 +1,5 @@
 import '../input-textarea.js';
-import { expect, fixture, html, oneEvent } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import { expect, fixture, html, oneEvent, runConstructor } from '@brightspace-ui/testing';
 
 const normalFixture = html`<d2l-input-textarea label="label"></d2l-input-textarea>`;
 
@@ -71,7 +70,7 @@ describe('d2l-input-textarea', () => {
 			elem.required = true;
 
 			const errors = await elem.validate();
-			expect(errors).to.contain('label is required.');
+			expect(errors).to.contain('label is required');
 		});
 
 		it('should be valid when required has value', async() => {

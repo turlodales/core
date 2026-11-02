@@ -1,12 +1,3 @@
-// needed for legacy-Edge, after it's removed use CSS.escape directly
-export function cssEscape(val) {
-	if (window.CSS && window.CSS.escape) {
-		return window.CSS.escape(val);
-	}
-	val = val.replace(/\$/g, '\\$');
-	return val;
-}
-
 export function elemIdListAdd(elem, attrName, value) {
 
 	if (elem === undefined || elem === null || !elem.getAttribute || !elem.setAttribute) {
@@ -64,6 +55,19 @@ export function findComposedAncestor(node, predicate) {
 	return null;
 }
 
+export function getScrollableAncestor(node) {
+	return findComposedAncestor(node, (el) => {
+		if (el.nodeType !== Node.ELEMENT_NODE) return false;
+		if (el === document.body) return true;
+		const styles = getComputedStyle(el);
+		const overflowY = styles.getPropertyValue('overflow-y');
+		const overflowX = styles.getPropertyValue('overflow-x');
+		const overflow = styles.getPropertyValue('overflow');
+		const overflowValues = ['auto', 'scroll'];
+		return (overflowValues.includes(overflowY) || overflowValues.includes(overflowX) || overflowValues.includes(overflow));
+	});
+}
+
 export function getBoundingAncestor(node) {
 	return findComposedAncestor(node, (node) => {
 		if (node === document.body) return false;
@@ -79,37 +83,90 @@ export function getBoundingAncestor(node) {
 	});
 }
 
-export function getComposedChildren(node) {
+function getComposedChildNodes(node, { elementsOnly = false, predicate } = {}) {
 
-	if (!node) {
-		return null;
-	}
-	if (node.nodeType !== 1 && node.nodeType !== 9 && node.nodeType !== 11) {
+	if (!node) return null;
+
+	if (node.nodeType !== Node.ELEMENT_NODE
+		&& node.nodeType !== Node.DOCUMENT_NODE
+		&& node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
 		return null;
 	}
 
 	let nodes;
-	const children = [];
+	const filteredNodes = [];
 
 	if (node.tagName === 'CONTENT') {
 		nodes = node.getDistributedNodes();
 	} else if (node.tagName === 'SLOT') {
-		nodes = node.assignedNodes({ flatten: true });
+		// note: this is not handling default slot content
+		nodes = elementsOnly ? node.assignedElements({ flatten: true }) : node.assignedNodes({ flatten: true });
 	} else {
-		if (node.shadowRoot) {
-			node = node.shadowRoot;
-		}
-		nodes = node.children || node.childNodes;
+		if (node.shadowRoot) node = node.shadowRoot;
+		nodes = elementsOnly ? node.children : node.childNodes;
 	}
 
 	for (let i = 0; i < nodes.length; i++) {
-		if (nodes[i].nodeType === 1) {
-			children.push(nodes[i]);
+		// need to check nodeType since old Polymer getDistributedNodes could return non-elements
+		if (!elementsOnly || nodes[i].nodeType === Node.ELEMENT_NODE) {
+			if (!predicate || predicate(nodes[i])) filteredNodes.push(nodes[i]);
 		}
 	}
 
-	return children;
+	return filteredNodes;
+}
 
+export function getComposedChildren(node, predicate) {
+	return getComposedChildNodes(node, { elementsOnly: true, predicate });
+}
+
+function getComposedElementSibling(node, { direction = 'next', predicate } = {}) {
+
+	if (!node || node.nodeType === undefined) return null;
+
+	const parentNode = getComposedParent(node);
+	if (!parentNode) return null;
+
+	// for regular parents this is child elements; for SLOT this is distributed elements
+	const composedChildNodes = getComposedChildNodes(parentNode, { elementsOnly: (node.nodeType === Node.ELEMENT_NODE) });
+
+	if (!composedChildNodes || composedChildNodes.length === 0) return null;
+
+	const index = composedChildNodes.indexOf(node);
+	if (index === -1) return null;
+
+	if (direction === 'previous') {
+		for (let i = index - 1; i >= 0; i--) {
+			if (composedChildNodes[i].nodeType === Node.ELEMENT_NODE && (!predicate || predicate(composedChildNodes[i]))) {
+				return composedChildNodes[i];
+			}
+		}
+	} else {
+		for (let i = index + 1; i < composedChildNodes.length; i++) {
+			if (composedChildNodes[i].nodeType === Node.ELEMENT_NODE && (!predicate || predicate(composedChildNodes[i]))) {
+				return composedChildNodes[i];
+			}
+		}
+	}
+
+	return null;
+}
+
+export function getComposedNextAncestorElementSibling(node, { predicate } = {}) {
+
+	let parentNode = getComposedParent(node);
+
+	while (parentNode) {
+		const nextParentSibling = getComposedNextElementSibling(parentNode, { predicate });
+		if (nextParentSibling) return nextParentSibling;
+		parentNode = getComposedParent(parentNode);
+	}
+
+	return null;
+}
+
+export function getComposedNextElementSibling(node, { predicate } = {}) {
+	return getComposedElementSibling(node, { direction: 'next', predicate });
 }
 
 export function getComposedParent(node) {
@@ -135,28 +192,21 @@ export function getComposedParent(node) {
 
 }
 
-export function getNextAncestorSibling(node, predicate = () => true) {
+export function getComposedPreviousAncestorElementSibling(node, { predicate } = {}) {
+
 	let parentNode = getComposedParent(node);
 
 	while (parentNode) {
-		const nextParentSibling = parentNode.nextElementSibling;
-		if (nextParentSibling && predicate(nextParentSibling)) return nextParentSibling;
+		const previousParentSibling = getComposedPreviousElementSibling(parentNode, { predicate });
+		if (previousParentSibling) return previousParentSibling;
 		parentNode = getComposedParent(parentNode);
 	}
 
 	return null;
 }
 
-export function getPreviousAncestorSibling(node, predicate = () => true) {
-	let parentNode = getComposedParent(node);
-
-	while (parentNode) {
-		const previousParentSibling = parentNode.previousElementSibling;
-		if (previousParentSibling && predicate(previousParentSibling)) return previousParentSibling;
-		parentNode = getComposedParent(parentNode);
-	}
-
-	return null;
+export function getComposedPreviousElementSibling(node, { predicate } = {}) {
+	return getComposedElementSibling(node, { direction: 'previous', predicate });
 }
 
 export function getOffsetParent(node) {
@@ -204,7 +254,7 @@ export function isComposedAncestor(ancestorNode, node) {
 	}) !== null;
 }
 
-export function isVisible(node) {
+export function isVisible(node, { checkAncestors = true } = {}) {
 
 	/* this helper is different from checking offsetParent because offsetParent
 	returns null for fixed position elements regardless of visibility */
@@ -213,7 +263,7 @@ export function isVisible(node) {
 
 	if (!node.host) {
 		if (node.style === undefined) return true;
-		if (node.style.display === 'none') 	return false;
+		if (node.style.display === 'none') return false;
 		if (node.style.visibility === 'hidden') return false;
 
 		const computedStyle = window.getComputedStyle(node, null);
@@ -221,16 +271,27 @@ export function isVisible(node) {
 		if (computedStyle.getPropertyValue('visibility') === 'hidden') return false;
 	}
 
-	const parentNode = getComposedParent(node);
-	if (parentNode) return isVisible(parentNode);
+	if (checkAncestors) {
+		const parentNode = getComposedParent(node);
+		if (parentNode) return isVisible(parentNode);
+	}
 
 	return true;
 
 }
 
+export function getFirstVisibleAncestor(node) {
+	let hiddenAncestor = findComposedAncestor(node, n => !isVisible(n, { checkAncestors: false }));
+	while (hiddenAncestor) {
+		node = getComposedParent(hiddenAncestor);
+		hiddenAncestor = findComposedAncestor(node, n => !isVisible(n, { checkAncestors: false }));
+	}
+	return node;
+}
+
 export function querySelectorComposed(node, selector) {
 
-	if (!node || (node.nodeType !== 1 && node.nodeType !== 9 && node.nodeType !== 11)) {
+	if (!node || (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE)) {
 		throw new TypeError('Invalid node. Must be nodeType document, element or document fragment');
 	}
 	if (typeof selector !== 'string') {
@@ -249,4 +310,42 @@ export function querySelectorComposed(node, selector) {
 	}
 
 	return null;
+}
+
+const resizeNoopEventListener = new Set();
+const resizeNoopRect = {};
+
+if (globalThis.addEventListener) {
+	globalThis.addEventListener('resize', e => {
+		if (resizeNoopEventListener.size === 0) return;
+
+		const frameElement = e.target.frameElement;
+		if (frameElement?.classList.contains('d2l-iframe-fit-user-content')) {
+			// ignore if the iframe is spamming no-op resize events
+			if (resizeNoopRect.height === frameElement.scrollHeight && resizeNoopRect.width === frameElement.scrollWidth) {
+				return;
+			}
+			resizeNoopRect.height = frameElement.scrollHeight;
+			resizeNoopRect.width = frameElement.scrollWidth;
+		}
+
+		resizeNoopEventListener.forEach(listener => {
+			listener(e);
+		});
+	});
+}
+
+export function addResizeNoopEventListener(listener) {
+	resizeNoopEventListener.add(listener);
+	resizeNoopRect.height = null;
+	resizeNoopRect.width = null;
+}
+
+export function removeResizeNoopEventListener(listener) {
+	resizeNoopEventListener.delete(listener);
+}
+
+// testing only
+export function clearResizeNoopEventListeners() {
+	resizeNoopEventListener.clear();
 }

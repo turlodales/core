@@ -1,10 +1,11 @@
-import { LocalizeDynamicMixin } from '../mixins/localize-dynamic-mixin.js';
+import { LocalizeMixin } from '../mixins/localize/localize-mixin.js';
 
-export const LocalizeCoreElement = superclass => class extends LocalizeDynamicMixin(superclass) {
+export const LocalizeCoreElement = superclass => class extends LocalizeMixin(superclass) {
 
 	static get localizeConfig() {
 		return {
-			importFunc: async lang => (await import(`../lang/${lang}.js`)).default
+			importFunc: async lang => (await import(`../lang/${lang}.js`)).default,
+			loadCommon: true
 		};
 	}
 

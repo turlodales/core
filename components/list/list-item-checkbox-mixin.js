@@ -2,56 +2,65 @@ import '../selection/selection-input.js';
 import { css, html, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { getUniqueId } from '../../helpers/uniqueId.js';
-import { LabelledMixin } from '../../mixins/labelled-mixin.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { isInteractiveInListItemComposedPath } from './list-item-mixin.js';
 import { SelectionInfo } from '../selection/selection-mixin.js';
 import { SkeletonMixin } from '../skeleton/skeleton-mixin.js';
 
-/**
- * @property label - The hidden label for the checkbox if selectable
- */
-export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(LabelledMixin(superclass)) {
+export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(superclass) {
 
-	static get properties() {
-		return {
-			/**
-			 * **Selection:** Disables the input
-			 * @type {boolean}
-			 */
-			disabled: { type: Boolean },
-			/**
-			 * **Selection:** Value to identify item if selectable
-			 * @type {string}
-			 */
-			key: { type: String, reflect: true },
-			/**
-			 * **Selection:** Indicates an input should be rendered for selecting the item
-			 * @type {boolean}
-			 */
-			selectable: { type: Boolean },
-			/**
-			 * **Selection:** Whether the item is selected
-			 * @type {boolean}
-			 */
-			selected: { type: Boolean, reflect: true },
-			/**
-			 * Private. The selection info (set by the selection component).
-			 * @ignore
-			 */
-			selectionInfo: { type: Object, attribute: false }
-		};
-	}
+	static properties = {
+		/**
+		 * **Selection:** Disables selection
+		 * @type {boolean}
+		 */
+		selectionDisabled: { type: Boolean, attribute: 'selection-disabled', reflect: true },
+		/**
+		 * **Selection:** Tooltip text when selection is disabled
+		 * @type {string}
+		 */
+		selectionDisabledTooltip: { type: String, attribute: 'selection-disabled-tooltip' },
+		/**
+		 * **Selection:** Value to identify item if selectable
+		 * @type {string}
+		 */
+		key: { type: String, reflect: true },
+		/**
+		 * **Selection:** Indicates an input should be rendered for selecting the item
+		 * @type {boolean}
+		 */
+		selectable: { type: Boolean },
+		/**
+		 * **Selection:** Whether the item is selected
+		 * @type {boolean}
+		 */
+		selected: { type: Boolean, reflect: true },
+		/**
+		 * Private. The selection info (set by the selection component).
+		 * @ignore
+		 */
+		selectionInfo: { type: Object, attribute: false },
+		_hoveringSelection: { type: Boolean, attribute: '_hovering-selection', reflect: true }
+	};
 
 	static get styles() {
-		const styles = [ css`
+		const styles = [css`
 			.d2l-checkbox-action {
 				cursor: pointer;
 				display: block;
 				height: 100%;
 			}
-			.d2l-checkbox-action.d2l-checkbox-action-disabled {
-				cursor: default;
+			:host([selection-disabled]) [slot="control-action"] {
+				pointer-events: none;
 			}
-		` ];
+			:host([selection-disabled]) [slot="control"],
+			:host([selection-disabled]) [slot="control-action"] [slot="content"] {
+				pointer-events: all;
+			}
+			:host([layout="tile"]) .bump-inline {
+				margin-inline-start: 2rem !important;
+			}
+		`];
 
 		super.styles && styles.unshift(super.styles);
 		return styles;
@@ -59,9 +68,9 @@ export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(L
 
 	constructor() {
 		super();
-		this.disabled = false;
 		this.selectable = false;
 		this.selected = false;
+		this.selectionDisabled = false;
 		this.selectionInfo = new SelectionInfo();
 		this._checkboxId = getUniqueId();
 	}
@@ -74,7 +83,9 @@ export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(L
 		const oldVal = this._selectionInfo;
 		if (oldVal !== val) {
 			this._selectionInfo = val;
-			this.setSelected(this._selectionInfo.state === SelectionInfo.states.all);
+			if (this._selectionInfo.state !== SelectionInfo.states.notSet) {
+				this.setSelected(this._selectionInfo.state === SelectionInfo.states.all);
+			}
 			this.requestUpdate('selectionInfo', oldVal);
 		}
 	}
@@ -83,8 +94,6 @@ export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(L
 		super.connectedCallback();
 		if (this.selectable) {
 			if (!this.key) console.warn('ListItemCheckboxMixin requires a key.');
-		} else {
-			this.labelRequired = false;
 		}
 		if (!this.key) this.setSelected(undefined, true);
 	}
@@ -92,7 +101,14 @@ export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(L
 	updated(changedProperties) {
 		super.updated(changedProperties);
 		if (!this._selectionProvider || !changedProperties.has('selectionInfo')) return;
-		this.selected = (this.selectionInfo.state === SelectionInfo.states.all);
+		if (this.selectionInfo.state !== SelectionInfo.states.notSet) {
+			this.selected = (this.selectionInfo.state === SelectionInfo.states.all);
+		}
+	}
+
+	willUpdate(changedProperties) {
+		super.willUpdate(changedProperties);
+		if (changedProperties.has('selectionDisabled') && this.selectionDisabled === true) this._hoveringSelection = false;
 	}
 
 	setSelected(selected, suppressEvent = false) {
@@ -115,7 +131,10 @@ export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(L
 
 	_onCheckboxActionClick(event) {
 		event.preventDefault();
-		if (this.disabled) return;
+		if (this.selectionDisabled) return;
+		const isPrimaryAction = (elem) => elem === this.shadowRoot.querySelector('div.d2l-checkbox-action');
+		if (isInteractiveInListItemComposedPath(event, isPrimaryAction)) return;
+
 		this.setSelected(!this.selected);
 		const checkbox = this.shadowRoot && this.shadowRoot.querySelector(`#${this._checkboxId}`);
 		if (checkbox) checkbox.focus();
@@ -130,7 +149,15 @@ export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(L
 		}
 	}
 
-	_onNestedSlotChange() {
+	_onMouseEnterSelection() {
+		this._hoveringSelection = !this.selectionDisabled;
+	}
+
+	_onMouseLeaveSelection() {
+		this._hoveringSelection = false;
+	}
+
+	_onNestedSlotChangeCheckboxMixin() {
 		this._updateNestedSelectionProvider();
 	}
 
@@ -140,37 +167,41 @@ export const ListItemCheckboxMixin = superclass => class extends SkeletonMixin(L
 	}
 
 	_renderCheckbox() {
+		const classes = {
+			'bump-inline': this._keyboardActive
+		};
 		return this.selectable ? html`
 			<d2l-selection-input
 				@d2l-selection-change="${this._onCheckboxChange}"
-				?selected="${this.selected}"
-				?disabled="${this.disabled}"
+				?disabled="${this.selectionDisabled}"
+				disabled-tooltip=${this.selectionDisabledTooltip}
+				.hovering="${this._hoveringSelection}"
 				id="${this._checkboxId}"
 				?_indeterminate="${this.selectionInfo.state === SelectionInfo.states.some}"
 				key="${this.key}"
 				label="${this.label}"
+				@mouseenter="${this._onMouseEnterSelection}"
+				@mouseleave="${this._onMouseLeaveSelection}"
+				?selected="${this.selected}"
 				?skeleton="${this.skeleton}"
-				.hovering="${this._hovering}">
+				class=${classMap(classes)}>
 			</d2l-selection-input>
 		` : nothing;
 	}
 
 	_renderCheckboxAction(inner) {
-		const classes = {
-			'd2l-checkbox-action': true,
-			'd2l-checkbox-action-disabled': this.disabled
-		};
 		return this.selectable ? html`
-			<div @click="${this._onCheckboxActionClick}"
-				class="${classMap(classes)}">
+			<div class="d2l-checkbox-action"
+				aria-hidden="${ifDefined(inner ? undefined : 'true')}"
+				@click="${this._onCheckboxActionClick}"
+				@mouseenter="${this._onMouseEnterSelection}"
+				@mouseleave="${this._onMouseLeaveSelection}">
 				${inner}
 			</div>
 			` : nothing;
 	}
 
 	_updateNestedSelectionProvider() {
-		if (!this.selectable) return;
-
 		const nestedList = this._getNestedList();
 		if (this._selectionProvider === nestedList) return;
 

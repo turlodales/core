@@ -1,7 +1,6 @@
-import '../form-errory-summary.js';
-import { expect, fixture } from '@open-wc/testing';
+import '../form-error-summary.js';
+import { expect, fixture, runConstructor } from '@brightspace-ui/testing';
 import { html } from 'lit';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
 
 const errorSummaryFixture = html`<d2l-form-error-summary></d2l-form-error-summary>`;
 
@@ -23,8 +22,7 @@ describe('d2l-form-error-summary', () => {
 
 	describe('focus', () => {
 
-		// flaky on Firefox
-		it.skip('should focus first error', async() => {
+		it('should focus first error', async() => {
 			errorSummary.errors = [
 				{ href: '#first-error', message: 'An error occured' },
 				{ href: '#second-error', message: 'A different error occured' }

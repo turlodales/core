@@ -1,92 +1,172 @@
-import '../colors/colors.js';
-import { css } from 'lit';
+import { css, unsafeCSS } from 'lit';
+import { _isValidCssSelector } from '../../helpers/internal/css.js';
+import { registerSemanticVariableForSvgImageUrl } from '../colors/colors.js';
 
-export const radioStyles = css`
-	.d2l-input-radio,
-	.d2l-input-radio-label > input[type="radio"] {
-		-webkit-appearance: none;
-		-moz-appearance: none;
-		appearance: none;
-		background-position: center center;
-		background-repeat: no-repeat;
-		background-size: 0.5rem 0.5rem;
-		border-radius: 50%;
-		border-style: solid;
-		box-sizing: border-box;
-		display: inline-block;
-		height: 1.2rem;
-		margin: 0;
-		padding: 0;
-		vertical-align: middle;
-		width: 1.2rem;
+registerSemanticVariableForSvgImageUrl(
+	'--d2l-input-radio-check-image',
+	`<svg width="10" height="10" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
+		<circle cx="5" cy="5" r="5" fill="var(--d2l-theme-icon-color-standard)"></circle>
+	</svg>`
+);
+
+function _getRadioStyleSelectors(inputSelectors) {
+	const parseAndJoin = selectors => unsafeCSS(selectors.map(s => s.trim()).join(',\n'));
+	return {
+		simple: parseAndJoin(inputSelectors),
+		checked: parseAndJoin(inputSelectors.map(s => `
+			${s}[aria-checked="true"],
+			${s}:checked
+		`)),
+		checkedAfter: parseAndJoin(inputSelectors.map(s => `
+			${s}[aria-checked="true"]::after,
+			${s}:checked::after
+		`)),
+		hoverFocus: parseAndJoin(inputSelectors.map(s => `
+			${s}.d2l-hovering,
+			${s}:not(.d2l-input-radio-disabled-tooltip):not(:disabled):not(.d2l-disabled):hover,
+			${s}:not(.d2l-input-radio-disabled-tooltip):not(:disabled):not(.d2l-disabled):focus,
+			${s}.d2l-input-radio-disabled-tooltip:hover,
+			${s}.d2l-input-radio-disabled-tooltip:focus
+		`)),
+		invalid: parseAndJoin(inputSelectors.map(s => `
+			${s}[aria-invalid="true"]
+		`)),
+		disabled: parseAndJoin(inputSelectors.map(s => `
+			${s}:disabled,
+			${s}.d2l-disabled
+		`)),
+		disabledTooltip: parseAndJoin(inputSelectors.map(s => `
+			${s}.d2l-input-radio-disabled-tooltip.d2l-hovering,
+			${s}.d2l-input-radio-disabled-tooltip:hover,
+			${s}.d2l-input-radio-disabled-tooltip:focus
+		`))
+	};
+}
+
+/**
+ * A private helper method that should not be used by general consumers
+ */
+export function _generateRadioStyles(selector, containerSelector) {
+	if (!_isValidCssSelector(selector) || (containerSelector && !_isValidCssSelector(containerSelector))) return;
+	const inputSelectors = [selector];
+	if (containerSelector) {
+		inputSelectors.push(`${containerSelector} > input[type="radio"]`);
+		containerSelector = unsafeCSS(containerSelector);
 	}
-	.d2l-input-radio[aria-checked="true"],
-	.d2l-input-radio:checked,
-	.d2l-input-radio-label > input[type="radio"]:checked {
-		background-image: url("data:image/svg+xml,%3Csvg%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%2010%2010%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%09%3Ccircle%20cx%3D%225%22%20cy%3D%225%22%20r%3D%225%22%20fill%3D%22%23494c4e%22%3E%3C/circle%3E%0A%3C/svg%3E");
-	}
-	.d2l-input-radio,
-	.d2l-input-radio:hover:disabled,
-	.d2l-input-radio:hover.d2l-disabled,
-	.d2l-input-radio-label > input[type="radio"],
-	.d2l-input-radio-label > input[type="radio"]:hover:disabled {
-		background-color: var(--d2l-color-regolith);
-		border-color: var(--d2l-color-galena);
-		border-width: 1px;
-	}
-	.d2l-input-radio.d2l-hovering,
-	.d2l-input-radio:hover,
-	.d2l-input-radio:focus,
-	.d2l-input-radio-label > input[type="radio"]:hover,
-	.d2l-input-radio-label > input[type="radio"]:focus {
-		border-color: var(--d2l-color-celestine);
-		border-width: 2px;
-		outline: none;
-	}
-	.d2l-input-radio[aria-invalid="true"],
-	.d2l-input-radio-label > input[type="radio"][aria-invalid="true"] {
-		border-color: var(--d2l-color-cinnabar);
-	}
-	.d2l-input-radio:disabled,
-	.d2l-input-radio.d2l-disabled,
-	.d2l-input-radio-label > input[type="radio"]:disabled {
-		opacity: 0.5;
-	}
-	.d2l-input-radio-label {
-		align-items: center;
-		color: var(--d2l-color-ferrite);
-		display: flex;
-		font-size: 0.8rem;
-		font-weight: 400;
-		line-height: 1.2rem;
-		margin-bottom: 0.9rem;
-		padding-left: 1.7rem;
-		padding-right: 0;
-		vertical-align: middle;
-	}
-	:host([dir="rtl"]) .d2l-input-radio-label {
-		padding-left: 0;
-		padding-right: 1.7rem;
-	}
-	.d2l-input-radio-label-disabled {
-		opacity: 0.5;
-	}
-	.d2l-input-radio-label-disabled > .d2l-input-radio,
-	.d2l-input-radio-label-disabled > input[type="radio"] {
-		opacity: 1;
-	}
-	.d2l-input-radio-label:last-of-type {
-		margin-bottom: 0;
-	}
-	.d2l-input-radio-label > .d2l-input-radio,
-	.d2l-input-radio-label > input[type="radio"] {
-		flex: 0 0 auto;
-		margin-left: -1.7rem;
-		margin-right: 0.5rem;
-	}
-	:host([dir="rtl"]) .d2l-input-radio-label > .d2l-input-radio,
-	:host([dir="rtl"]) .d2l-input-radio-label > input[type="radio"] {
-		margin-left: 0.5rem;
-		margin-right: -1.7rem;
-	}
-`;
+	const selectors = _getRadioStyleSelectors(inputSelectors);
+
+	return css`
+		${selectors.simple} {
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;
+			background-color: var(--d2l-theme-background-color-interactive-faint-default);
+			background-position: center center;
+			background-repeat: no-repeat;
+			background-size: 0.5rem 0.5rem;
+			border: 1px solid var(--d2l-theme-border-color-emphasized);
+			border-radius: 50%;
+			box-sizing: border-box;
+			display: inline-block;
+			height: 1.2rem;
+			margin: 0;
+			outline: none;
+			padding: 0;
+			vertical-align: middle;
+			width: 1.2rem;
+		}
+		${selectors.checked} {
+			background-image: var(--d2l-input-radio-check-image);
+		}
+		${selectors.hoverFocus} {
+			border: 2px solid var(--d2l-input-radio-border-color-hover-focus, var(--d2l-theme-border-color-focus));
+		}
+		${selectors.invalid} {
+			--d2l-input-radio-border-color-hover-focus: var(--d2l-theme-status-color-error);
+			border-color: var(--d2l-theme-status-color-error);
+		}
+		${selectors.disabled} {
+			opacity: var(--d2l-theme-opacity-disabled-control);
+		}
+
+		${selectors.disabledTooltip} {
+			background-blend-mode: lighten;
+			background-color: var(--d2l-theme-background-color-interactive-faint-disabled);
+			opacity: 1;
+		}
+
+		@media (prefers-contrast: more) {
+			${selectors.simple} {
+				background-color: Canvas;
+				border-color: ButtonText;
+				forced-color-adjust: none;
+			}
+			${selectors.checked} {
+				background-image: none;
+				position: relative;
+			}
+			${selectors.checkedAfter} {
+				background-color: FieldText;
+				content: "";
+				display: block;
+				height: 1.2rem;
+				left: 50%;
+				mask-image: var(--d2l-input-radio-check-image);
+				mask-position: center center;
+				mask-repeat: no-repeat;
+				mask-size: 0.5rem 0.5rem;
+				position: absolute;
+				top: 50%;
+				transform: translate(-50%, -50%);
+				width: 1.2rem;
+			}
+
+			${selectors.invalid} {
+				--d2l-input-radio-border-color-hover-focus: var(--d2l-theme-status-color-error);
+				border-color: var(--d2l-theme-status-color-error);
+			}
+
+			${selectors.disabledTooltip} {
+				background-blend-mode: initial;
+				background-color: Canvas;
+			}
+		}
+
+		${containerSelector ? css`
+			${containerSelector} {
+				align-items: center;
+				color: var(--d2l-theme-text-color-static-standard);
+				display: flex;
+				font-size: 0.8rem;
+				font-weight: 400;
+				line-height: 1.2rem;
+				margin-bottom: 0.9rem;
+				overflow-wrap: anywhere;
+				padding-inline-end: 0;
+				padding-inline-start: 1.7rem;
+				vertical-align: middle;
+			}
+			${containerSelector}:last-of-type {
+				margin-bottom: 0;
+			}
+
+			${containerSelector}.d2l-input-radio-label-disabled {
+				color: var(--d2l-theme-text-color-static-disabled);
+			}
+			${containerSelector}.d2l-input-radio-label-disabled > * {
+				color: var(--d2l-theme-text-color-static-standard);
+				opacity: var(--d2l-theme-opacity-disabled-control);
+			}
+
+			${containerSelector} > .d2l-input-radio,
+			${containerSelector} > input[type="radio"] {
+				flex: 0 0 auto;
+				margin-inline-end: 0.5rem;
+				margin-inline-start: -1.7rem;
+			}
+		` : css``}
+	`;
+
+}
+
+export const radioStyles = _generateRadioStyles('.d2l-input-radio', '.d2l-input-radio-label');

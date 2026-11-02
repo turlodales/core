@@ -6,16 +6,66 @@ The paging components and mixins can be used to provide consistent paging functi
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/paging/pager-load-more.js';
-</script>
-<d2l-pager-load-more has-more page-size="3" item-count="15"></d2l-pager-load-more>
-```
+  import { html, LitElement } from 'lit';
+  import { PageableMixin } from '@brightspace-ui/core/components/paging/pageable-mixin.js';
 
-## Best Practices
-<!-- docs: start best practices -->
-<!-- docs: start dos -->
-* Consider the performance impact of acquiring the optional total `item-count`. The `item-count` provides useful context for the user, but counting large numbers of rows can be detrimental to performance. As a very general guide, when the total number of rows that needs to be counted is < 50,000, it's not a performance concern.
-<!-- docs: end dos -->
-<!-- docs: end best practices -->
+  class PageableExample extends PageableMixin(LitElement) {
+    render() {
+      return html`
+        <slot @slotchange="${this._handleSlotChange}"></slot>
+        ${this._renderPagerContainer()}
+      `;
+    }
+    _getItemByIndex(index) {
+      return this._getItems()[index];
+    }
+    _getItems() {
+      return this.shadowRoot.querySelector('slot').assignedElements().find(node => node.tagName === 'UL').querySelectorAll('li');
+    }
+    _getItemShowingCount() {
+      return this._getItems().length;
+    }
+    _handleSlotChange(e) {
+      const list = e.target.assignedElements().find(node => node.tagName === 'UL');
+      if (!this._mutationObserver) {
+        this._mutationObserver = new MutationObserver(() => this._updateItemShowingCount());
+      } else {
+        this._mutationObserver.disconnect();
+      }
+      this._mutationObserver.observe(list, { childList: true });
+    }
+  }
+  customElements.define('d2l-pageable-example', PageableExample);
+
+  document.querySelector('d2l-pager-load-more').addEventListener('d2l-pager-load-more', (e) => {
+    const ITEM_COUNT = 12;
+    const PAGE_SIZE = 3;
+
+    const list = e.target.parentNode.querySelector('ul');
+    let remainingCount = ITEM_COUNT - list.children.length;
+    const numberToLoad = remainingCount < PAGE_SIZE ? remainingCount : PAGE_SIZE;
+    for (let i = 0; i < numberToLoad; i++) {
+      const newItem = list.lastElementChild.cloneNode(true);
+      newItem.textContent = `item ${list.children.length + 1}`;
+      list.appendChild(newItem);
+    }
+    if (list.children.length === ITEM_COUNT) {
+      e.target.hasMore = false;
+    } else {
+      remainingCount = ITEM_COUNT - list.children.length;
+      if (remainingCount < PAGE_SIZE && e.target.pageSize) e.target.pageSize = remainingCount;
+    }
+    e.detail.complete();
+  });
+</script>
+<d2l-pageable-example item-count="12" style="width: 100%;">
+  <ul>
+    <li>item 1</li>
+    <li>item 2</li>
+  </ul>
+  <d2l-pager-load-more slot="pager" has-more page-size="3"></d2l-pager-load-more>
+</d2l-pageable-example>
+```
 
 ## Load More Paging [d2l-pager-load-more]
 
@@ -24,10 +74,10 @@ The `d2l-pager-load-more` component can be used in conjunction with pageable com
 See [Pageable Lists](../../components/list/#pageable-lists).
 
 ```html
-<d2l-list>
+<d2l-list item-count="85">
   <d2l-list-item ...></d2l-list-item>
   <d2l-list-item ...></d2l-list-item>
-  <d2l-pager-load-more slot="pager" has-more page-size="10" item-count="85"></d2l-pager-load-more>
+  <d2l-pager-load-more slot="pager" has-more page-size="10"></d2l-pager-load-more>
 </d2l-list>
 ```
 
@@ -44,11 +94,11 @@ pager.addEventListener('d2l-pager-load-more', e => {
 | Property | Type | Description |
 |---|---|---|
 | `has-more` | Boolean, default: `false` | Whether there are more items that can be loaded. |
-| `item-count` | Number | Total number of items. If not specified, neither it nor the count of items showing will be displayed. |
-| `page-size` | Number, default: 50 | The number of additional items to load. |
+| `page-size` | Number | The number of additional items to load. If not given, the component will simply show `Load More` without any value. |
 
 ### Events
 
 | Event | Description |
 |---|---|
 | `d2l-pager-load-more` | Dispatched when the user clicks the Load More button. The `pageSize` can be accessed from the event `target`. The consumer must call the `complete()` method on the event detail to signal completion after the new items have been loaded. |
+| `d2l-pager-load-more-loaded` | Dispatched after more items have been loaded.

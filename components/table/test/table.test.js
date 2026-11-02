@@ -1,6 +1,9 @@
-import '../table-wrapper.js';
-import { expect, fixture, html } from '@open-wc/testing';
-import { runConstructor } from '../../../tools/constructor-test-helper.js';
+import '../table-col-sort-button.js';
+import '../table-col-sort-button-item.js';
+import '../table-controls.js';
+import { css, LitElement } from 'lit';
+import { defineCE, expect, fixture, html, nextFrame, runConstructor } from '@brightspace-ui/testing';
+import { tableStyles } from '../table-wrapper.js';
 
 describe('d2l-table-wrapper', () => {
 
@@ -26,6 +29,222 @@ describe('d2l-table-wrapper', () => {
 			expect(document.body.classList.contains('d2l-table-sticky-headers')).to.be.false;
 		});
 
+	});
+
+	describe('sticky scrolling async content', () => {
+
+		const tagName = defineCE(
+			class extends LitElement {
+				static properties = {
+					stickyHeaders: { type: Boolean, reflect: true, attribute: 'sticky-headers' }
+				};
+				static styles = [tableStyles, css`
+					:host {
+						display: block;
+						width: 150px;
+					}
+				`];
+				render() {
+					return html`
+						<d2l-table-wrapper sticky-headers sticky-headers-scroll-wrapper>
+							<table class="d2l-table">
+								<thead>
+									<tr>
+										<th><span id="slow-content"></span></th>
+										<th>Fast Content</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td id="one-one">1-1</td>
+										<td>1-2</td>
+									</tr>
+								</tbody>
+							</table>
+						</d2l-table-wrapper>
+					`;
+				}
+			}
+		);
+
+		[1, 20, 100].forEach(width => it(`should sync column widths if initial content changes cell widths - ${width}`, async() => {
+
+			const el = await fixture(`<${tagName}></${tagName}>`);
+			const slowEl = el.shadowRoot.querySelector('#slow-content');
+			const row1_1 = el.shadowRoot.querySelector('#one-one');
+			const row1_1InitialWidth = row1_1.getBoundingClientRect().width;
+
+			expect(slowEl.getBoundingClientRect().width).to.equal(0);
+			expect(row1_1InitialWidth).to.be.greaterThan(0);
+
+			slowEl.innerText = Array(width).fill('x').join('');
+			await nextFrame();
+			await nextFrame();
+
+			expect(slowEl.getBoundingClientRect().width).to.be.greaterThan(0);
+			if (width > 1) {
+				expect(row1_1.getBoundingClientRect().width).to.be.greaterThan(row1_1InitialWidth);
+			} else {
+				expect(row1_1.getBoundingClientRect().width).to.equal(row1_1InitialWidth);
+			}
+			expect(slowEl.parentElement.getBoundingClientRect().width).to.equal(row1_1.getBoundingClientRect().width);
+			expect(el.shadowRoot.querySelector('d2l-table-wrapper')._noScrollWidth).to.be[`${width < 20}`];
+
+		}));
+	});
+	describe('scrolling with large sticky column', () => {
+
+		const tagName = defineCE(
+			class extends LitElement {
+				static styles = [tableStyles, css`
+					:host {
+						display: block;
+						width: 400px;
+					}
+					.large-sticky {
+						min-width: 300px;
+					}
+					:host([td-size="larger"]) th.large-sticky,
+					:host([td-size="smaller"]) td.large-sticky {
+						min-width: 200px;
+					}
+				`];
+				render() {
+					return html`
+						<d2l-table-wrapper sticky-headers sticky-headers-scroll-wrapper>
+							<table class="d2l-table">
+								<thead>
+									<tr>
+										<th sticky class="large-sticky">
+											I'm a large header
+										</th>
+										<th>Other header 1</th>
+										<th>Other header 2</th>
+										<th>Other header 3</th>
+										<th>Other header 4</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td sticky class="large-sticky">I'm a large cell</td>
+										<td>Other cell 1</td>
+										<td>Other cell 2</td>
+										<td>Other cell 3</td>
+										<td>Other cell 4</td>
+									</tr>
+								</tbody>
+							</table>
+						</d2l-table-wrapper>
+					`;
+				}
+			}
+		);
+
+		['smaller', 'same', 'larger'].forEach(size => it(`sets scroll offset (sticky body cell is ${size})`, async() => {
+			const el = await fixture(`<${tagName} td-size="${size}"></${tagName}>`);
+			const scrollWrapper = el.shadowRoot.querySelector('d2l-table-wrapper').shadowRoot.querySelector('d2l-scroll-wrapper');
+			const expectedWidth = el.shadowRoot.querySelector(`${size === 'larger' ? 'td' : 'th'}.large-sticky`).clientWidth;
+
+			expect(scrollWrapper.scrollAreaOffset).to.equal(expectedWidth + 2); // width + 1px border
+
+		}));
+	});
+
+	describe('sticky headers with shadow DOM', () => {
+		let element, wrapper;
+		const tagName = defineCE(
+			class extends LitElement {
+				static properties = {
+					loadedCount: { status: true }
+				};
+				constructor() {
+					super();
+					this.loadedCount = 5;
+				}
+
+				render() {
+					return html`
+						<d2l-table-wrapper>
+							<table class="d2l-table">
+								<thead>
+									<tr>
+										<th>Header</th>
+									</tr>
+								</thead>
+								<tbody>
+									${Array.from({ length: this.loadedCount }, (_, i) => i + 1).map(i => html`<tr><td>${i}</td></tr>`)}
+								</tbody>
+							</table>
+						</d2l-table-wrapper>
+					`;
+				}
+
+				loadData(n) {
+					this.loadedCount += n;
+				}
+			}
+		);
+
+		async function nextWrapperUpdate() {
+			await element.updateComplete;
+			await nextFrame();
+			await wrapper.updateComplete;
+		}
+
+		beforeEach(async() => {
+			element = await fixture(`<${tagName}></${tagName}>`);
+			wrapper = element.shadowRoot.querySelector('d2l-table-wrapper');
+		});
+
+		it('should accurately count items on load', () => {
+			expect(wrapper._itemShowingCount).to.equal(5);
+		});
+
+		it('should update count when items are added', async() => {
+			element.loadData(3);
+			await nextWrapperUpdate();
+
+			expect(wrapper._itemShowingCount).to.equal(8);
+		});
+
+		it('should update count when items are removed', async() => {
+			element.loadData(3);
+			await nextWrapperUpdate();
+			element.loadedCount = 5;
+			await nextWrapperUpdate();
+			expect(wrapper._itemShowingCount).to.equal(5);
+		});
+
+	});
+
+});
+
+describe('d2l-table-controls', () => {
+
+	it('should construct', () => {
+		runConstructor('d2l-table-controls');
+	});
+
+	it('should override default SelectionControls label', async() => {
+		const el = await fixture(html`<d2l-table-controls></d2l-table-controls>`);
+		const section = el.shadowRoot.querySelector('section');
+		expect(section.getAttribute('aria-label')).to.equal('Actions for table');
+	});
+
+});
+
+describe('d2l-table-col-sort-button', () => {
+
+	it('should construct', () => {
+		runConstructor('d2l-table-col-sort-button');
+	});
+
+});
+
+describe('d2l-table-col-sort-button-item', () => {
+
+	it('should construct', () => {
+		runConstructor('d2l-table-col-sort-button-item');
 	});
 
 });

@@ -1,58 +1,25 @@
 import '../colors/colors.js';
 import { bodySmallStyles, heading4Styles } from '../typography/styles.js';
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { classMap } from 'lit/directives/class-map.js';
 import { MeterMixin } from './meter-mixin.js';
-import { RtlMixin } from '../../mixins/rtl-mixin.js';
+import { meterStyles } from './meter-styles.js';
 
 /**
  * A half-circle progress indicator.
  */
-class MeterRadial extends MeterMixin(RtlMixin(LitElement)) {
-	static get styles() {
-		return [ heading4Styles, bodySmallStyles, css`
+class MeterRadial extends MeterMixin(LitElement) {
+
+	static styles = [heading4Styles, bodySmallStyles, meterStyles, css`
 		:host {
 			display: inline-block;
 			width: 4.2rem;
 		}
-		.d2l-meter-radial {
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-		}
-		.d2l-meter-radial-full-bar,
-		.d2l-meter-radial-progress-bar {
-			fill: none;
-			stroke-linecap: round;
+		.d2l-meter-full-bar,
+		.d2l-meter-progress-bar {
 			stroke-width: 9;
 		}
-		.d2l-meter-radial-full-bar {
-			stroke: var(--d2l-color-gypsum);
-		}
-		:host([foreground-light]) .d2l-meter-radial-full-bar {
-			stroke: rgba(255, 255, 255, 0.5);
-		}
-		.d2l-meter-radial-progress-bar {
-			stroke: var(--d2l-color-celestine);
-		}
-		:host([foreground-light]) .d2l-meter-radial-progress-bar {
-			stroke: white;
-		}
-		.d2l-meter-radial-text {
-			color: var(--d2l-color-ferrite);
-			fill: var(--d2l-color-ferrite);
-			line-height: 0.8rem;
-			text-align: center;
-		}
-		:host([foreground-light]) .d2l-meter-radial-text {
-			color: white;
-			fill: white;
-		}
-		:host([dir="rtl"]) .d2l-meter-radial-text-ltr {
-			direction: ltr;
-		}
-	` ];
-	}
+	`];
 
 	render() {
 		const lengthOfLine = 115; // found by approximating half the perimeter of the ellipse with radii 38 and 35
@@ -61,22 +28,26 @@ class MeterRadial extends MeterMixin(RtlMixin(LitElement)) {
 		const progressFill = percent * lengthOfLine;
 		const primary = this._primary(this.value, this.max);
 		const secondary = this._secondary(this.value, this.max, this.text);
-		const secondaryTextElement = this.text ? html`<div class="d2l-body-small d2l-meter-radial-text">${secondary}</div>` : html``;
-		const textClasses =  {
-			'd2l-meter-radial-text-ltr': !this.percent,
+		const primaryAria = this._primary(this.value, this.max, true) || '';
+		const secondaryAria = this._secondary(this.value, this.max, this.text, true) || '';
+		const secondaryTextElement = this.text && !this.textHidden
+			? html`<div class="d2l-body-small d2l-meter-text">${secondary}</div>`
+			: nothing;
+		const textClasses = {
+			'd2l-meter-text-ltr': !this.percent,
 			'd2l-heading-4': true,
-			'd2l-meter-radial-text': true
+			'd2l-meter-text': true
 		};
 
 		return html `
 			<div
-				class="d2l-meter-radial"
+				class="d2l-meter-container"
 				role="img"
-				aria-label="${this._ariaLabel(primary, secondary)}">
+				aria-label="${this._ariaLabel(primaryAria, secondaryAria)}">
 				<svg viewBox="0 0 84 46">
-					<path class="d2l-meter-radial-full-bar" d="M5 40a37 35 0 0 1 74 0" />
+					<path class="d2l-meter-full-bar" d="M5 40a37 35 0 0 1 74 0" />
 					<path
-						class="d2l-meter-radial-progress-bar"
+						class="d2l-meter-progress-bar"
 						d="M5 40a37 35 0 0 1 74 0"
 						stroke-dasharray="${progressFill} ${lengthOfLine}"
 						stroke-dashoffset="0"

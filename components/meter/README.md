@@ -36,12 +36,19 @@ Meters are a visually engaging way to communicate progress or measurements.
 
 Linear meters show a horizontal progress bar.
 
-<!-- docs: demo live name:d2l-meter-linear -->
+<!-- docs: demo code properties name:d2l-meter-linear sandboxTitle:'Meter - Linear' -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/meter/meter-linear.js';
 </script>
-<d2l-meter-linear value="3" max="10"></d2l-meter-linear>
+<style>
+  d2l-meter-linear {
+    width: 170px;
+  }
+</style>
+<d2l-meter-linear value="8" max="10" text="Activities"></d2l-meter-linear>
+<d2l-meter-linear value="8" max="10" text="Activities: {x/y}" percent></d2l-meter-linear>
+<d2l-meter-linear value="8" max="10" text-inline text="Activities"></d2l-meter-linear>
 ```
 
 <!-- docs: start hidden content -->
@@ -49,19 +56,21 @@ Linear meters show a horizontal progress bar.
 
 * `value` (required, Number): Current number of completed units. A positive, non-zero number that is less than or equal to `max`.
 * `max` (Number, default: `100`): Max number of units that are being measured by this meter. A positive, non-zero number.
-* `percent` Boolean: Shows a percentage instead of `value/max`.
-* `text-inline` Boolean: Keeps the meter to a single line. Adding one of the following between `{}` (e.g., `{x/y}`) causes replacements:
+* `percent` (Boolean): Shows a percentage instead of `value/max`.
+* `text-inline` (Boolean): Keeps the meter to a single line. 
+* `text` (String): Context information about what the meter is about. Adding one of the following between `{}` (e.g., `{x/y}`) causes replacements:
 	* `%` in the string will be replaced with percentage value
 	* `x/y` in the string will be replaced with fraction with the proper language support
 	* **DEPRECATED** `x` in the string will be replaced with `value`
 	* **DEPRECATED** `y` in the string will be replaced with `max`
+* `text-hidden` (Boolean): Hides the text visually
 <!-- docs: end hidden content -->
 
 ## Radial meter [d2l-meter-radial]
 
 Radial meters appear as a half circle. They have more visual weight than a linear meter and should only be used when the data is central to the user's task.
 
-<!-- docs: demo live name:d2l-meter-radial size:medium -->
+<!-- docs: demo code properties name:d2l-meter-radial sandboxTitle:'Meter - Radial' size:medium -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/meter/meter-radial.js';
@@ -78,6 +87,7 @@ Radial meters appear as a half circle. They have more visual weight than a line
 * `text` (String): Context information about what the meter is about. Adding one of the following between `{}` (e.g., `{x/y}`) causes replacements:
 	* `%` in the string will be replaced with percentage value
 	* `x/y` in the string will be replaced with fraction with the proper language support
+* `text-hidden` (Boolean): Hides the text visually
 <!-- docs: end hidden content -->
 
 
@@ -85,7 +95,7 @@ Radial meters appear as a half circle. They have more visual weight than a line
 
 Circle meters display data in a compact circle format, so they're useful when horizontal space is at a premium.
 
-<!-- docs: demo live name:d2l-meter-circle -->
+<!-- docs: demo code properties name:d2l-meter-circle sandboxTitle:'Meter - Circular' -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/meter/meter-circle.js';
@@ -96,7 +106,7 @@ Circle meters display data in a compact circle format, so they're useful when ho
 ## Light Foreground
 All `meter` components have a `foreground-light` style that ensures accessible contrast levels when displayed against a dark background.
 
-<!-- docs: demo code darkMode:true -->
+<!-- docs: demo code darkMode:true sandboxName:meter-light-foreground sandboxTitle:'Meter - Light Foreground' -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/meter/meter-linear.js';
@@ -117,4 +127,5 @@ All `meter` components have a `foreground-light` style that ensures accessibl
 * `text` (String): Context information about what the meter is about. Adding one of the following between `{}` (e.g., `{x/y}`) causes replacements:
 	* `%` in the string will be replaced with percentage value
 	* `x/y` in the string will be replaced with fraction with the proper language support
+* `text-hidden` (Boolean): Hides the text visually
 <!-- docs: end hidden content -->

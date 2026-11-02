@@ -15,7 +15,7 @@ For preset icons, import and use the `<d2l-icon>` web component with the `icon` 
 <d2l-icon icon="tier1:gear"></d2l-icon>
 ```
 
-The `icon` attribute value is of the form `<category-name>:<icon-name>`. The icon will automatically be the correct color (ferrite) and size based on its category.
+The `icon` attribute value is of the form `<category-name>:<icon-name>`. The icon will automatically be the correct color (Tungsten) and size based on its category.
 
 **Note:** Always choose the icon whose native size best matches your desired icon size, ideally exactly.
 
@@ -48,7 +48,7 @@ Ensure that the SVG is formatted according to [the rules outlined below](#svg-fo
 
 ## Overriding the Color
 
-To change an icon's color from ferrite to something else, simply set it from CSS:
+To change an icon's color from Tungsten to something else, simply set it from CSS:
 
 ```html
 <d2l-icon icon="tier3:alert" style="color: red;"></d2l-icon>
@@ -56,7 +56,7 @@ To change an icon's color from ferrite to something else, simply set it from CSS
 
 ## Overriding the Size
 
-Overriding the size is not recommended. However, if you must, set the `width` and `height` from CSS. For this to work in IE11, it **must** be done from inside another web component.
+Overriding the size is not recommended. However, if you must, set the `width` and `height` from CSS.
 
 ## Updating or contributing new icons
 
@@ -80,6 +80,7 @@ When contributing changes to icons, the SVG files should be properly formatted. 
   - not contain negative values
 - there should be no `<title>` element
 - there should be no inline `<style>` -- all style for line fills should be applied directly to the SVG elements
+- there should be no stroke attributes (e.g. `stroke`, `stroke-width`, `stroke-*`)
 - color of SVG elements should be "tungsten" (`#494c4e`)
 
 The best way to have most of these rules applied for you automatically is to put the icon through [SVGOMG](https://jakearchibald.github.io/svgomg/) with these options selected:

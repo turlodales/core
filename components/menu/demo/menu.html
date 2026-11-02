@@ -17,6 +17,40 @@
 	<body unresolved>
 
 		<d2l-demo-page page-title="d2l-menu">
+			<h2>Basic Menu (demo of focus bug)</h2>
+			<d2l-demo-snippet>
+				<template>
+					<div role="menu">
+						<div role="menuitem" tabindex="0">
+							<span>Menu Item 1</span>
+						</div><div role="menuitem" tabindex="-1">
+							<span>Menu Item 2</span>
+						</div><div role="menuitem" tabindex="-1">
+							<span>Menu Item 3</span>
+						</div>
+					</div>
+				<script>
+					const menu = document.querySelector('div[role="menu"]');
+					const menuItems = menu.querySelectorAll('div[role="menuitem"]');
+
+					menuItems.forEach(item => {
+						item.addEventListener('keydown', (e) => {
+							if (e.keyCode === 40 || e.keyCode === 38) {
+								// prevent scrolling when up/down arrows pressed
+								e.preventDefault();
+								e.stopPropagation();
+								if (e.keyCode === 40) {
+									if (item.nextSibling) item.nextSibling.focus();
+								} else if (e.keyCode === 38) {
+									if (item.previousSibling) item.previousSibling.focus();
+								}
+								return;
+							}
+						});
+					});
+				</script>
+				</template>
+			</d2l-demo-snippet>
 
 			<h2>Menu</h2>
 
@@ -29,6 +63,7 @@
 						<d2l-menu-item text="The Solar System"></d2l-menu-item>
 						<d2l-menu-item text="Stars &amp; Galaxies"></d2l-menu-item>
 						<d2l-menu-item disabled text="The Night Sky"></d2l-menu-item>
+						<d2l-menu-item text="Aliens, The Search Extraterrestrial Life, Unidentified Flying Objects, and Other Astronomical Phenomenon"></d2l-menu-item>
 						<d2l-menu-item text="The Universe"></d2l-menu-item>
 					</d2l-menu>
 				</template>
@@ -45,7 +80,9 @@
 						<d2l-custom-menu-item text="The Solar System (Custom)"></d2l-custom-menu-item>
 						<d2l-menu-item text="Stars &amp; Galaxies"></d2l-menu-item>
 						<d2l-menu-item text="The Night Sky"></d2l-menu-item>
+						<d2l-menu-item-link href="https://en.wikipedia.org/wiki/Interstellar_object" text="Interstellar Objects" target="_blank"></d2l-menu-item-link>
 						<d2l-menu-item-link href="https://en.wikipedia.org/wiki/Universe" text="The Universe (link)"></d2l-menu-item-link>
+						<d2l-menu-item-link href="https://en.wikipedia.org/wiki/Universe" text="Aliens, The Search Extraterrestrial Life, Unidentified Flying Objects, and Other Astronomical Phenomenon"></d2l-menu-item-link>
 					</d2l-menu>
 				</template>
 			</d2l-demo-snippet>
@@ -111,7 +148,7 @@
 								</d2l-menu-item>
 							</d2l-menu>
 						</d2l-menu-item>
-						<d2l-menu-item text="The Night Sky">
+						<d2l-menu-item text="Aliens, The Search Extraterrestrial Life, Unidentified Flying Objects, and Other Astronomical Phenomenon">
 							<d2l-menu>
 								<d2l-menu-item text="Constellations"></d2l-menu-item>
 								<d2l-menu-item text="Mapping the Heavens"></d2l-menu-item>
@@ -163,5 +200,12 @@
 				</template>
 			</d2l-demo-snippet>
 		</d2l-demo-page>
+
+		<script>
+			document.addEventListener('click', e => {
+				if (e.target.tagName !== 'D2L-MENU-ITEM-LINK') return;
+				console.log('Click event propagated up for router!', e.target);
+			});
+		</script>
 	</body>
 </html>

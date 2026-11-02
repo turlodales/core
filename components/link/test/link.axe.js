@@ -1,5 +1,5 @@
 import '../link.js';
-import { expect, fixture, html, oneEvent } from '@open-wc/testing';
+import { expect, fixture, focusElem, html, oneEvent } from '@brightspace-ui/testing';
 
 describe('d2l-link', () => {
 
@@ -22,6 +22,47 @@ describe('d2l-link', () => {
 		const elem = await fixture(html`<d2l-link href="https://www.d2l.com">Link Test</d2l-link>`);
 		setTimeout(() => elem.focus());
 		await oneEvent(elem, 'focus');
+		await expect(elem).to.be.accessible();
+	});
+
+	it('new-window with target="_blank"', async() => {
+		const elem = await fixture(html`<d2l-link href="https://www.d2l.com" target="_blank">Opens New Window</d2l-link>`);
+		await expect(elem).to.be.accessible();
+	});
+
+	it('with aria-label', async() => {
+		const elem = await fixture(html`<d2l-link href="https://www.d2l.com" aria-label="Link with Custom accessible label">Link</d2l-link>`);
+		await expect(elem).to.be.accessible();
+	});
+
+	it('with download attribute', async() => {
+		const elem = await fixture(html`<d2l-link href="https://www.d2l.com/file.pdf" download>Download File</d2l-link>`);
+		await expect(elem).to.be.accessible();
+	});
+
+	it('truncated with lines property', async() => {
+		const elem = await fixture(html`<div style="width: 200px;"><d2l-link href="https://www.d2l.com" lines="2">This is a very long link that will be truncated after two lines</d2l-link></div>`);
+		await expect(elem).to.be.accessible();
+	});
+
+	it('without href', async() => {
+		const elem = await fixture(html`<d2l-link>Link without href</d2l-link>`);
+		await expect(elem).to.be.accessible();
+	});
+
+	it('disabled', async() => {
+		const elem = await fixture(html`<d2l-link href="https://www.d2l.com" disabled>Disabled Link</d2l-link>`);
+		await expect(elem).to.be.accessible();
+	});
+
+	it('disabled focused', async() => {
+		const elem = await fixture(html`<d2l-link href="https://www.d2l.com" disabled>Disabled Link</d2l-link>`);
+		await focusElem(elem);
+		await expect(elem).to.be.accessible();
+	});
+
+	it('disabled with tooltip', async() => {
+		const elem = await fixture(html`<d2l-link href="https://www.d2l.com" disabled disabled-tooltip="This link is disabled">Disabled Link</d2l-link>`);
 		await expect(elem).to.be.accessible();
 	});
 

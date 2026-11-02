@@ -32,18 +32,19 @@ The `d2l-dialog` element is a generic dialog that provides a slot for arbitrary 
 * Label primary actions with clear and predictable language. Use verbs like, “Add” or “Save” that indicate the outcome of a dialog rather than, “OK” or “Close”
 * Keep dialog titles concise
 * Maintain a language relationship between the action that triggered the dialog, dialog title, and dialog primary button.
+* When it is necessary to nest multiple dialogs, ensure the nested dialog is within the DOM of the dialog containing the opener
 <!-- docs: end dos -->
 
 <!-- docs: start donts -->
 * Don’t use a dialog when you could reasonably use an alternative that preserves user context, like expanding options inline
 * Don’t use a dialog to show error, success, or warning messages. Use an inline or toast alert instead.
-* Avoid creating large, complex dialogs
-* Avoid invoking a dialog from another dialog (nested dialogs)
-* Avoid a title length that could easily wrap to two lines
+* Avoid opening a dialog from another dialog (nesting) since this can increase cognitive load and disorient users
+  * Exception: confirmation dialogs that protect users from losing unsaved work
+* Avoid titles that are long enough to wrap onto multiple lines
 <!-- docs: end donts -->
 <!-- docs: end best practices -->
 
-<!-- docs: demo live name:d2l-dialog autoSize:false display:block size:large -->
+<!-- docs: demo code properties name:d2l-dialog sandboxTitle:'Dialog' autoSize:false display:block size:large -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/button/button.js';
@@ -70,6 +71,7 @@ The `d2l-dialog` element is a generic dialog that provides a slot for arbitrary 
 |--|--|--|
 | `title-text` | String, required | Text displayed in the header of the dialog |
 | `async` | Boolean | Whether to render a loading-spinner and wait for state changes via [AsyncContainerMixin](../../mixins/async-container) |
+| `full-height` | Boolean | Whether to render the dialog at the maximum height |
 | `opened` | Boolean | Whether or not the dialog is open |
 | `width` | Number, default: `600` | The preferred width (unit-less) for the dialog |
 
@@ -153,7 +155,7 @@ The `d2l-dialog-confirm` element is a simple confirmation dialog for prompting t
 <!-- docs: end donts -->
 <!-- docs: end best practices -->
 
-<!-- docs: demo live name:d2l-dialog-confirm autoSize:false display:block size:large -->
+<!-- docs: demo code properties name:d2l-dialog-confirm sandboxTitle:'Confirmation Dialog' autoSize:false display:block size:large -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/button/button.js';
@@ -206,7 +208,7 @@ document.querySelector('#open').addEventListener('click', () => {
 
 The `d2l-dialog-fullscreen` element is a fullscreen variant of the generic `d2l-dialog`. It provides a slot for arbitrary content, and a `footer` slot for workflow buttons. Apply the `data-dialog-action` attribute to workflow buttons to automatically close the dialog with the action value.
 
-<!-- docs: demo live name:d2l-dialog-fullscreen autoSize:false display:block size:large -->
+<!-- docs: demo code properties name:d2l-dialog-fullscreen sandboxTitle:'Fullscreen Dialog' autoSize:false display:block size:large -->
 ```html
 <script type="module">
   import '@brightspace-ui/core/components/button/button.js';
@@ -256,15 +258,105 @@ document.querySelector('#open').addEventListener('click', () => {
 });
 ```
 
-## Focus Management
+## Loading Asynchronous Content
+
+The `until` directive can be used for manging the rendering of dialog content when it is loaded asynchronously. The example below loads some dialog content asynchronously, displaying a [Loading Spinner](../loading-spinner/) until the content is ready.
+
+Notes on this example:
+- Dialog sizing: `this.resolveLoadingComplete` (part of `LoadingCompleteMixin`) on image load triggers the dialog resize
+- Focus management: focus will go to the first footer button by default. If focus should instead go to a focusable element in the content then that would need to be specified, often by using `.focus()` on the other focusable element.
+
+<!-- docs: demo code autoSize:false size:xlarge -->
+```html
+<script type="module">
+  import '@brightspace-ui/core/components/button/button.js';
+  import '@brightspace-ui/core/components/loading-spinner/loading-spinner.js';
+  import { html, LitElement, noChange } from 'lit';
+  import { guard } from 'lit/directives/guard.js';
+  import { LoadingCompleteMixin } from '@brightspace-ui/core/mixins/loading-complete/loading-complete-mixin.js';
+  import { until } from 'lit/directives/until.js';
+
+  class DialogAsyncContentUntil extends LoadingCompleteMixin(LitElement) {
+
+    static properties = {
+      key: { type: String }
+    };
+    
+    constructor() {
+      super();
+      this.key = null;
+    }
+
+    render() {
+      const loadingSpinner = html`<d2l-loading-spinner size="100" style="width: 100%;"></d2l-loading-spinner>`;
+      return html`${guard([this.key], () => until(this.#getContent(this.key), loadingSpinner, noChange))}`;
+    }
+    
+    #getContent(key) {
+      return new Promise((resolve) => {
+      if (!key) return;
+      setTimeout(() => {
+        resolve(html`
+        <d2l-button>Focus on me!</d2l-button>
+        <img 
+          src="https://us.v-cdn.net/cdn-cgi/image/fit=scale-down,width=1600/https://us.v-cdn.net/6036482/uploads/Y6MNPRWX5OVH/moose-poses-guided-tour.png" 
+          style="height: 300px; display: block;"
+          @load="${this.#handleImageLoad}"
+        >
+        `);
+        }, 1000);
+      });
+    }
+
+    #handleImageLoad() {
+      this.shadowRoot.querySelector('d2l-button').focus();
+      this.resolveLoadingComplete();
+    }
+  }
+
+  customElements.define('d2l-dialog-demo-async-content-until', DialogAsyncContentUntil);
+</script>
+<script type="module">
+  import '@brightspace-ui/core/components/button/button.js';
+  import '@brightspace-ui/core/components/dialog/dialog.js';
+  
+  document.querySelector('#open').addEventListener('click', () => {
+    document.querySelector('#dialog').opened = true;
+    document.querySelector('d2l-dialog-demo-async-content-until').key = 'my-dialog';
+  });
+  document.querySelector('#dialog').addEventListener('d2l-dialog-close', (e) => {
+    console.log('dialog action:', e.detail.action);
+  });
+</script>
+<d2l-dialog id="dialog" title-text="Async Dialog">
+  <d2l-dialog-demo-async-content-until></d2l-dialog-demo-async-content-until>
+  <d2l-button slot="footer" primary data-dialog-action="done">Done</d2l-button>
+  <d2l-button slot="footer" data-dialog-action>Cancel</d2l-button>
+</d2l-dialog>
+<d2l-button id="open">Show Dialog</d2l-button>
+```
+
+## Accessibility
+
+### Focus Management
 
 When opened, focus will be automatically placed within the dialog. The element to be focused will either be the content element having the optional `autofocus` attribute, or a focusable element identified by the dialog depending on the type of dialog. For `d2l-dialog` and `d2l-dialog-fullscreen`, the first focusable element will be focused. For `d2l-dialog-confirm`, the least destructive action will be focused, which is assumed to be the first non-primary button in the footer.
 
-### Specifying an `autofocus` Element (Optional)
+#### Specifying an `autofocus` Element (Optional)
 
 To specify which element should be focused, add the `autofocus` attribute to that element. An element with the `autofocus` attribute will receive focus if the element has a `tabindex` value of `0` or `-1`, or is a naturally focusable element (e.g. button).
 
 Note that the element must be in the dialog content's DOM scope and not within another component's Shadow DOM.
+
+### Announcing the dialog text
+
+When using `d2l-dialog` or `d2l-dialog-fullscreen` the dialog text will not be announced by screen readers. Screen readers will announce the presence of a dialog, the dialog title, and the currently focused element. For example, the general dialog example at the top of this page reads "Dialog Title dialog. clickable Done button.". The text "Some dialog content" is not announced.
+
+To announce the dialog text, use one of the following methods:
+
+1. Use `d2l-dialog-confirm` instead
+2. Add `describe-content="true"` (if using `d2l-dialog`)
+3. Set `autofocus` on the first text element (see above for details)
 
 <!-- docs: start hidden content -->
 ## Future Improvements

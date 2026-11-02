@@ -1,4 +1,14 @@
-import { findComposedAncestor, getComposedChildren, getComposedParent, getNextAncestorSibling, getPreviousAncestorSibling } from './dom.js';
+import { css, unsafeCSS } from 'lit';
+import {
+	getComposedChildren,
+	getComposedNextAncestorElementSibling,
+	getComposedNextElementSibling,
+	getComposedParent,
+	getComposedPreviousAncestorElementSibling,
+	getComposedPreviousElementSibling,
+	getFirstVisibleAncestor,
+	isVisible
+} from './dom.js';
 
 const focusableElements = {
 	a: true,
@@ -13,18 +23,6 @@ const focusableElements = {
 	textarea: true
 };
 
-export function forceFocusVisible(elem, includeTabbablesOnly) {
-	if (!isFocusable(elem, false, includeTabbablesOnly)) {
-		elem = getFirstFocusableDescendant(elem);
-	}
-	if (!elem) return;
-	elem.addEventListener('blur', () => {
-		elem.classList.remove('focus-visible');
-	}, { once: true });
-	elem.classList.add('focus-visible');
-	elem.focus();
-}
-
 export function getComposedActiveElement() {
 	let node = document.activeElement;
 
@@ -37,19 +35,87 @@ export function getComposedActiveElement() {
 	return node;
 }
 
-export function getFirstFocusableDescendant(node, includeHidden, predicate, includeTabbablesOnly) {
-	if (predicate === undefined) predicate = () => true;
-
+export function getFirstFocusableDescendant(node, includeHidden, predicate = () => true, includeTabbablesOnly, nodeVisibilityUnknown = true) {
 	const composedChildren = getComposedChildren(node);
+	if (!composedChildren?.length || (!includeHidden && nodeVisibilityUnknown && !isVisible(node))) return null;
 
 	for (let i = 0; i < composedChildren.length; i++) {
-		if (isFocusable(composedChildren[i], includeHidden, includeTabbablesOnly) && predicate(composedChildren[i])) return composedChildren[i];
+		if (!includeHidden && !isVisible(composedChildren[i], { checkAncestors: false })) continue;
+		if (isFocusable(composedChildren[i], true, includeTabbablesOnly) && predicate(composedChildren[i])) return composedChildren[i];
 
-		const focusable = getFirstFocusableDescendant(composedChildren[i], includeHidden, predicate, includeTabbablesOnly);
+		const focusable = getFirstFocusableDescendant(composedChildren[i], includeHidden, predicate, includeTabbablesOnly, false);
 		if (focusable) return focusable;
 	}
 
 	return null;
+}
+
+export function getFirstFocusableRelative(node, { includeHidden, predicate = () => true, includeTabbablesOnly, nodeVisibilityUnknown = true } = {}) {
+	if (!includeHidden && nodeVisibilityUnknown) node = getFirstVisibleAncestor(node);
+	if (!node) return null;
+
+	if (isFocusable(node, true) && predicate(node)) return node;
+
+	const focusableDescendant = getFirstFocusableDescendant(node, includeHidden, predicate, includeTabbablesOnly, false);
+	if (focusableDescendant !== null) return focusableDescendant;
+
+	return getFirstFocusableRelative(getComposedParent(node), { includeHidden, predicate, includeTabbablesOnly, nodeVisibilityUnknown: false });
+}
+
+export function getFocusableDescendants(node, options) {
+	let focusables = [];
+
+	const composedChildren = getComposedChildren(node);
+	composedChildren.forEach(child => {
+		if (child.tagName === 'svg') return;
+		if (options?.predicate) {
+			if (!options.predicate(child)) return;
+		}
+
+		if (isFocusable(child, options?.hidden, options?.tabbablesOnly, options?.disabled)) focusables.push(child);
+		if (options?.deep) {
+			focusables = [...focusables, ...getFocusableDescendants(child, options)];
+		}
+	});
+
+	return focusables;
+}
+
+/**
+ * @deprecated Use getFocusVisibleStyles instead.
+ */
+export function getFocusPseudoClass() {
+	return isFocusVisibleSupported() ? 'focus-visible' : 'focus';
+}
+export function getFocusRingStyles(selector, { extraStyles = null, preferContrastMediaQueryExtraStyles = null } = {}) {
+	const stylesDelegate = selector => css`
+		${selector} {
+			${extraStyles ?? css``}
+			outline: 2px solid var(--d2l-focus-ring-color, var(--d2l-theme-border-color-focus));
+			outline-offset: var(--d2l-focus-ring-offset, 2px);
+		}
+		@media (prefers-contrast: more) {
+			${selector} {
+				${preferContrastMediaQueryExtraStyles ?? css``}
+				outline-color: Highlight;
+			}
+		}
+	`;
+	return getFocusVisibleStyles(selector, stylesDelegate);
+}
+
+export function getFocusVisibleStyles(selector, stylesDelegate) {
+	const selectorDelegate = typeof selector === 'string' ? pseudoClass => `${selector}:${pseudoClass}` : selector;
+	const focusSelector = unsafeCSS(selectorDelegate('focus'));
+	const focusVisibleSelector = unsafeCSS(selectorDelegate('focus-visible'));
+	return unsafeCSS(css`
+		@supports not selector(:focus-visible) {
+			${stylesDelegate(focusSelector)}
+		}
+		@supports selector(:focus-visible) {
+			${stylesDelegate(focusVisibleSelector)}
+		}
+	`);
 }
 
 export function getLastFocusableDescendant(node, includeHidden) {
@@ -66,6 +132,7 @@ export function getLastFocusableDescendant(node, includeHidden) {
 }
 
 export function getPreviousFocusable(node, includeHidden) {
+
 	if (!node) return null;
 
 	if (includeHidden === undefined) includeHidden = false;
@@ -78,14 +145,14 @@ export function getPreviousFocusable(node, includeHidden) {
 			if (focusable) return focusable;
 		}
 
-		const previousSibling = node.previousElementSibling;
+		const previousSibling = getComposedPreviousElementSibling(node);
 		if (previousSibling) {
 			const siblingFocusable = _getPreviousFocusable(previousSibling, false, false);
 			if (siblingFocusable) return siblingFocusable;
 			return null;
 		}
 
-		const previousAncestorSibling = getPreviousAncestorSibling(node);
+		const previousAncestorSibling = getComposedPreviousAncestorElementSibling(node);
 		if (previousAncestorSibling) {
 			const parentSibingFocusable = _getPreviousFocusable(previousAncestorSibling, false, false);
 			if (parentSibingFocusable) return parentSibingFocusable;
@@ -114,14 +181,14 @@ export function getNextFocusable(node, includeHidden, ignore, ignoreChildren) {
 			if (focusable) return focusable;
 		}
 
-		const nextSibling = node.nextElementSibling;
+		const nextSibling = getComposedNextElementSibling(node);
 		if (nextSibling) {
 			const siblingFocusable = _getNextFocusable(nextSibling, false, false);
 			if (siblingFocusable) return siblingFocusable;
 			return null;
 		}
 
-		const nextParentSibling = getNextAncestorSibling(node);
+		const nextParentSibling = getComposedNextAncestorElementSibling(node);
 		if (nextParentSibling) {
 			const parentSibingFocusable = _getNextFocusable(nextParentSibling, false, false);
 			if (parentSibingFocusable) return parentSibingFocusable;
@@ -153,7 +220,7 @@ export function getPreviousFocusableAncestor(node, includeHidden, includeTabbabl
 
 export function isFocusable(node, includeHidden, includeTabbablesOnly, includeDisabled) {
 
-	if (!node || node.nodeType !== 1 || (!includeDisabled && node.disabled)) return false;
+	if (!node || node.nodeType !== Node.ELEMENT_NODE || (!includeDisabled && node.disabled)) return false;
 
 	if (includeTabbablesOnly === undefined) includeTabbablesOnly = true;
 
@@ -175,22 +242,47 @@ export function isFocusable(node, includeHidden, includeTabbablesOnly, includeDi
 
 	if (_isFocusable && !includeHidden) {
 		// only perform visibility check if absolutely necessary
-		if (nodeName !== 'body' && node.offsetParent === null) return false;
+		if (nodeName !== 'body' && !isVisible(node)) return false;
 	}
 
 	return _isFocusable;
 
 }
 
-export function tryApplyFocus(elem) {
-	if (isFocusable(elem)) {
-		forceFocusVisible(elem);
-		return true;
+let _isFocusVisibleSupported;
+
+export function isFocusVisibleSupported() {
+	if (_isFocusVisibleSupported === undefined) {
+		const style = document.createElement('style');
+		try {
+			document.head.appendChild(style);
+			style.sheet.insertRule(':focus-visible { color: inherit; }');
+			_isFocusVisibleSupported = true;
+		} catch {
+			_isFocusVisibleSupported = false;
+		} finally {
+			style.remove();
+		}
 	}
-	const focusable = findComposedAncestor(elem, (node) => (isFocusable(node) || getFirstFocusableDescendant(node) !== null));
-	if (focusable) {
-		forceFocusVisible(focusable);
-		return true;
+
+	return _isFocusVisibleSupported;
+}
+
+let _isHasSelectorSupported;
+
+export function isHasSelectorSupported() {
+	if (_isHasSelectorSupported === undefined) {
+		const style = document.createElement('style');
+		try {
+			document.head.appendChild(style);
+			style.sheet.insertRule(':has(a) { color: inherit; }');
+			_isHasSelectorSupported = true;
+		} catch {
+			_isHasSelectorSupported = false;
+		} finally {
+			style.remove();
+		}
 	}
-	return false;
+
+	return _isHasSelectorSupported;
 }

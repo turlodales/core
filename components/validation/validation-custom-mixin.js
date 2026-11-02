@@ -2,12 +2,18 @@ import { isCustomFormElement } from '../form/form-helper.js';
 
 export const ValidationCustomMixin = superclass => class extends superclass {
 
-	static get properties() {
-		return {
-			failureText: { type: String, attribute: 'failure-text' },
-			for: { type: String }
-		};
-	}
+	static properties = {
+		/**
+		 * REQUIRED: The text to display when validation fails.
+		 * @type {string}
+		 */
+		failureText: { type: String, attribute: 'failure-text' },
+		/**
+		 * REQUIRED: The id of the form element to validate.
+		 * @type {string}
+		 */
+		for: { type: String }
+	};
 
 	constructor() {
 		super();
@@ -21,6 +27,7 @@ export const ValidationCustomMixin = superclass => class extends superclass {
 	connectedCallback() {
 		super.connectedCallback();
 		this._updateForElement();
+		/**@ignore */
 		this.dispatchEvent(new CustomEvent('d2l-validation-custom-connected', { bubbles: true }));
 	}
 
@@ -30,6 +37,7 @@ export const ValidationCustomMixin = superclass => class extends superclass {
 			this._forElement.validationCustomDisconnected(this);
 		}
 		this._forElement = null;
+		/**@ignore */
 		this.dispatchEvent(new CustomEvent('d2l-validation-custom-disconnected'));
 	}
 

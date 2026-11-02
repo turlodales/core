@@ -1,0 +1,762 @@
+import '../../button/button.js';
+import '../../count-badge/count-badge.js';
+import '../../icons/icon.js';
+import '../tab.js';
+import '../tabs.js';
+import '../tab-panel.js';
+import { clickElem, expect, fixture, focusElem, hoverElem, html, nextFrame, sendKeysElem, waitUntil } from '@brightspace-ui/testing';
+
+const noPanelSelectedFixture = {
+	deprecated: html`
+		<d2l-tabs>
+			<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
+			<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs>
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const hiddenFixture = html`
+	<d2l-tabs>
+		<d2l-tab id="all" text="All" slot="tabs" hidden></d2l-tab>
+		<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+		<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+		<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+		<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+		<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+	</d2l-tabs>
+`;
+
+const allHiddenFixture = html`
+	<d2l-tabs>
+		<d2l-tab id="all" text="All" slot="tabs" hidden></d2l-tab>
+		<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+		<d2l-tab id="biology" text="Biology" slot="tabs" hidden></d2l-tab>
+		<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+		<d2l-tab id="chemistry" text="Chemistry" slot="tabs" hidden></d2l-tab>
+		<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+	</d2l-tabs>
+`;
+
+const panelSelectedFixture = {
+	deprecated: html`
+		<d2l-tabs>
+			<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
+			<d2l-tab-panel text="Biology" selected>Tab content for Biology</d2l-tab-panel>
+			<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs>
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const oneTabFixture = {
+	deprecated: html`
+		<d2l-tabs>
+			<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs>
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const skeletonSetOnEachTabFixture = {
+	paired: html`
+		<d2l-tabs skeleton>
+			<d2l-tab id="all" text="All" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" text="Biology" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab id="physics" text="Physics" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="physics" slot="panels">Tab content for Physics</d2l-tab-panel>
+			<d2l-tab id="chemistry" text="Chemistry" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const skeletonSetOnEachTabNoTextFixture = {
+	paired: html`
+		<d2l-tabs skeleton>
+			<d2l-tab id="all" text="All" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab id="physics" text="Physics" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="physics" slot="panels">Tab content for Physics</d2l-tab-panel>
+			<d2l-tab id="chemistry" text="Chemistry" slot="tabs" skeleton></d2l-tab>
+			<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const ellipsisFixture = {
+	deprecated: html`
+		<d2l-tabs>
+			<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
+			<d2l-tab-panel text="Earth &amp; Planetary Sciences" selected>Tab content for Earth &amp; Planetary Sciences</d2l-tab-panel>
+			<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs>
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="earth" text="Earth &amp; Planetary Sciences" slot="tabs" selected></d2l-tab>
+			<d2l-tab-panel labelled-by="earth" slot="panels">Tab content for Earth &amp; Planetary Sciences</d2l-tab-panel>
+			<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const actionSlotBasicFixture = {
+	deprecated: html`
+		<d2l-tabs>
+			<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
+			<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
+			<d2l-button slot="ext">Search</d2l-button>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs>
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+			<d2l-button slot="ext">Search</d2l-button>
+		</d2l-tabs>
+	`
+};
+
+const actionSlotOverflowFixture = {
+	deprecated: html`
+		<d2l-tabs>
+			<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
+			<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+			<d2l-button slot="ext">Search</d2l-button>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs>
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+			<d2l-button slot="ext">Search</d2l-button>
+		</d2l-tabs>
+	`
+};
+
+const noPaddingFixture = {
+	deprecated: html`
+		<d2l-tabs>
+			<d2l-tab-panel text="All" no-padding style="background-color: orange;">Tab content for All</d2l-tab-panel>
+			<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs>
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels" no-padding style="background-color: orange;">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const maxToShowFixture = {
+	deprecated: html`
+		<d2l-tabs max-to-show="2">
+			<d2l-tab-panel text="All">Tab content for All</d2l-tab-panel>
+			<d2l-tab-panel text="Biology" selected>Tab content for Biology</d2l-tab-panel>
+			<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`,
+	paired: html`
+		<d2l-tabs max-to-show="2">
+			<d2l-tab id="all" text="All" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+			<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+			<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+			<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+			<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+		</d2l-tabs>
+	`
+};
+
+const getMaxWidthFixture = (firstTabText) => {
+	return html`
+			<d2l-tabs>
+				<d2l-tab id="beforelong" text="${firstTabText}" slot="tabs">
+					<d2l-icon icon="tier1:gear" slot="before"></d2l-icon>
+				</d2l-tab>
+				<d2l-tab id="beforeafter" text="All" slot="tabs">
+					<d2l-count-badge number="5" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+					<d2l-count-badge number="10" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="afterlong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs">
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="beforeshort" text="All" slot="tabs">
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="aftershort" text="All" slot="tabs">
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab-panel labelled-by="beforelong" slot="panels">Tab content for All</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="afterlong" slot="panels">Tab content for Biology</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="beforeshort" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="aftershort" slot="panels">Tab content for Physics</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="beforeafter" slot="panels">Tab content for Trig</d2l-tab-panel>
+			</d2l-tabs>
+		`;
+};
+
+async function waitForScrollNext(elem) {
+	const scrollNext = elem.shadowRoot.querySelector('.d2l-tabs-scroll-next-container');
+	await waitUntil(() => getComputedStyle(scrollNext).display !== 'none', { timeout: 2000 });
+	await nextFrame();
+}
+
+async function waitForScrollPrev(elem) {
+	const scrollPrev = elem.shadowRoot.querySelector('.d2l-tabs-scroll-previous-container');
+	await waitUntil(() => getComputedStyle(scrollPrev).display !== 'none', { timeout: 2000 });
+	await nextFrame();
+}
+
+const viewport = { width: 376 };
+const useFixture = 'paired';
+
+describe('d2l-tabs', () => {
+
+	describe('basic', () => {
+
+		it('no panel selected', async() => {
+			const elem = await fixture(noPanelSelectedFixture[useFixture], { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('panel selected', async() => {
+			const elem = await fixture(panelSelectedFixture[useFixture], { viewport });
+			await expect(elem).to.be.golden({ allColorModes: true });
+		});
+
+		it('one tab', async() => {
+			const elem = await fixture(oneTabFixture[useFixture], { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('skeleton', async() => {
+			const elem = await fixture(skeletonSetOnEachTabFixture[useFixture], { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('skeleton no text', async() => {
+			const elem = await fixture(skeletonSetOnEachTabNoTextFixture[useFixture], { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('ellipsis', async() => {
+			const elem = await fixture(ellipsisFixture[useFixture], { viewport });
+			await waitForScrollNext(elem);
+			await expect(elem).to.be.golden();
+		});
+
+		it('non-selected tab focus', async() => {
+			const elem = await fixture(noPanelSelectedFixture[useFixture], { viewport });
+			await sendKeysElem(elem, 'press', 'ArrowRight');
+			await expect(elem).to.be.golden({ allColorModes: true });
+		});
+
+		it('selected tab focus', async() => {
+			const elem = await fixture(panelSelectedFixture[useFixture], { viewport });
+			await focusElem(elem);
+			await expect(elem).to.be.golden({ allColorModes: true });
+		});
+
+		it('action slot', async() => {
+			const elem = await fixture(actionSlotBasicFixture[useFixture], { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('no padding', async() => {
+			const elem = await fixture(noPaddingFixture[useFixture], { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('hidden tab', async() => {
+			const elem = await fixture(hiddenFixture, { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('unhide hidden tab', async() => {
+			const elem = await fixture(hiddenFixture, { viewport });
+			const hiddenTab = elem.querySelector('d2l-tab[hidden]');
+			hiddenTab.hidden = false;
+			await nextFrame();
+			await expect(elem).to.be.golden();
+		});
+
+		it('hide another tab', async() => {
+			const elem = await fixture(hiddenFixture, { viewport });
+			const visibleTab = elem.querySelector('d2l-tab:not([hidden])');
+			visibleTab.hidden = true;
+			await nextFrame();
+			await expect(elem).to.be.golden();
+		});
+
+		it('all tabs hidden', async() => {
+			const elem = await fixture(allHiddenFixture, { viewport });
+			await expect(elem).to.be.golden();
+		});
+
+		it('unhide all tabs', async() => {
+			const elem = await fixture(allHiddenFixture, { viewport });
+			elem.querySelectorAll('d2l-tab').forEach((tab) => {
+				tab.hidden = false;
+			});
+			await nextFrame();
+			await expect(elem).to.be.golden();
+		});
+
+		it('clicked with state managed by consumer', async() => {
+			const elem = await fixture(panelSelectedFixture[useFixture], { viewport });
+			elem.addEventListener('d2l-tab-before-selected', (e) => {
+				e.preventDefault();
+			});
+			await clickElem(elem.querySelector('d2l-tab'));
+			await hoverElem(elem.querySelectorAll('d2l-tab')[1]); // to avoid hover on clicked elem interfering with the styles we want to test
+			await expect(elem).to.be.golden();
+		});
+
+		it('clicked with state managed by consumer then selected', async() => {
+			const elem = await fixture(panelSelectedFixture[useFixture], { viewport });
+			elem.addEventListener('d2l-tab-before-selected', (e) => {
+				e.preventDefault();
+				e.detail.select();
+			});
+			await clickElem(elem.querySelector('d2l-tab'));
+			await expect(elem).to.be.golden();
+		});
+
+		it('clicked with state managed by consumer then reset', async() => {
+			const elem = await fixture(panelSelectedFixture[useFixture], { viewport });
+			elem.addEventListener('d2l-tab-before-selected', (e) => {
+				e.preventDefault();
+				e.detail.reset();
+			});
+			await clickElem(elem.querySelector('d2l-tab'));
+			await hoverElem(elem.querySelectorAll('d2l-tab')[1]); // to avoid hover on clicked elem interfering with the styles we want to test
+			await expect(elem).to.be.golden();
+		});
+
+		it('shrinks if tabs container\'s width is less than 615px', async() => {
+			const elem = await fixture(getMaxWidthFixture('Long Panel Text That Will Also Have Slot Content'), { viewport: { width: 514 } });
+			await waitForScrollNext(elem);
+			await expect(elem).to.be.golden();
+		});
+
+		it('shows the ellipsis if the tab text and slot content exceed the max width', async() => {
+			const elem = await fixture(getMaxWidthFixture('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt'));
+			await waitForScrollNext(elem);
+			await expect(elem).to.be.golden();
+		});
+
+		it('does not expand the tab width beyond 20rem when reached on a viewport with enough space to expand all over', async() => {
+			const elem = await fixture(getMaxWidthFixture('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt'), { viewport: { width: 1300 } });
+			await expect(elem).to.be.golden();
+		});
+	});
+
+	describe('overflow', () => {
+
+		const nextFixture = {
+			deprecated: html`
+				<d2l-tabs>
+					<d2l-tab-panel text="All Courses">Tab content for All</d2l-tab-panel>
+					<d2l-tab-panel text="Biology" selected>Tab content for Biology</d2l-tab-panel>
+					<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+					<d2l-tab-panel text="Geology">Tab content for Geology</d2l-tab-panel>
+				</d2l-tabs>
+			`,
+			paired: html`
+				<d2l-tabs>
+					<d2l-tab id="all" text="All Courses" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+					<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+					<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+					<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+					<d2l-tab id="geology" text="Geology" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="geology" slot="panels">Tab content for Geology</d2l-tab-panel>
+				</d2l-tabs>
+			`
+		};
+		const previousFixture = {
+			deprecated: html`
+				<d2l-tabs>
+					<d2l-tab-panel text="All Courses">Tab content for All</d2l-tab-panel>
+					<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
+					<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+					<d2l-tab-panel text="Geology" selected>Tab content for Geology</d2l-tab-panel>
+				</d2l-tabs>
+			`,
+			paired: html`
+				<d2l-tabs>
+					<d2l-tab id="all" text="All Courses" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+					<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+					<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+					<d2l-tab id="geology" text="Geology" slot="tabs" selected></d2l-tab>
+					<d2l-tab-panel labelled-by="geology" slot="panels">Tab content for Geology</d2l-tab-panel>
+				</d2l-tabs>
+			`
+		};
+
+		['ltr', 'rtl'].forEach((dir) => {
+
+			const rtl = dir === 'rtl';
+
+			describe(dir, () => {
+
+				it('scroll next', async() => {
+					const elem = await fixture(nextFixture[useFixture], { viewport, rtl });
+					await waitForScrollNext(elem);
+					await expect(elem).to.be.golden({ allColorModes: !rtl });
+				});
+
+				it('scrolls next on click', async() => {
+					const elem = await fixture(nextFixture[useFixture], { viewport, rtl });
+					await waitForScrollNext(elem);
+					await clickElem(elem.shadowRoot.querySelector('.d2l-tabs-scroll-next-container button'));
+					await expect(elem).to.be.golden();
+				});
+
+				it('scroll previous', async() => {
+					const elem = await fixture(previousFixture[useFixture], { viewport, rtl });
+					await waitForScrollPrev(elem);
+					await expect(elem).to.be.golden();
+				});
+
+				it('scrolls previous on click', async() => {
+					const elem = await fixture(previousFixture[useFixture], { viewport, rtl });
+					await waitForScrollPrev(elem);
+					await clickElem(elem.shadowRoot.querySelector('.d2l-tabs-scroll-previous-container button'));
+					await expect(elem).to.be.golden();
+				});
+
+				it('action slot', async() => {
+					const elem = await fixture(actionSlotOverflowFixture[useFixture], { viewport, rtl });
+					await waitForScrollNext(elem);
+					await expect(elem).to.be.golden();
+				});
+
+				it('focus next', async() => {
+					const elem = await fixture(nextFixture[useFixture], { viewport, rtl });
+					await waitForScrollNext(elem);
+					await focusElem(elem.shadowRoot.querySelector('.d2l-tabs-scroll-next-container button'));
+					await expect(elem).to.be.golden({ allColorModes: !rtl });
+				});
+
+				it('focus previous', async() => {
+					const elem = await fixture(previousFixture[useFixture], { viewport, rtl });
+					await waitForScrollPrev(elem);
+					await focusElem(elem.shadowRoot.querySelector('.d2l-tabs-scroll-previous-container button'));
+					await expect(elem).to.be.golden();
+				});
+			});
+
+		});
+
+	});
+
+	describe('max-to-show', () => {
+
+		let elem;
+		beforeEach(async() => {
+			elem = await fixture(maxToShowFixture[useFixture], { viewport });
+		});
+
+		it('initial', async() => {
+			await waitForScrollNext(elem);
+			await expect(elem).to.be.golden();
+		});
+
+		it('expands on focus to overflow', async() => {
+			await sendKeysElem(elem, 'press', 'ArrowRight');
+			await expect(elem).to.be.golden();
+		});
+
+		it('expands on scroll next click', async() => {
+			await clickElem(elem.shadowRoot.querySelector('.d2l-tabs-scroll-next-container button'));
+			await expect(elem).to.be.golden();
+		});
+
+	});
+
+	describe('keyboard', () => {
+
+		const keyboardFixture = {
+			deprecated: html`
+				<d2l-tabs>
+					<d2l-tab-panel text="All Courses">Tab content for All</d2l-tab-panel>
+					<d2l-tab-panel text="Biology" selected>Tab content for Biology</d2l-tab-panel>
+					<d2l-tab-panel text="Chemistry">Tab content for Chemistry</d2l-tab-panel>
+				</d2l-tabs>
+			`,
+			paired: html`
+				<d2l-tabs>
+					<d2l-tab id="all" text="All Courses" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+					<d2l-tab id="biology" text="Biology" slot="tabs" selected></d2l-tab>
+					<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+					<d2l-tab id="chemistry" text="Chemistry" slot="tabs"></d2l-tab>
+					<d2l-tab-panel labelled-by="chemistry" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+				</d2l-tabs>
+			`
+		};
+
+		it('focuses next on right arrow', async() => {
+			const elem = await fixture(keyboardFixture[useFixture], { viewport });
+			await sendKeysElem(elem, 'press', 'ArrowRight');
+			await expect(elem).to.be.golden();
+		});
+
+		it('focuses previous on left arrow', async() => {
+			const elem = await fixture(keyboardFixture[useFixture], { viewport });
+			await sendKeysElem(elem, 'press', 'ArrowLeft');
+			await expect(elem).to.be.golden();
+		});
+
+		it('focuses first on right arrow from last', async() => {
+			const elem = await fixture(keyboardFixture[useFixture], { viewport });
+			await sendKeysElem(elem, 'press', 'ArrowRight+ArrowRight');
+			await expect(elem).to.be.golden();
+		});
+
+		it('focuses last on left arrow from first', async() => {
+			const elem = await fixture(keyboardFixture[useFixture], { viewport });
+			await sendKeysElem(elem, 'press', 'ArrowLeft+ArrowLeft');
+			await expect(elem).to.be.golden();
+		});
+
+		['Space', 'Enter'].forEach((key) => {
+			const keyboardSelectionFixture = {
+				deprecated: html`
+					<d2l-tabs>
+						<d2l-tab-panel text="All Courses">Tab content for All</d2l-tab-panel>
+						<d2l-tab-panel text="Biology">Tab content for Biology</d2l-tab-panel>
+					</d2l-tabs>
+				`,
+				paired: html`
+					<d2l-tabs>
+						<d2l-tab id="all" text="All Courses" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="all" slot="panels">Tab content for All</d2l-tab-panel>
+						<d2l-tab id="biology" text="Biology" slot="tabs"></d2l-tab>
+						<d2l-tab-panel labelled-by="biology" slot="panels">Tab content for Biology</d2l-tab-panel>
+					</d2l-tabs>
+				`
+			};
+			it(`selects on ${key}`, async() => {
+				const elem = await fixture(keyboardSelectionFixture[useFixture], { viewport });
+				await sendKeysElem(elem, 'press', `ArrowRight+${key}`);
+				await expect(elem).to.be.golden();
+			});
+		});
+
+	});
+
+	describe('slots', () => {
+		if (useFixture === 'default') return;
+
+		const slotsFixture = html`
+			<d2l-tabs>
+				<d2l-tab id="beforelong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs">
+					<d2l-icon icon="tier1:gear" slot="before"></d2l-icon>
+				</d2l-tab>
+				<d2l-tab id="beforeafter" text="All" slot="tabs">
+					<d2l-count-badge number="5" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+					<d2l-count-badge number="10" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="afterlong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs">
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="beforeshort" text="All" slot="tabs">
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="aftershort" text="All" slot="tabs">
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab-panel labelled-by="beforelong" slot="panels">Tab content for All</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="afterlong" slot="panels">Tab content for Biology</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="beforeshort" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="aftershort" slot="panels">Tab content for Physics</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="beforeafter" slot="panels">Tab content for Trig</d2l-tab-panel>
+			</d2l-tabs>
+		`;
+
+		const slotsMultipleFixture = html`
+			<d2l-tabs>
+				<d2l-tab id="beforeMultiple" text="Tab Text 1" slot="tabs">
+					<d2l-icon icon="tier1:gear" slot="before"></d2l-icon>
+					<d2l-icon icon="tier1:alert" slot="before"></d2l-icon>
+				</d2l-tab>
+				<d2l-tab id="afterMultiple" text="Tab Text 2" slot="tabs">
+					<d2l-icon icon="tier1:gear" slot="after"></d2l-icon>
+					<d2l-icon icon="tier1:alert" slot="after"></d2l-icon>
+				</d2l-tab>
+				<d2l-tab id="bothMultiple" text="Tab Text 3" slot="tabs">
+					<d2l-icon icon="tier1:gear" slot="before"></d2l-icon>
+					<d2l-icon icon="tier1:alert" slot="before"></d2l-icon>
+					<d2l-icon icon="tier1:gear" slot="after"></d2l-icon>
+					<d2l-icon icon="tier1:alert" slot="after"></d2l-icon>
+				</d2l-tab>
+				<d2l-tab id="wrongOrderMultiple" text="Tab Text 4" slot="tabs">
+					<d2l-icon icon="tier1:gear" slot="after"></d2l-icon>
+					<d2l-icon icon="tier1:alert" slot="after"></d2l-icon>
+					<d2l-icon icon="tier1:gear" slot="before"></d2l-icon>
+					<d2l-icon icon="tier1:alert" slot="before"></d2l-icon>
+				</d2l-tab>
+				<d2l-tab id="incorrectContent" text="Tab Text 5" slot="tabs">
+					<d2l-button slot="before">Button Text</d2l-button>
+					<d2l-button slot="after">Button Text 2</d2l-button>
+				</d2l-tab>
+				<d2l-tab-panel labelled-by="beforeMultiple" slot="panels">Tab content for Tab</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="afterMultiple" slot="panels">Tab content for Tab</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="bothMultiple" slot="panels">Tab content for Tab</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="wrongOrderMultiple" slot="panels">Tab content for Tab</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="incorrectContent" slot="panels">Tab content for Tab</d2l-tab-panel>
+			</d2l-tabs>
+		`;
+
+		/* Tests that use this are in jail.
+		const slotsSkeletonFixture = html`
+			<d2l-tabs skeleton>
+				<d2l-tab id="beforelong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs" skeleton>
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="beforeafter" text="All" slot="tabs" skeleton>
+					<d2l-count-badge number="5" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+					<d2l-count-badge number="10" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="afterlong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs" skeleton>
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="beforeshort" text="All" slot="tabs" skeleton>
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="aftershort" text="All" slot="tabs" skeleton>
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab-panel labelled-by="beforelong" slot="panels">Tab content for All</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="afterlong" slot="panels">Tab content for Biology</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="beforeshort" slot="panels">Tab content for Chemistry</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="aftershort" slot="panels">Tab content for Physics</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="beforeafter" slot="panels">Tab content for Trig</d2l-tab-panel>
+			</d2l-tabs>
+		`;
+		*/
+
+		const slotsSkeletonNoTextFixture = html`
+			<d2l-tabs skeleton>
+				<d2l-tab id="beforelong" text="Long Panel Text That Will Also Have Slot Content" slot="tabs" skeleton>
+					<d2l-count-badge number="100" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab id="beforeafter" slot="tabs" skeleton>
+					<d2l-count-badge number="5" size="small" text="100 new notifications" type="notification" slot="before"></d2l-count-badge>
+					<d2l-count-badge number="10" size="small" text="100 new notifications" type="notification" slot="after"></d2l-count-badge>
+				</d2l-tab>
+				<d2l-tab-panel labelled-by="beforelong" slot="panels">Tab content for All</d2l-tab-panel>
+				<d2l-tab-panel labelled-by="beforeafter" slot="panels">Tab content for Trig</d2l-tab-panel>
+			</d2l-tabs>
+		`;
+
+		it('default', async() => {
+			const elem = await fixture(slotsFixture);
+			await waitForScrollNext(elem);
+			await expect(elem).to.be.golden();
+		});
+
+		it('focus', async() => {
+			const elem = await fixture(slotsFixture);
+			await waitForScrollNext(elem);
+			await focusElem(elem);
+			await expect(elem).to.be.golden();
+		});
+
+		it('focus both slots', async() => {
+			const elem = await fixture(slotsFixture);
+			await waitForScrollNext(elem);
+			await sendKeysElem(elem, 'press', 'ArrowRight');
+			await expect(elem).to.be.golden();
+		});
+
+		/* This test is in jail because it's been bad.
+		it('hover with icon when selected', async() => {
+			const elem = await fixture(slotsFixture);
+			await waitForScrollNext(elem);
+			const listitem = elem.querySelector('d2l-tab');
+			await hoverElem(listitem);
+			await expect(elem).to.be.golden();
+		});
+		*/
+
+		/* This test is in jail because it's been bad.
+		it('hover with icon when not selected', async() => {
+			const elem = await fixture(slotsFixture);
+			elem.querySelectorAll('d2l-tab')[1].selected = true;
+			await elem.updateComplete;
+			const listitem = elem.querySelector('d2l-tab');
+			await hoverElem(listitem);
+			await expect(elem).to.be.golden();
+		});
+		*/
+
+		/* This test is in jail because it's been bad.
+		it('skeleton', async() => {
+			const elem = await fixture(slotsSkeletonFixture);
+			await waitForScrollNext(elem);
+			await expect(elem).to.be.golden();
+		});
+		*/
+
+		it('skeleton no text', async() => {
+			const elem = await fixture(slotsSkeletonNoTextFixture);
+			await expect(elem).to.be.golden();
+		});
+
+		it('handles multiples correctly', async() => {
+			const elem = await fixture(slotsMultipleFixture);
+			await expect(elem).to.be.golden();
+		});
+	});
+
+});
